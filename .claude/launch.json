@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "codify",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["dev-server.mjs", "5179"],
+      "port": 5179
+    }
+  ]
+}

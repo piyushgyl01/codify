@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<meta name="theme-color" content="#0A0D14">
+<meta name="description" content="Codify — an engineering RPG. Deliberate practice, spaced retests, and an honest measure of what you actually retained.">
+<meta name="color-scheme" content="dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Codify">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Codify — Engineering RPG</title>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234AE58C' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'><path d='m8 6-5 6 5 6M16 6l5 6-5 6'/></svg>">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/views.css">
+
+<div id="app">
+  <div id="chrome"></div>
+  <div id="view"></div>
+  <nav class="nav hide" id="nav" aria-label="Sections"></nav>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="layers"></div>
+</div>
+
+<noscript>
+  <p style="padding:32px;font-family:system-ui;color:#E7ECF5;background:#0A0D14">
+    Codify needs JavaScript — the whole app runs in your browser.
+  </p>
+</noscript>
+
+<script type="module" src="js/main.js"></script>

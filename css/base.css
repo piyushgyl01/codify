@@ -1,0 +1,197 @@
+/**
+ * Tokens, reset and the app shell.
+ *
+ * The look is a dark editor: near-black canvas, thin cool-grey rules, one
+ * saturated accent that the theme swaps, and monospace for every number. Numbers
+ * are the point of this app, so they get a font where a 1 and a 7 cannot be
+ * confused and columns line up without effort.
+ *
+ * There are no web fonts. The app has to boot with no network at all, and a
+ * font request that fails leaves type reflowing on the one screen someone opens
+ * every single day.
+ */
+
+:root {
+  /* Surfaces, darkest first. Panels sit on canvas; sunk is for wells and inputs. */
+  --canvas: #0A0D14;
+  --sunk:   #0E121C;
+  --panel:  #141A27;
+  --raised: #1B2333;
+  --line:   #232C3E;
+  --line-soft: #1A2130;
+
+  /* Type */
+  --ink:  #E7ECF5;
+  --dim:  #8B95A9;
+  --faint:#5C6779;
+
+  /* The accent is swapped by the theme; everything else stays put. */
+  --accent: #4AE58C;
+  --accent-ink: #06120B;
+
+  /* Fixed semantic colours. These never move with the theme, because a chart
+     that changes meaning when you change skin is a chart you cannot read. */
+  --good:  #4AE58C;
+  --warn:  #F0B849;
+  --bad:   #FF6B6B;
+  --info:  #58B4FF;
+  --violet:#A78BFA;
+  --pink:  #F472B6;
+  --teal:  #2DD4BF;
+
+  /* Practice modes. Used by charts, badges and the tree alike, so they are
+     defined once here rather than per component. */
+  --mode-build: #4AE58C;
+  --mode-drill: #58B4FF;
+  --mode-read:  #F0B849;
+  --mode-watch: #FF6B6B;
+
+  /* 4px spacing scale, one gutter shared by topbar, views and nav so every
+     content edge on the page lines up. */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s5: 24px; --s6: 32px; --s7: 48px;
+  --gut: 16px;
+
+  --r-s: 6px;
+  --r-m: 10px;
+  --r-l: 14px;
+
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, system-ui, sans-serif;
+
+  --topbar-h: 60px;
+  --nav-h: 62px;
+}
+
+@media (min-width: 560px) { :root { --gut: 24px; } }
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* Controls should never offer the WebView's text-selection menu — a long press
+   on a button is a mis-hit, not an attempt to copy the label. */
+button, .pill, .tile, .seg b, .nav button { -webkit-user-select: none; user-select: none; }
+
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+a { color: var(--accent); }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-s);
+}
+
+/* --------------------------------- shell --------------------------------- */
+
+#app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  /* clip, not hidden: a hidden container is still scrollable, and focusing an
+     input near the bottom scrolls the nav bar off-screen on mobile. */
+  overflow: clip;
+  max-width: 620px;
+  margin: 0 auto;
+  background: var(--canvas);
+}
+
+@media (min-width: 640px) {
+  #app { border-left: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft); }
+}
+
+#chrome {
+  flex: none;
+  background: var(--canvas);
+  border-bottom: 1px solid var(--line-soft);
+  padding-top: env(safe-area-inset-top);
+  z-index: 3;
+}
+
+#view {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--s4) var(--gut) calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s5));
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+#view::-webkit-scrollbar { width: 6px; }
+#view::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+
+#fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+}
+
+/* -------------------------------- typography ------------------------------ */
+
+.h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+.h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+.h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
+.sub { font-size: 13px; color: var(--dim); }
+.tiny { font-size: 11px; color: var(--faint); }
+
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.mono { font-family: var(--mono); }
+
+.label {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grow { flex: 1; min-width: 0; }
+.center { text-align: center; }
+.right { text-align: right; }
+
+/* --------------------------------- layout -------------------------------- */
+
+.stack   { display: flex; flex-direction: column; gap: var(--s3); }
+.stack.s2{ gap: var(--s2); }
+.stack.s4{ gap: var(--s4); }
+.row     { display: flex; align-items: center; gap: var(--s3); }
+.between { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.wrap    { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.grid2   { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.grid3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+
+.section { margin-top: var(--s5); }
+.section > .label { margin-bottom: var(--s2); }
+
+.hide { display: none !important; }
+
+hr.rule { border: 0; border-top: 1px solid var(--line-soft); margin: var(--s4) 0; }
+
+/* --------------------------------- motion -------------------------------- */
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes pop     { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
+@keyframes sweep   { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+.fade-up { animation: fade-up .22s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+  #view { scroll-behavior: auto; }
+}

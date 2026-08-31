@@ -1,0 +1,462 @@
+/** Cards, controls, bars, the nav, sheets, toasts. */
+
+/* --------------------------------- cards --------------------------------- */
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-m);
+  padding: var(--s4);
+}
+.card.sunk    { background: var(--sunk); }
+.card.raised  { background: var(--raised); }
+.card.pad-s   { padding: var(--s3); }
+.card.flush   { padding: 0; overflow: hidden; }
+.card.tap     { width: 100%; text-align: left; display: block; }
+.card.tap:active { transform: scale(.995); }
+
+/* A 2px accent rail on the left, coloured per category. Cheaper to read at a
+   glance than a coloured heading, and it survives being greyed out. */
+.card.rail { border-left: 2px solid var(--rail, var(--accent)); }
+
+.card-hd { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); margin-bottom: var(--s3); }
+
+/* -------------------------------- buttons -------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  min-height: 42px;
+  padding: 0 var(--s4);
+  border-radius: var(--r-s);
+  border: 1px solid var(--line);
+  background: var(--raised);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform .06s ease, background .12s ease, border-color .12s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: .4; pointer-events: none; }
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.btn.hot   { background: var(--bad); border-color: var(--bad); color: #140606; font-weight: 700; }
+.btn.ghost { background: transparent; color: var(--dim); }
+.btn.ghost:active { background: var(--raised); }
+.btn.block { display: flex; width: 100%; }
+.btn.sm    { min-height: 34px; padding: 0 var(--s3); font-size: 13px; }
+.btn.xs    { min-height: 28px; padding: 0 10px; font-size: 12px; border-radius: var(--r-s); }
+
+/* --------------------------- pills & segmented --------------------------- */
+
+.pill-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 var(--s3);
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  color: var(--dim);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background .12s ease, color .12s ease, border-color .12s ease;
+}
+.pill.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.pill:active { transform: translateY(1px); }
+
+/* Scrolls sideways rather than wrapping to three rows on a narrow phone. */
+.pill-scroll {
+  display: flex;
+  gap: var(--s2);
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  margin: 0 calc(var(--gut) * -1);
+  padding-inline: var(--gut);
+}
+.pill-scroll::-webkit-scrollbar { display: none; }
+
+.seg {
+  display: flex;
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  padding: 3px;
+  gap: 3px;
+}
+.seg button {
+  flex: 1;
+  min-height: 32px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.seg button.on { background: var(--raised); color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* -------------------------------- badges --------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--sunk);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.badge.solid { border-color: transparent; color: var(--accent-ink); background: var(--accent); }
+.badge.good  { color: var(--good); border-color: color-mix(in srgb, var(--good) 40%, transparent); background: color-mix(in srgb, var(--good) 12%, transparent); }
+.badge.warn  { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, transparent); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.badge.bad   { color: var(--bad);  border-color: color-mix(in srgb, var(--bad) 40%, transparent);  background: color-mix(in srgb, var(--bad) 12%, transparent); }
+.badge.info  { color: var(--info); border-color: color-mix(in srgb, var(--info) 40%, transparent); background: color-mix(in srgb, var(--info) 12%, transparent); }
+
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
+
+/* --------------------------------- bars ---------------------------------- */
+
+.bar {
+  position: relative;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--sunk);
+  border: 1px solid var(--line-soft);
+  overflow: hidden;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width .35s cubic-bezier(.2,.8,.2,1);
+}
+.bar.tall { height: 12px; }
+
+/* A target notch drawn on top of a bar — "where you were aiming" is more use
+   than a number printed beside it. */
+.bar > .tick {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--ink);
+  opacity: .65;
+}
+
+/* Multi-segment bar: practice modes, macro-style splits. */
+.split { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--sunk); border: 1px solid var(--line-soft); }
+.split > i { display: block; height: 100%; }
+
+/* --------------------------------- tiles --------------------------------- */
+
+.tile {
+  background: var(--sunk);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-s);
+  padding: var(--s3);
+  min-width: 0;
+}
+.tile .v { font-family: var(--mono); font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
+.tile .k { font-size: 11px; color: var(--faint); margin-top: 2px; text-transform: uppercase; letter-spacing: .08em; font-family: var(--mono); }
+
+/* --------------------------------- forms --------------------------------- */
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label { font-size: 12px; color: var(--dim); font-weight: 600; }
+
+.input, select.input, textarea.input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px var(--s3);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  color: var(--ink);
+  font-size: 15px;
+  appearance: none;
+}
+.input::placeholder { color: var(--faint); }
+.input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.input.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+textarea.input { min-height: 84px; resize: vertical; line-height: 1.5; }
+
+select.input {
+  background-image: linear-gradient(45deg, transparent 50%, var(--dim) 50%), linear-gradient(135deg, var(--dim) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 34px;
+}
+
+/* Stepper: a number with -/+ on either side. Typing a number on a phone opens a
+   keypad over the sheet you are trying to read, so most edits should not need it. */
+.stepper { display: flex; align-items: stretch; gap: var(--s2); }
+.stepper .input { text-align: center; font-size: 22px; font-weight: 700; }
+.stepper button {
+  width: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-s);
+  background: var(--raised);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.stepper button:active { background: var(--panel); }
+
+/* -------------------------------- topbar --------------------------------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  height: var(--topbar-h);
+  padding: 0 var(--gut);
+}
+
+.avatar {
+  position: relative;
+  width: 38px; height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-s);
+  background: var(--raised);
+  border: 1px solid var(--line);
+  font-size: 18px;
+}
+.avatar .lvl {
+  position: absolute;
+  right: -5px; bottom: -5px;
+  min-width: 19px; height: 19px;
+  padding: 0 3px;
+  display: grid; place-items: center;
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  border: 2px solid var(--canvas);
+}
+
+.chip-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  border-radius: var(--r-s);
+  background: var(--sunk);
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--dim);
+}
+.chip-stat.live { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+
+.topbar-xp { height: 2px; background: var(--line-soft); }
+.topbar-xp > i { display: block; height: 100%; background: var(--accent); transition: width .4s ease; }
+
+/* ---------------------------------- nav ---------------------------------- */
+
+.nav {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  background: color-mix(in srgb, var(--canvas) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  z-index: 5;
+  max-width: 620px;
+  margin: 0 auto;
+}
+.nav button {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.nav button .ico { display: grid; place-items: center; height: 22px; }
+.nav button.on { color: var(--accent); }
+.nav .nav-dot {
+  position: absolute;
+  top: 8px; left: 50%;
+  margin-left: 9px;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--bad);
+  border: 1.5px solid var(--canvas);
+}
+
+/* --------------------------- sheets and dialogs --------------------------- */
+
+#layers { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
+#layers > * { pointer-events: auto; }
+
+.scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(4, 6, 11, .68);
+  backdrop-filter: blur(2px);
+  display: flex;
+  animation: fade-in .16s ease both;
+}
+@keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+
+.scrim.bottom { align-items: flex-end; }
+.scrim.centre { align-items: center; justify-content: center; padding: var(--gut); }
+
+.sheet {
+  width: 100%;
+  max-height: 88%;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-bottom: 0;
+  border-radius: var(--r-l) var(--r-l) 0 0;
+  animation: sheet-up .24s cubic-bezier(.2,.9,.25,1) both;
+}
+@keyframes sheet-up { from { transform: translateY(14px); opacity: .4 } to { transform: none; opacity: 1 } }
+
+.sheet-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s4) var(--s4) var(--s3);
+  border-bottom: 1px solid var(--line-soft);
+  flex: none;
+}
+.sheet-hd .x {
+  width: 30px; height: 30px;
+  display: grid; place-items: center;
+  border-radius: var(--r-s);
+  background: var(--raised);
+  color: var(--dim);
+  font-size: 16px;
+}
+.sheet-bd {
+  padding: var(--s4);
+  overflow-y: auto;
+  padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom));
+}
+
+.dialog {
+  width: 100%;
+  max-width: 380px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-l);
+  padding: var(--s5);
+  text-align: center;
+  animation: pop .2s cubic-bezier(.2,.9,.25,1) both;
+  max-height: 86%;
+  overflow-y: auto;
+}
+
+/* -------------------------------- toasts --------------------------------- */
+
+.toasts {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s3));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s2);
+  padding: 0 var(--gut);
+  pointer-events: none;
+  z-index: 50;
+}
+.toast {
+  max-width: 100%;
+  padding: 10px var(--s4);
+  border-radius: 999px;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0,0,0,.5);
+  font-size: 13.5px;
+  font-weight: 600;
+  animation: pop .18s ease both;
+}
+.toast b { color: var(--accent); }
+
+/* -------------------------------- floaters -------------------------------- */
+
+.floater {
+  position: absolute;
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 55;
+  animation: float-up .9s ease-out both;
+  text-shadow: 0 2px 12px rgba(0,0,0,.6);
+}
+@keyframes float-up {
+  from { transform: translate(-50%, 0); opacity: 1 }
+  to   { transform: translate(-50%, -54px); opacity: 0 }
+}
+
+/* --------------------------------- rings --------------------------------- */
+
+.ring-wrap { position: relative; display: grid; place-items: center; flex: none; }
+.ring-wrap .mid {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  line-height: 1.1;
+}
+.ring-wrap .mid .v { font-family: var(--mono); font-size: 26px; font-weight: 800; letter-spacing: -.03em; }
+.ring-wrap .mid .k { font-size: 10px; color: var(--faint); text-transform: uppercase; letter-spacing: .1em; font-family: var(--mono); margin-top: 2px; }
+
+/* ------------------------------- empty state ------------------------------ */
+
+.empty {
+  text-align: center;
+  padding: var(--s5) var(--s4);
+  color: var(--faint);
+  font-size: 13px;
+}
+.empty .big { font-size: 26px; margin-bottom: var(--s2); opacity: .55; }
+
+/* -------------------------------- skeleton -------------------------------- */
+
+.shimmer {
+  background: linear-gradient(90deg, var(--sunk) 25%, var(--raised) 50%, var(--sunk) 75%);
+  background-size: 200% 100%;
+  animation: sweep 1.4s linear infinite;
+  border-radius: var(--r-s);
+}

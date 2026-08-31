@@ -1,0 +1,12 @@
+{
+  "name": "codify",
+  "version": "1.0.0",
+  "description": "An engineering RPG. Deliberate practice, spaced retests, and an honest measure of what you actually retained. No build step, no backend, no account.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node dev-server.mjs",
+    "test": "node test/smoke.test.js",
+    "icons": "node tools/make-icons.mjs"
+  }
+}
