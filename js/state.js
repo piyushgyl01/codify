@@ -1,26 +1,28 @@
-/** The save file: persistence, selectors, mutations, and the bus the UI listens to. */
-import { NODES, nodeById, nodesOfPath, PATHS } from './data/skilltree.js';
+/**
+ * The save file.
+ *
+ * The important rule, and the reason this file was rewritten: the log records
+ * what you say, and the game pays only for what it can check.
+ *
+ * Verified sources are Codeforces solves and GitHub pushes, both read from
+ * public APIs that do not care what you typed here. Those award XP. Anything you
+ * enter by hand — a LeetCode problem, an hour of reading — is kept in the log
+ * because your record should be complete, but it is marked unverified and pays
+ * nothing. That is the difference between a tracker and a diary that flatters you.
+ *
+ * Solves and pushes are not copied into day records. They live in one list per
+ * platform and are bucketed by date when something needs them, so re-syncing is
+ * idempotent and cannot double-count.
+ */
+import { TOPICS, TIERS, PATHS, topicById, topicProgress, tierXp, tierCoins } from './data/skilltree.js';
 import { ACHIEVEMENTS } from './data/achievements.js';
 import { rollLoot, lootBonus } from './data/loot.js';
-import {
-  MODES, modeWeight, isDeliberate, effectiveMinutes,
-  problemReward, shipReward, PATTERNS, difficultyFor,
-} from './data/practice.js';
-import {
-  levelFromXp, targetsFor, dayKey, daysBetween, shiftDay,
-  dailyQuests, newlyEarned, totalsOf, predictedRetention,
-  nextRetestGap, freshnessFor, halfLifeDays,
-} from './game.js';
+import { levelFromXp, dayKey, daysBetween, newlyEarned, dailyQuests } from './game.js';
+import { contestById, settle, contestReward } from './data/contests.js';
 
 const SAVE_KEY = 'codify.save.v1';
 const BACKUP_KEY = 'codify.save.prior';
 
-/**
- * Accent themes. Free ones are always available; the rest cost credits.
- * `ink` is what sits on top of the accent — a mid-tone accent with white text on
- * it is the one place this palette can fail an eye test, so it is stated rather
- * than derived.
- */
 export const THEMES = [
   { id:'cobalt',    name:'Cobalt',    accent:'#2F6BFF', ink:'#FFFDF6', cost:0 },
   { id:'lemon',     name:'Lemon',     accent:'#FFD93D', ink:'#14120F', cost:0 },
@@ -38,8 +40,7 @@ export const themeFor = id => THEMES.find(t => t.id === id) || THEMES[0];
 export const ownsTheme = id => themeFor(id).cost === 0 || S.owned.includes(id);
 
 export function applyTheme() {
-  // Runs under the test suite too, where there is no document at all.
-  if (typeof document === 'undefined') return;
+  if (typeof document === 'undefined') return;      // the test suite has no DOM
   const t = themeFor(S.profile.theme);
   const root = document.documentElement;
   if (!root) return;
@@ -47,38 +48,33 @@ export function applyTheme() {
   root.style.setProperty('--accent-ink', t.ink);
 }
 
-const emptyDay = () => ({
-  focus: [], problems: [], ships: [], retests: [],
-  gauntlets: [],          // gauntlet attempt ids, for the quest metric
-  claimed: [],            // quest ids already banked
-  skillsClaimed: [],      // node ids mastered today
-});
+const emptyDay = () => ({ focus: [], notes: [], claimed: [] });
 
 const freshSave = () => ({
-  v: 1,
-  profile: {
-    name: '', theme: 'cobalt', track: 'generalist', goal: 'levelup',
-    hours: 2, onboarded: false, created: dayKey(),
-  },
+  v: 2,
+  profile: { name:'', theme:'cobalt', goal:'levelup', hours:2, onboarded:false, created:dayKey() },
   xp: 0, coins: 0,
-  streak: { current: 0, best: 0, lastActive: null, freezes: 1 },
-  days: {},
-  /* nodeId -> { date, minutes, passes, fails, lastProof, lastFailed, history:[] } */
-  skills: {},
-  earned: {},             // achievementId -> date
-  gauntlets: {},          // gauntletId -> { won, date, attempts, best }
-  owned: [],              // purchased theme ids
-  loot: {},               // lootId -> count
-  stats: {
-    sessions: 0, minutes: 0, effMinutes: 0, buildMinutes: 0,
-    problems: 0, solved: 0, solvedNoHint: 0, hardSolved: 0,
-    ships: 0, commits: 0, prs: 0, releases: 0, projects: 0,
-    drills: 0, gauntlets: 0, gauntletComebacks: 0,
-    retestsPassed: 0, retestsFailed: 0, clearedQueue: 0,
-    quests: 0, deliberateDays: 0, bestCombo: 0,
-    earlyBird: 0, nightOwl: 0, xpEarned: 0,
+  streak: { current:0, best:0, lastActive:null, freezes:1 },
+  days: {},                       // only what this app owns: timer sessions, notes, quests
+  platforms: {
+    cf: { handle:'', rating:null, rank:null, solved:[], syncedAt:0, error:'' },
+    gh: { user:'', avatar:null, pushes:[], syncedAt:0, error:'' },
   },
-  settings: { sound: true, reduceMotion: false },
+  /* What has already been paid for. Without this, every sync pays again. */
+  credited: { problems:{}, tiers:{}, pushes:{} },
+  /* The contest currently running, and the record of past attempts. */
+  active: null,                   // { id, startedAt, known: [problemKeys] }
+  contests: {},                   // id -> { won, attempts, best, date }
+  earned: {},
+  owned: [],
+  loot: {},
+  stats: {
+    solved:0, ratedSolved:0, bestRating:0, tiersCleared:0,
+    commits:0, pushes:0,
+    focusMinutes:0, verifiedMinutes:0, sessions:0,
+    quests:0, xpEarned:0, contestsWon:0, contestsRun:0,
+  },
+  settings: { sound:true, reduceMotion:false },
 });
 
 /* ------------------------------ persistence ------------------------------ */
@@ -89,14 +85,18 @@ function load() {
     if (!raw) return freshSave();
     const parsed = JSON.parse(raw);
     const base = freshSave();
-    // Merge onto a fresh save so a file written by an older build gains any
-    // fields added since, rather than loading with holes in it.
     return {
       ...base, ...parsed,
-      profile:  { ...base.profile,  ...(parsed.profile  || {}) },
-      streak:   { ...base.streak,   ...(parsed.streak   || {}) },
-      stats:    { ...base.stats,    ...(parsed.stats    || {}) },
-      settings: { ...base.settings, ...(parsed.settings || {}) },
+      profile:   { ...base.profile,   ...(parsed.profile   || {}) },
+      streak:    { ...base.streak,    ...(parsed.streak    || {}) },
+      stats:     { ...base.stats,     ...(parsed.stats     || {}) },
+      settings:  { ...base.settings,  ...(parsed.settings  || {}) },
+      credited:  { ...base.credited,  ...(parsed.credited  || {}) },
+      contests:  { ...base.contests,  ...(parsed.contests  || {}) },
+      platforms: {
+        cf: { ...base.platforms.cf, ...(parsed.platforms?.cf || {}) },
+        gh: { ...base.platforms.gh, ...(parsed.platforms?.gh || {}) },
+      },
     };
   } catch (err) {
     console.warn('Save file unreadable, starting fresh.', err);
@@ -106,26 +106,18 @@ function load() {
 
 export const S = load();
 
-/**
- * Writes are debounced, and a failure is reported rather than swallowed.
- *
- * A quota error here means every subsequent action is being silently discarded,
- * which is the single worst thing this app can do to someone. `onSaveError` lets
- * the shell surface it; the flag lets any view ask whether the last write landed.
- */
 let saveTimer = null;
 let lastSaveFailed = false;
 const saveErrorHandlers = new Set();
 export const onSaveError = fn => (saveErrorHandlers.add(fn), () => saveErrorHandlers.delete(fn));
 export const saveHealthy = () => !lastSaveFailed;
 
+/** A failed write means every action after it is being discarded. Say so. */
 export function save({ immediate = false } = {}) {
   clearTimeout(saveTimer);
   const write = () => {
-    try {
-      localStorage.setItem(SAVE_KEY, JSON.stringify(S));
-      lastSaveFailed = false;
-    } catch (err) {
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); lastSaveFailed = false; }
+    catch (err) {
       lastSaveFailed = true;
       console.error('Could not write the save.', err);
       saveErrorHandlers.forEach(fn => fn(err));
@@ -143,12 +135,8 @@ export function resetSave() {
 export const exportSave = () => JSON.stringify(S, null, 2);
 export const backupFilename = () => `codify-backup-${today()}.json`;
 
-/** Summarise a file so someone can confirm it before it overwrites what they have. */
 export function describeSave(obj) {
   const days = Object.keys(obj?.days || {}).sort();
-  const count = (key) => days.reduce((n, k) => n + (obj.days[k]?.[key]?.length || 0), 0);
-  const minutes = days.reduce(
-    (n, k) => n + (obj.days[k]?.focus || []).reduce((m, e) => m + (e.minutes || 0), 0), 0);
   return {
     name: obj?.profile?.name || '(no name)',
     level: levelFromXp(obj?.xp || 0).level,
@@ -156,44 +144,39 @@ export function describeSave(obj) {
     days: days.length,
     firstDay: days[0] || null,
     lastDay: days.at(-1) || null,
-    sessions: count('focus'),
-    problems: count('problems'),
-    hours: Math.round(minutes / 60),
-    skills: Object.keys(obj?.skills || {}).length,
-    bestStreak: obj?.streak?.best || 0,
+    handle: obj?.platforms?.cf?.handle || '—',
+    solved: (obj?.platforms?.cf?.solved || []).length,
+    commits: obj?.stats?.commits || 0,
   };
 }
 
 const looksLikeSave = obj =>
   !!obj && typeof obj === 'object' && !Array.isArray(obj)
   && typeof obj.profile === 'object' && obj.profile !== null
-  && typeof obj.days === 'object' && obj.days !== null
   && ('xp' in obj);
 
-/**
- * Replace everything with a backup. The save being overwritten is stashed first,
- * so restoring the wrong file is recoverable rather than final.
- */
 export function importSave(text) {
   let obj;
   try { obj = JSON.parse(text); }
   catch { return { ok:false, error:'That is not valid JSON. Paste the whole file, braces included.' }; }
+  if (!looksLikeSave(obj)) return { ok:false, error:'That JSON is not a Codify backup.' };
 
-  if (!looksLikeSave(obj)) {
-    return { ok:false, error:'That JSON is not a Codify backup — no profile, no day history.' };
-  }
-
-  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); }
-  catch { /* no room for a rollback copy; the import itself still stands */ }
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch { /* no room for undo */ }
 
   const fresh = freshSave();
   const summary = describeSave(obj);
   Object.keys(S).forEach(k => delete S[k]);
   Object.assign(S, fresh, obj, {
-    profile:  { ...fresh.profile,  ...(obj.profile  || {}) },
-    streak:   { ...fresh.streak,   ...(obj.streak   || {}) },
-    stats:    { ...fresh.stats,    ...(obj.stats    || {}) },
-    settings: { ...fresh.settings, ...(obj.settings || {}) },
+    profile:   { ...fresh.profile,   ...(obj.profile   || {}) },
+    streak:    { ...fresh.streak,    ...(obj.streak    || {}) },
+    stats:     { ...fresh.stats,     ...(obj.stats     || {}) },
+    settings:  { ...fresh.settings,  ...(obj.settings  || {}) },
+    credited:  { ...fresh.credited,  ...(obj.credited  || {}) },
+    contests:  { ...fresh.contests,  ...(obj.contests  || {}) },
+    platforms: {
+      cf: { ...fresh.platforms.cf, ...(obj.platforms?.cf || {}) },
+      gh: { ...fresh.platforms.gh, ...(obj.platforms?.gh || {}) },
+    },
   });
   save({ immediate: true });
   emit('import', { summary });
@@ -201,28 +184,22 @@ export function importSave(text) {
 }
 
 export function priorSave() {
-  try {
-    const raw = localStorage.getItem(BACKUP_KEY);
-    return raw ? describeSave(JSON.parse(raw)) : null;
-  } catch { return null; }
+  try { const raw = localStorage.getItem(BACKUP_KEY); return raw ? describeSave(JSON.parse(raw)) : null; }
+  catch { return null; }
 }
-
 export function undoImport() {
   const raw = localStorage.getItem(BACKUP_KEY);
   if (!raw) return false;
-  const result = importSave(raw);
-  if (result.ok) localStorage.removeItem(BACKUP_KEY);
-  return result.ok;
+  const r = importSave(raw);
+  if (r.ok) localStorage.removeItem(BACKUP_KEY);
+  return r.ok;
 }
 
 /* ------------------------------- event bus -------------------------------- */
 
 const listeners = new Set();
 export const on = fn => (listeners.add(fn), () => listeners.delete(fn));
-export function emit(type, detail) {
-  save();
-  listeners.forEach(fn => fn(type, detail));
-}
+export function emit(type, detail) { save(); listeners.forEach(fn => fn(type, detail)); }
 
 /* -------------------------------- selectors ------------------------------- */
 
@@ -231,162 +208,103 @@ export const today = () => dayKey();
 export function getDay(key = today()) {
   if (!S.days[key]) S.days[key] = emptyDay();
   const d = S.days[key];
-  // Days written by an older build may predate a log. Fill in rather than crash.
-  for (const k of ['focus','problems','ships','retests','gauntlets','claimed','skillsClaimed']) {
-    if (!Array.isArray(d[k])) d[k] = [];
-  }
+  for (const k of ['focus', 'notes', 'claimed']) if (!Array.isArray(d[k])) d[k] = [];
   return d;
 }
 
-export const dayTotals = (key = today()) => totalsOf(getDay(key));
-export const targets = () => targetsFor(S.profile);
 export const progress = () => levelFromXp(S.xp);
 export const gearBonus = () => lootBonus(S.loot);
 
-export const quests = (key = today()) =>
-  dailyQuests(key, progress().level, getDay(key), { neglected: neglectedPattern() });
+export const solvedList = () => S.platforms.cf.solved || [];
+export const pushList = () => S.platforms.gh.pushes || [];
+export const isLinked = () => !!S.platforms.cf.handle;
 
-/* ------------------------------ path experience --------------------------- */
+/** Verified solves on a given day. */
+export const solvesOn = (key = today()) => solvedList().filter(s => s.day === key);
+export const pushesOn = (key = today()) => pushList().filter(p => p.day === key);
+export const commitsOn = (key = today()) => pushesOn(key).reduce((n, p) => n + p.commits, 0);
 
-/**
- * Effective hours logged against each path, all time.
- *
- * This is what widens a node's half-life, so it is deliberately the *effective*
- * figure: an afternoon of video does not buy the same durability as an afternoon
- * of building, and the retention model should not pretend otherwise.
- */
-export function pathHours() {
-  const out = Object.fromEntries(PATHS.map(p => [p.id, 0]));
-  for (const key of Object.keys(S.days)) {
-    for (const e of S.days[key].focus || []) {
-      if (e.path && out[e.path] != null) out[e.path] += (e.minutes || 0) * modeWeight(e.mode);
-    }
-  }
-  for (const k of Object.keys(out)) out[k] = out[k] / 60;
-  return out;
-}
-
-/* -------------------------------- the tree -------------------------------- */
-
-/** Mastered, available (level + prerequisite met), or locked. */
-export function nodeState(node) {
-  if (S.skills[node.id]) return 'mastered';
-  const level = progress().level;
-  const prereqOk = !node.needs || !!S.skills[node.needs];
-  return level >= node.lvl && prereqOk ? 'available' : 'locked';
-}
-
-/**
- * Everything the UI needs to say about one mastered node: how much of it the
- * model thinks you still hold, when it is next due, and how overdue it is.
- */
-export function skillStatus(nodeId, hoursByPath = null) {
-  const rec = S.skills[nodeId];
-  const node = nodeById(nodeId);
-  if (!rec || !node) return null;
-
-  const hours = (hoursByPath || pathHours())[node.path] || 0;
-  const since = daysBetween(rec.lastProof || rec.date, today());
-  const retention = predictedRetention(since, hours, rec.passes || 0);
-  const gap = nextRetestGap(rec.passes || 0, !!rec.lastFailed);
-  const dueOn = shiftDay(rec.lastProof || rec.date, gap);
-  const dueIn = daysBetween(today(), dueOn);
-
+/** Everything a day adds up to, verified and unverified kept apart. */
+export function dayTotals(key = today()) {
+  const d = getDay(key);
+  const solves = solvesOn(key);
+  const focus = d.focus || [];
   return {
-    node, rec, since, retention,
-    freshness: freshnessFor(retention),
-    halfLife: halfLifeDays(hours, rec.passes || 0),
-    dueOn, dueIn,
-    due: dueIn <= 0,
-    passes: rec.passes || 0,
-    fails: rec.fails || 0,
+    solved: solves.length,
+    ratedSolved: solves.filter(s => s.rating != null).length,
+    bestRating: solves.reduce((n, s) => Math.max(n, s.rating || 0), 0),
+    tags: new Set(solves.flatMap(s => s.tags || [])).size,
+    commits: commitsOn(key),
+    pushes: pushesOn(key).length,
+    minutes: focus.reduce((n, e) => n + (e.minutes || 0), 0),
+    verifiedMinutes: focus.filter(e => e.verified).reduce((n, e) => n + (e.minutes || 0), 0),
+    sessions: focus.length,
+    notes: (d.notes || []).length,
   };
 }
 
-/** Every mastered node whose retest is due, most overdue first. */
-export function dueRetests() {
-  const hours = pathHours();
-  return Object.keys(S.skills)
-    .map(id => skillStatus(id, hours))
-    .filter(s => s && s.due)
-    .sort((a, b) => a.dueIn - b.dueIn);
-}
+export const quests = (key = today()) => dailyQuests(key, progress().level, dayTotals(key));
 
-/** Mastered nodes sorted by how little of them the model thinks is left. */
-export function decayRanking(limit = 5) {
-  const hours = pathHours();
-  return Object.keys(S.skills)
-    .map(id => skillStatus(id, hours))
-    .filter(Boolean)
-    .sort((a, b) => a.retention - b.retention)
-    .slice(0, limit);
-}
+/* --------------------------------- the tree ------------------------------- */
 
-/* -------------------------------- patterns -------------------------------- */
+export const treeProgress = () => TOPICS.map(t => topicProgress(t, solvedList()));
 
-/** Problems solved per pattern, all time. */
-export function patternTally() {
-  const tally = Object.fromEntries(PATTERNS.map(p => [p.id, 0]));
-  for (const key of Object.keys(S.days)) {
-    for (const p of S.days[key].problems || []) {
-      if (p.solved && tally[p.pattern] != null) tally[p.pattern] += 1;
-    }
-  }
-  return tally;
+export function topicStatus(id) {
+  const t = topicById(id);
+  return t ? topicProgress(t, solvedList()) : null;
 }
 
 /**
- * The pattern you have practised least.
+ * Days since the most recent solve carrying this tag.
  *
- * Ties break towards the earlier entry in PATTERNS rather than randomly, so the
- * quest that points at it does not change target halfway through the day.
+ * This replaces the forgetting model that used to live here. That model invented
+ * its own constants and then checked itself against tests you graded yourself —
+ * two guesses agreeing with each other. "You last solved a graph problem 74 days
+ * ago" is not a model at all. It is a date, from a judge, and it is the only
+ * honest thing this app can say about what has gone stale.
  */
-export function neglectedPattern() {
-  const tally = patternTally();
-  let worst = null, worstN = Infinity;
-  for (const p of PATTERNS) {
-    if (tally[p.id] < worstN) { worst = p.id; worstN = tally[p.id]; }
-  }
-  return worst;
+export function staleness(topicId) {
+  const t = topicById(topicId);
+  if (!t) return null;
+  const mine = solvedList().filter(s => (s.tags || []).includes(t.cf));
+  if (!mine.length) return { never: true, days: null, last: null };
+  const last = mine.reduce((a, b) => (a.at > b.at ? a : b));
+  return { never: false, days: daysBetween(last.day, today()), last };
+}
+
+/** Stalest first: topics you have touched, ordered by how long ago. */
+export function rustiest(limit = 5) {
+  return TOPICS
+    .map(t => ({ topic: t, ...staleness(t.id) }))
+    .filter(x => !x.never)
+    .sort((a, b) => b.days - a.days)
+    .slice(0, limit);
 }
 
 /* --------------------------------- history -------------------------------- */
 
-/** The last `n` days, oldest first, each summarised. Feeds every chart. */
 export function historySeries(n = 30) {
-  const t = targets();
   const out = [];
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - i);
     const key = dayKey(d);
-    const day = S.days[key];
-    const tot = day ? totalsOf(day) : totalsOf(emptyDay());
-    out.push({
-      key, date: d, ...tot,
-      target: t.focus,
-      logged: !!day && (tot.minutes > 0 || tot.problems > 0 || tot.ships > 0 || tot.retests > 0),
-    });
+    const t = dayTotals(key);
+    out.push({ key, date: d, ...t, logged: t.solved > 0 || t.commits > 0 || t.minutes > 0 });
   }
   return out;
 }
 
-/** Lifetime snapshot the achievement predicates read. */
 export function statsSnapshot() {
-  const skills = Object.keys(S.skills);
-  const touched = new Set(skills.map(id => nodeById(id)?.path).filter(Boolean));
-  const complete = PATHS.filter(p =>
-    nodesOfPath(p.id).every(n => S.skills[n.id])).length;
-  const tally = patternTally();
-
+  const tree = treeProgress();
   return {
     ...S.stats,
     level: progress().level,
     bestStreak: S.streak.best,
-    skills: skills.length,
-    pathsTouched: touched.size,
-    pathsComplete: complete,
-    patternsCovered: Object.values(tally).filter(n => n > 0).length,
-    gauntlets: Object.values(S.gauntlets).filter(g => g.won).length,
+    tiersCleared: tree.reduce((n, t) => n + t.cleared, 0),
+    contestsWon: S.stats.contestsWon || 0,
+    topicsStarted: tree.filter(t => t.total > 0).length,
+    topicsMaxed: tree.filter(t => t.cleared === TIERS.length).length,
+    linked: isLinked() ? 1 : 0,
   };
 }
 
@@ -396,28 +314,19 @@ export function award(rawXp, coins = 0, reason = '') {
   const bonus = gearBonus();
   const xp = Math.round(rawXp * bonus);
   const before = progress().level;
-
-  S.xp += xp;
-  S.coins += coins;
-  S.stats.xpEarned += xp;
-
+  S.xp += xp; S.coins += coins; S.stats.xpEarned += xp;
   const after = progress().level;
+
   const levelUps = [];
   for (let l = before + 1; l <= after; l++) {
     levelUps.push(l);
-    S.coins += 40 * l;                        // level-up purse
-    if (l % 5 === 0) S.streak.freezes += 1;   // a freeze every five levels
+    S.coins += 40 * l;
+    if (l % 5 === 0) S.streak.freezes += 1;
   }
 
   const unlocked = newlyEarned(statsSnapshot(), S.earned);
-  for (const a of unlocked) {
-    S.earned[a.id] = today();
-    S.xp += a.xp;
-    S.stats.xpEarned += a.xp;
-  }
-
-  return { xp, coins, reason, levelUps, achievements: unlocked,
-           gearBonus: bonus > 1 ? bonus : null };
+  for (const a of unlocked) { S.earned[a.id] = today(); S.xp += a.xp; S.stats.xpEarned += a.xp; }
+  return { xp, coins, reason, levelUps, achievements: unlocked, gearBonus: bonus > 1 ? bonus : null };
 }
 
 export function checkAchievements() {
@@ -426,33 +335,30 @@ export function checkAchievements() {
   return unlocked;
 }
 
+/** What one accepted problem is worth. Difficulty is the judge's rating. */
+export const solveXp = rating => (rating == null ? 20 : Math.round(20 + Math.pow(rating / 100, 1.6)));
+export const solveCoins = rating => (rating == null ? 5 : Math.round(5 + rating / 60));
+
 /* --------------------------------- streak --------------------------------- */
 
-/** A day is active once you have done any real thing on it. */
+/** A day counts when something verifiable happened on it. */
 export const dayIsActive = (key = today()) => {
-  const t = totalsOf(getDay(key));
-  return t.minutes >= 20 || t.solved >= 1 || t.ships >= 1 || t.retests >= 1;
+  const t = dayTotals(key);
+  return t.solved >= 1 || t.commits >= 1 || t.verifiedMinutes >= 20;
 };
 
 export function touchStreak(key = today()) {
-  if (key !== today()) return;
-  if (!dayIsActive(key)) return;
-
+  if (key !== today() || !dayIsActive(key)) return;
   const st = S.streak, t = today();
   if (st.lastActive === t) return;
-
   const gap = st.lastActive ? daysBetween(st.lastActive, t) : 1;
   if (gap === 1 || !st.lastActive) st.current += 1;
-  else if (gap > 1 && st.freezes > 0 && gap - 1 <= st.freezes) {
-    st.freezes -= (gap - 1);
-    st.current += 1;
-  } else st.current = 1;
-
+  else if (gap > 1 && st.freezes > 0 && gap - 1 <= st.freezes) { st.freezes -= (gap - 1); st.current += 1; }
+  else st.current = 1;
   st.lastActive = t;
   st.best = Math.max(st.best, st.current);
 }
 
-/** Break the streak on load if too many days lapsed while the app was closed. */
 export function auditStreak() {
   const st = S.streak;
   if (!st.lastActive) return;
@@ -464,309 +370,225 @@ export function auditStreak() {
   save();
 }
 
+/* ------------------------------ platform sync ----------------------------- */
+
 /**
- * Count a day as deliberate exactly once, and un-count it if a later edit drops
- * it back under the line. Without the second half the number only ever goes up.
+ * Fold a fetched solve list into the save and pay for what is new.
+ *
+ * Pure with respect to the network: the caller does the fetching, this does the
+ * accounting. That is what lets the whole thing be tested without a socket.
+ *
+ * Returns a summary of what was newly credited.
  */
-function reconcileDay(key) {
-  const day = getDay(key);
-  const t = totalsOf(day);
-  const good = t.minutes >= 25 && t.deliberatePct >= 60;
-  if (good && !day.countedDeliberate) { day.countedDeliberate = true; S.stats.deliberateDays += 1; }
-  else if (!good && day.countedDeliberate) { day.countedDeliberate = false; S.stats.deliberateDays -= 1; }
+export function applySolves(solved) {
+  const before = treeProgress();
+  const clearedBefore = new Set();
+  before.forEach(p => p.tiers.forEach(t => { if (t.cleared) clearedBefore.add(`${p.topic.id}:${t.n}`); }));
+
+  S.platforms.cf.solved = solved;
+  S.platforms.cf.syncedAt = Date.now();
+
+  let xp = 0, coins = 0;
+  const fresh = [];
+  for (const s of solved) {
+    if (S.credited.problems[s.key]) continue;
+    S.credited.problems[s.key] = s.day;
+    fresh.push(s);
+    xp += solveXp(s.rating);
+    coins += solveCoins(s.rating);
+    S.stats.solved += 1;
+    if (s.rating != null) {
+      S.stats.ratedSolved += 1;
+      S.stats.bestRating = Math.max(S.stats.bestRating, s.rating);
+    }
+  }
+
+  const newTiers = [];
+  for (const p of treeProgress()) {
+    for (const t of p.tiers) {
+      const id = `${p.topic.id}:${t.n}`;
+      if (!t.cleared || clearedBefore.has(id) || S.credited.tiers[id]) continue;
+      S.credited.tiers[id] = today();
+      newTiers.push({ topic: p.topic, tier: t });
+      xp += tierXp(t);
+      coins += tierCoins(t);
+      S.stats.tiersCleared += 1;
+    }
+  }
+
+  // One drop per sync that actually found something, so gear tracks real work.
+  const drop = fresh.length ? rollLoot({ chance: Math.min(0.7, 0.18 * fresh.length) }) : null;
+  if (drop) S.loot[drop.id] = (S.loot[drop.id] || 0) + 1;
+
+  const reward = (xp || coins) ? award(xp, coins, 'Codeforces sync') : null;
+  touchStreak();
+  emit('sync', { source:'cf', fresh, newTiers, reward, drop });
+  return { fresh, newTiers, reward, drop };
 }
 
-/* -------------------------------- mutations ------------------------------- */
+export function applyPushes(pushes) {
+  S.platforms.gh.pushes = pushes;
+  S.platforms.gh.syncedAt = Date.now();
 
-export function saveProfile(patch) {
-  Object.assign(S.profile, patch);
-  applyTheme();
+  let xp = 0, coins = 0, commits = 0;
+  const fresh = [];
+  for (const p of pushes) {
+    if (S.credited.pushes[p.id]) continue;
+    S.credited.pushes[p.id] = p.day;
+    fresh.push(p);
+    commits += p.commits;
+    S.stats.commits += p.commits;
+    S.stats.pushes += 1;
+    xp += 6 * p.commits;
+    coins += 2 * p.commits;
+  }
+
+  const reward = (xp || coins) ? award(xp, coins, 'GitHub sync') : null;
+  touchStreak();
+  emit('sync', { source:'gh', fresh, commits, reward });
+  return { fresh, commits, reward };
+}
+
+export function linkCodeforces({ handle, rating, rank }) {
+  Object.assign(S.platforms.cf, { handle, rating, rank, error:'' });
   emit('profile');
 }
+export function linkGithub({ login, avatar }) {
+  Object.assign(S.platforms.gh, { user: login, avatar, error:'' });
+  emit('profile');
+}
+export function unlinkCodeforces() {
+  Object.assign(S.platforms.cf, { handle:'', rating:null, rank:null, solved:[], syncedAt:0 });
+  emit('profile');
+}
+export function unlinkGithub() {
+  Object.assign(S.platforms.gh, { user:'', avatar:null, pushes:[], syncedAt:0 });
+  emit('profile');
+}
+
+/* -------------------------------- the log --------------------------------- */
 
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random()}`);
 
 /**
- * Log a focus session.
+ * A practice session the app timed itself.
  *
- * XP is paid on effective minutes, not wall-clock minutes — which is the entire
- * argument of this app expressed as a number the player feels.
+ * `verified` is true only when the app held the clock. A hand-typed duration is
+ * recorded and shown, but pays nothing — see the note at the top of this file.
  */
-export function logFocus({ minutes, mode = 'build', path = null, topic = '', note = '',
-                           ctx = null, drillId = null, gauntlet = false, ts = null }, key = today()) {
-  const m = Math.max(1, Math.min(720, Math.round(+minutes || 0)));
-  const entry = {
-    uid: uid(), minutes: m, mode, path, topic: String(topic || '').slice(0, 80),
-    note: String(note || '').slice(0, 300), ctx, drillId, gauntlet,
-    ts: ts || Date.now(),
-  };
+export function logSession({ minutes, topic = null, note = '', verified = false }, key = today()) {
+  const m = Math.max(1, Math.min(600, Math.round(+minutes || 0)));
+  const entry = { uid: uid(), minutes: m, topic, note: String(note || '').slice(0, 300),
+                  verified: !!verified, ts: Date.now() };
   getDay(key).focus.push(entry);
+  S.stats.sessions += 1;
+  S.stats.focusMinutes += m;
+  if (entry.verified) S.stats.verifiedMinutes += m;
 
-  const eff = effectiveMinutes(entry);
-  const hour = new Date(entry.ts).getHours();
-  Object.assign(S.stats, {
-    sessions: S.stats.sessions + 1,
-    minutes: S.stats.minutes + m,
-    effMinutes: S.stats.effMinutes + eff,
-    buildMinutes: S.stats.buildMinutes + (mode === 'build' ? m : 0),
-    earlyBird: S.stats.earlyBird + (hour < 7 ? 1 : 0),
-    nightOwl: S.stats.nightOwl + (hour >= 22 ? 1 : 0),
-  });
-
-  const r = award(Math.round(eff * 1.6), Math.round(eff * 0.5), 'Focus logged');
+  const reward = entry.verified ? award(Math.round(m * 1.2), Math.round(m * 0.4), 'Timed session') : null;
   touchStreak(key);
-  reconcileDay(key);
-  emit('focus', { entry, reward: r });
-  return r;
+  emit('session', { entry, reward });
+  return reward;
 }
 
-export function removeFocus(id, key = today()) {
-  const day = getDay(key);
-  const entry = day.focus.find(e => e.uid === id);
-  if (!entry) return false;
-  day.focus = day.focus.filter(e => e.uid !== id);
-  // Lifetime totals are a ledger, not a cache: undo the entry rather than
-  // leaving stats that no day in the file supports any more.
+export function removeSession(id, key = today()) {
+  const d = getDay(key);
+  const e = d.focus.find(x => x.uid === id);
+  if (!e) return false;
+  d.focus = d.focus.filter(x => x.uid !== id);
   S.stats.sessions = Math.max(0, S.stats.sessions - 1);
-  S.stats.minutes = Math.max(0, S.stats.minutes - entry.minutes);
-  S.stats.effMinutes = Math.max(0, S.stats.effMinutes - effectiveMinutes(entry));
-  if (entry.mode === 'build') S.stats.buildMinutes = Math.max(0, S.stats.buildMinutes - entry.minutes);
-  reconcileDay(key);
-  emit('focus', {});
+  S.stats.focusMinutes = Math.max(0, S.stats.focusMinutes - e.minutes);
+  if (e.verified) S.stats.verifiedMinutes = Math.max(0, S.stats.verifiedMinutes - e.minutes);
+  emit('session', {});
   return true;
 }
 
-export function logProblem({ name, pattern, difficulty = 'medium', minutes = 0,
-                             solved = true, hinted = false, note = '' }, key = today()) {
-  const entry = {
-    uid: uid(),
-    name: String(name || 'Problem').slice(0, 90),
-    pattern: pattern || null,
-    difficulty: difficultyFor(difficulty).id,
-    minutes: Math.max(0, Math.min(600, Math.round(+minutes || 0))),
-    solved: !!solved, hinted: !!hinted,
-    note: String(note || '').slice(0, 300),
-    ts: Date.now(),
-  };
-  getDay(key).problems.push(entry);
-
-  Object.assign(S.stats, {
-    problems: S.stats.problems + 1,
-    solved: S.stats.solved + (entry.solved ? 1 : 0),
-    solvedNoHint: S.stats.solvedNoHint + (entry.solved && !entry.hinted ? 1 : 0),
-    hardSolved: S.stats.hardSolved + (entry.solved && entry.difficulty === 'hard' ? 1 : 0),
-  });
-
-  const { xp, coins } = problemReward(entry);
-  const r = award(xp, coins, entry.solved ? 'Problem solved' : 'Attempt logged');
-  touchStreak(key);
-  emit('problem', { entry, reward: r });
-  return r;
+/** An unverified note — a LeetCode problem, a chapter read. Kept, never paid. */
+export function logNote({ text, source = 'note' }, key = today()) {
+  const entry = { uid: uid(), text: String(text || '').slice(0, 300), source, ts: Date.now() };
+  getDay(key).notes.push(entry);
+  emit('note', { entry });
+  return entry;
 }
 
-export function removeProblem(id, key = today()) {
-  const day = getDay(key);
-  const entry = day.problems.find(p => p.uid === id);
-  if (!entry) return false;
-  day.problems = day.problems.filter(p => p.uid !== id);
-  S.stats.problems = Math.max(0, S.stats.problems - 1);
-  if (entry.solved) {
-    S.stats.solved = Math.max(0, S.stats.solved - 1);
-    if (!entry.hinted) S.stats.solvedNoHint = Math.max(0, S.stats.solvedNoHint - 1);
-    if (entry.difficulty === 'hard') S.stats.hardSolved = Math.max(0, S.stats.hardSolved - 1);
-  }
-  emit('problem', {});
-  return true;
-}
-
-export function logShip({ kind = 'commit', count = 1, repo = '', note = '' }, key = today()) {
-  const entry = {
-    uid: uid(), kind,
-    count: Math.max(1, Math.min(200, Math.round(+count || 1))),
-    repo: String(repo || '').slice(0, 60),
-    note: String(note || '').slice(0, 300),
-    ts: Date.now(),
-  };
-  getDay(key).ships.push(entry);
-
-  S.stats.ships += 1;
-  if (kind === 'commit')  S.stats.commits  += entry.count;
-  if (kind === 'pr')      S.stats.prs      += entry.count;
-  if (kind === 'release') S.stats.releases += entry.count;
-  if (kind === 'project') S.stats.projects += entry.count;
-
-  const { xp, coins } = shipReward(kind, entry.count);
-  const r = award(xp, coins, 'Shipped');
-  touchStreak(key);
-  emit('ship', { entry, reward: r });
-  return r;
-}
-
-export function removeShip(id, key = today()) {
-  const day = getDay(key);
-  const entry = day.ships.find(s => s.uid === id);
-  if (!entry) return false;
-  day.ships = day.ships.filter(s => s.uid !== id);
-  S.stats.ships = Math.max(0, S.stats.ships - 1);
-  const field = { commit:'commits', pr:'prs', release:'releases', project:'projects' }[entry.kind];
-  if (field) S.stats[field] = Math.max(0, S.stats[field] - entry.count);
-  emit('ship', {});
-  return true;
-}
-
-/* --------------------------------- skills --------------------------------- */
-
-/** Claim a node by having done its task. `minutes` is how long it took you. */
-export function claimNode(nodeId, minutes = 0) {
-  const node = nodeById(nodeId);
-  if (!node || S.skills[nodeId] || nodeState(node) !== 'available') return null;
-
-  const t = today();
-  S.skills[nodeId] = {
-    date: t, lastProof: t, passes: 0, fails: 0, lastFailed: false,
-    minutes: Math.max(0, Math.round(+minutes || 0)),
-    history: [{ date: t, passed: true, minutes: Math.round(+minutes || 0), first: true }],
-  };
-  getDay(t).skillsClaimed.push(nodeId);
-
-  const r = award(80 + node.lvl * 22, 30 + node.lvl * 8, `Claimed ${node.name}`);
-  touchStreak(t);
-  emit('skill', { node, reward: r });
-  return r;
-}
-
-/**
- * Log a retest.
- *
- * A pass pushes the node out to the next rung of the spacing schedule. A failure
- * drops it back one rung and brings it round again in days, not weeks — and it
- * is recorded, because a retest log you can quietly skip when it goes badly
- * measures nothing at all.
- */
-export function logRetest(nodeId, passed, minutes = 0, key = today()) {
-  const rec = S.skills[nodeId];
-  const node = nodeById(nodeId);
-  if (!rec || !node) return null;
-
-  const mins = Math.max(0, Math.round(+minutes || 0));
-  rec.history = rec.history || [];
-  rec.history.push({ date: key, passed: !!passed, minutes: mins });
-
-  if (passed) {
-    rec.passes = (rec.passes || 0) + 1;
-    rec.lastFailed = false;
-    rec.lastProof = key;
-    S.stats.retestsPassed += 1;
-  } else {
-    rec.fails = (rec.fails || 0) + 1;
-    rec.lastFailed = true;
-    // Drop a rung: the spacing that produced a failure was too generous.
-    rec.passes = Math.max(0, (rec.passes || 0) - 1);
-    rec.lastProof = key;
-    S.stats.retestsFailed += 1;
-  }
-
-  getDay(key).retests.push({ uid: uid(), nodeId, passed: !!passed, minutes: mins, ts: Date.now() });
-
-  // Clearing the queue is its own small event, and worth noticing.
-  if (passed && dueRetests().length === 0) S.stats.clearedQueue += 1;
-
-  const base = passed ? 40 + node.lvl * 8 : 15;
-  const r = award(base, passed ? 15 + node.lvl * 3 : 5,
-                  passed ? `Held ${node.name}` : `Retest failed: ${node.name}`);
-  touchStreak(key);
-  emit('retest', { node, passed: !!passed, reward: r });
-  return r;
-}
-
-/** Give up a node entirely — it goes back to available and its history is kept. */
-export function releaseNode(nodeId) {
-  if (!S.skills[nodeId]) return false;
-  delete S.skills[nodeId];
-  emit('skill', {});
-  return true;
-}
-
-/* ------------------------------ drills & runs ----------------------------- */
-
-/**
- * Record a finished drill or gauntlet.
- * `result` = { steps:[{label, minutes, done}], seconds, comboMult, bestCombo, passed }
- */
-export function finishSession(session, result, key = today()) {
-  const doneSteps = result.steps.filter(s => s.done);
-  const ratio = result.steps.length ? doneSteps.length / result.steps.length : 0;
-  const minutes = Math.max(1, Math.round(result.seconds / 60));
-
-  // The session writes into the focus log like any other practice, so a drill and
-  // a hand-typed hour are the same kind of thing on every chart downstream.
-  const entry = {
-    uid: uid(), minutes, mode: session.mode, path: session.path,
-    topic: session.name, note: '', ctx: null,
-    drillId: session.id, gauntlet: !!session.isGauntlet, ts: Date.now(),
-  };
-  getDay(key).focus.push(entry);
-
-  const eff = effectiveMinutes(entry);
-  const hour = new Date().getHours();
-  Object.assign(S.stats, {
-    sessions: S.stats.sessions + 1,
-    minutes: S.stats.minutes + minutes,
-    effMinutes: S.stats.effMinutes + eff,
-    buildMinutes: S.stats.buildMinutes + (session.mode === 'build' ? minutes : 0),
-    drills: S.stats.drills + (session.isGauntlet ? 0 : 1),
-    earlyBird: S.stats.earlyBird + (hour < 7 ? 1 : 0),
-    nightOwl: S.stats.nightOwl + (hour >= 22 ? 1 : 0),
-    bestCombo: Math.max(S.stats.bestCombo, result.bestCombo || 0),
-  });
-
-  if (session.isGauntlet) {
-    const prev = S.gauntlets[session.id] || { won:false, attempts:0 };
-    const lostBefore = !prev.won && prev.attempts > 0;
-    S.gauntlets[session.id] = {
-      won: prev.won || !!result.passed,
-      date: result.passed ? key : prev.date,
-      attempts: (prev.attempts || 0) + 1,
-      best: Math.max(prev.best || 0, Math.round(ratio * 100)),
-    };
-    if (result.passed && !prev.won) {
-      S.stats.gauntlets += 1;
-      if (lostBefore) S.stats.gauntletComebacks += 1;
-    }
-    getDay(key).gauntlets.push(session.id);
-  }
-
-  // Partial credit is real: bailing halfway is worth more than not starting, and
-  // much less than finishing. The combo rewards not skipping.
-  const combo = result.comboMult || 1;
-  const xp = Math.round(session.xp * (0.4 + 0.6 * ratio) * combo);
-  const coins = Math.round((session.coins || session.xp * 0.3) * ratio);
-  const r = award(xp, coins, session.name);
-
-  const drop = session.isGauntlet
-    ? (result.passed ? rollLoot({ minRarity: 'rare' }) : null)
-    : rollLoot({ chance: 0.22 + 0.08 * session.tier * ratio });
-  if (drop) S.loot[drop.id] = (S.loot[drop.id] || 0) + 1;
-
-  touchStreak(key);
-  reconcileDay(key);
-  emit('session', { entry, reward: r, drop, session, result });
-  return { ...r, entry, drop, combo, ratio };
+export function removeNote(id, key = today()) {
+  const d = getDay(key);
+  d.notes = d.notes.filter(n => n.uid !== id);
+  emit('note', {});
 }
 
 /* --------------------------------- quests --------------------------------- */
 
 export function claimQuest(questId, key = today()) {
-  const day = getDay(key);
-  if (day.claimed.includes(questId)) return null;
+  const d = getDay(key);
+  if (d.claimed.includes(questId)) return null;
   const q = quests(key).find(x => x.id === questId);
   if (!q || !q.done) return null;
-
-  day.claimed.push(questId);
+  d.claimed.push(questId);
   S.stats.quests += 1;
   const r = award(q.xp, q.coins, q.name);
   emit('quest', { quest: q, reward: r });
   return r;
+}
+
+/* -------------------------------- contests -------------------------------- */
+
+/**
+ * Start the clock. Everything already solved is recorded at this moment, so a
+ * problem you finished last week cannot be counted towards the run.
+ */
+export function startContest(id) {
+  const contest = contestById(id);
+  if (!contest || S.active) return null;
+  S.active = { id, startedAt: Date.now(), known: solvedList().map(s => s.key) };
+  S.stats.contestsRun += 1;
+  emit('contest', { started: contest });
+  return S.active;
+}
+
+/** How the running contest currently stands. Null when none is running. */
+export function activeContest() {
+  if (!S.active) return null;
+  const contest = contestById(S.active.id);
+  if (!contest) return null;
+  return {
+    contest,
+    startedAt: S.active.startedAt,
+    ...settle(contest, S.active.startedAt, solvedList(), new Set(S.active.known)),
+  };
+}
+
+/** Bank the running contest, won or lost. */
+export function finishContest() {
+  const live = activeContest();
+  if (!live) return null;
+
+  const { contest } = live;
+  const prev = S.contests[contest.id] || { won:false, attempts:0, best:0 };
+  S.contests[contest.id] = {
+    won: prev.won || live.won,
+    attempts: prev.attempts + 1,
+    best: Math.max(prev.best, live.solved),
+    date: live.won ? today() : prev.date,
+  };
+  if (live.won && !prev.won) S.stats.contestsWon += 1;
+
+  const { xp, coins } = contestReward(contest, live);
+  const reward = (xp || coins) ? award(xp, coins, contest.name) : null;
+  const drop = live.won ? rollLoot({ minRarity: 'rare' }) : null;
+  if (drop) S.loot[drop.id] = (S.loot[drop.id] || 0) + 1;
+
+  S.active = null;
+  touchStreak();
+  emit('contest', { finished: contest, result: live, reward, drop });
+  return { contest, result: live, reward, drop };
+}
+
+export function abandonContest() {
+  if (!S.active) return false;
+  S.active = null;
+  emit('contest', {});
+  return true;
 }
 
 /* ---------------------------------- shop ---------------------------------- */
@@ -774,29 +596,21 @@ export function claimQuest(questId, key = today()) {
 export function buyTheme(id) {
   const t = THEMES.find(x => x.id === id);
   if (!t || ownsTheme(id) || S.coins < t.cost) return false;
-  S.coins -= t.cost;
-  S.owned.push(id);
-  S.profile.theme = id;
-  applyTheme();
-  emit('shop', { theme: t });
+  S.coins -= t.cost; S.owned.push(id); S.profile.theme = id;
+  applyTheme(); emit('shop', { theme: t });
   return true;
 }
-
 export function selectTheme(id) {
   if (!ownsTheme(id)) return false;
-  S.profile.theme = id;
-  applyTheme();
-  emit('shop', { theme: themeFor(id) });
+  S.profile.theme = id; applyTheme(); emit('shop', {});
   return true;
 }
-
 export function buyFreeze(cost = 200) {
   if (S.coins < cost) return false;
-  S.coins -= cost;
-  S.streak.freezes += 1;
-  emit('shop', { freeze: true });
+  S.coins -= cost; S.streak.freezes += 1; emit('shop', { freeze:true });
   return true;
 }
+export function saveProfile(patch) { Object.assign(S.profile, patch); applyTheme(); emit('profile'); }
 
 export const ACHIEVEMENT_LIST = ACHIEVEMENTS;
-export { MODES, PATTERNS, NODES, PATHS };
+export { TOPICS, TIERS, PATHS };

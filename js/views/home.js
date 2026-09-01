@@ -1,162 +1,160 @@
-/** Today — what to do now, what is due, and where the day stands. */
+/** Today — what the judge says happened, and what is left to do. */
 import {
-  S, getDay, dayTotals, targets, quests, claimQuest, progress,
-  dueRetests, historySeries, decayRanking,
+  S, dayTotals, quests, claimQuest, progress, historySeries,
+  isLinked, solvesOn, commitsOn, activeContest, rustiest, treeProgress,
 } from '../state.js';
-import { rankFor, nextRank, dayKey } from '../game.js';
-import { modeBreakdown, calibration, targetStreak } from '../analytics.js';
-import { DRILLS, TIER_LOCK, drillMinutes } from '../data/drills.js';
-import { pathFor } from '../data/skilltree.js';
+import { rankFor, nextRank, targetsFor, dayKey } from '../game.js';
+import { solveStreak, colorForRating, daysSinceLastSolve, staleTopics } from '../analytics.js';
+import { syncAll, describeSync, isSyncing, lastSync } from '../sync.js';
+import { problemUrl } from '../platforms.js';
 import { go } from '../router.js';
-import { openFocusSheet, openProblemSheet, openShipSheet } from './log.js';
-import { openRetest } from './skills.js';
-import { startSession } from './player.js';
 import {
-  h, raw, esc, $, $$, bind, ring, bar, splitBar, hm, fmt, pct,
-  relDays, sfx, haptic, rewardToast, toast,
+  h, raw, esc, $, $$, bind, bar, hm, fmt, relDays, sfx, haptic, rewardToast, toast,
 } from '../ui.js';
 import { icon } from '../icons.js';
 
 const greet = () => {
   const hr = new Date().getHours();
-  if (hr < 5)  return 'Still up';
-  if (hr < 12) return 'Morning';
-  if (hr < 18) return 'Afternoon';
-  return 'Evening';
+  return hr < 5 ? 'Still up' : hr < 12 ? 'Morning' : hr < 18 ? 'Afternoon' : 'Evening';
 };
 
-const LINES = [
-  'Hours are the input. Retention is the output.',
-  'The pattern you avoid is the one that decides it.',
-  'Build beats read. Read beats watch. Watch beats nothing.',
-  'You cannot cram what you did not space.',
-  'Finish something small today.',
-  'A skill you cannot re-prove is a skill you had.',
-  'Narrate while you solve. Silence is what fails interviews.',
-  'Measure before you optimise. Both in code and in this.',
-];
-/** Stable for the whole day rather than changing on every repaint. */
-const lineOfDay = key => LINES[[...key].reduce((n, c) => n + c.charCodeAt(0), 0) % LINES.length];
-
 export function render() {
-  const day = getDay();
-  const t = targets();
-  const tot = dayTotals();
   const p = progress();
   const rank = rankFor(p.level);
   const next = nextRank(p.level);
-  const due = dueRetests();
+  const t = targetsFor(S.profile);
+  const tot = dayTotals();
   const qs = quests();
-  const modes = modeBreakdown(day);
-  const key = dayKey();
+  const live = activeContest();
 
-  const focusPct = t.focus ? Math.min(100, (tot.minutes / t.focus) * 100) : 0;
-  const left = Math.max(0, t.focus - tot.minutes);
+  if (!isLinked()) return h`${raw(notLinked(rank, p))}`;
+
+  const solvePct = t.solves ? Math.min(100, (tot.solved / t.solves) * 100) : 0;
 
   return h`
     <div class="hero-card">
       <div class="label">${greet()}${S.profile.name ? `, ${S.profile.name}` : ''}</div>
       <div class="h1" style="margin-top:4px">${rank.icon} ${rank.name}</div>
-      <div class="sub" style="margin-top:6px">${lineOfDay(key)}</div>
-      ${raw(next ? `<div class="tiny" style="margin-top:10px">
-        ${next.icon} ${next.name} at level ${next.at} — ${next.at - p.level} to go
-      </div>` : '<div class="tiny" style="margin-top:10px">Top rank. Nothing left to promote you to.</div>')}
+      <div class="sub" style="margin-top:6px">
+        ${raw(next ? `Level ${p.level} — ${next.at - p.level} to ${esc(next.name)}`
+                   : `Level ${p.level} — top rank`)}
+      </div>
     </div>
 
-    ${raw(due.length ? dueCard(due) : '')}
+    ${raw(live ? liveContest(live) : '')}
 
     <div class="card" style="margin-top:14px">
-      <div class="row" style="align-items:center;gap:18px">
-        ${raw(ring({
-          pct: focusPct,
-          value: left > 0 ? hm(left) : '✓',
-          label: left > 0 ? 'to go' : 'target met',
-          color: focusPct >= 100 ? 'var(--good)' : 'var(--accent)',
-          size: 118, stroke: 11,
-        }))}
-        <div class="grow stack s2">
-          <div class="between"><span class="tiny">LOGGED</span>
-            <span class="num h3">${hm(tot.minutes)}</span></div>
-          <div class="between"><span class="tiny">EFFECTIVE</span>
-            <span class="num h3" style="color:var(--accent)">${hm(tot.effMinutes)}</span></div>
-          <div class="between"><span class="tiny">TARGET</span>
-            <span class="num h3">${hm(t.focus)}</span></div>
-          <div class="between"><span class="tiny">SOLVED</span>
-            <span class="num h3">${tot.solved}</span></div>
+      <div class="between">
+        <div class="label">Today</div>
+        <button class="btn xs" data-act="sync">${isSyncing() ? 'Syncing…' : 'Sync'}</button>
+      </div>
+
+      <div class="row" style="margin-top:12px;align-items:flex-end">
+        <div class="grow">
+          <div class="num" style="font-size:34px;font-weight:800;letter-spacing:-.04em">
+            ${tot.solved}<span style="font-size:17px;color:var(--dim)">/${t.solves}</span></div>
+          <div class="tiny">problems accepted</div>
+        </div>
+        <div class="right">
+          <div class="num h2">${tot.bestRating || '—'}</div>
+          <div class="tiny">best today</div>
         </div>
       </div>
 
-      ${raw(modes ? `
-        <div style="margin-top:14px">${splitBar(modes.groups.map(g => ({
-          pct: g.pct, color: g.color, name: g.name })))}</div>
-        <div class="between tiny" style="margin-top:6px">
-          <span>${Math.round(modes.deliberatePct)}% deliberate</span>
-          <span>floor ${t.deliberate}%</span>
-        </div>` : `
-        <div class="tiny" style="margin-top:14px">Nothing logged yet today.</div>`)}
+      <div style="margin-top:10px">${raw(bar(solvePct, {
+        tall: true, color: solvePct >= 100 ? 'var(--good)' : 'var(--accent)' }))}</div>
 
-      <div class="wrap" style="margin-top:14px">
-        <button class="btn primary grow" data-act="add-focus">Session</button>
-        <button class="btn grow" data-act="add-problem">Problem</button>
-        <button class="btn grow" data-act="add-ship">Ship</button>
+      <div class="grid3" style="margin-top:12px">
+        <div class="tile"><div class="v">${tot.commits}</div><div class="k">commits</div></div>
+        <div class="tile"><div class="v">${hm(tot.verifiedMinutes)}</div><div class="k">timed</div></div>
+        <div class="tile"><div class="v">${tot.tags}</div><div class="k">topics</div></div>
+      </div>
+
+      ${raw(tot.solved ? solveList(solvesOn()) : `
+        <div class="tiny" style="margin-top:12px">
+          Nothing accepted yet today. ${lastSync() ? `Last checked ${relDays(0)} at ${
+            new Date(lastSync()).toTimeString().slice(0, 5)}.` : 'Hit sync once you have solved something.'}
+        </div>`)}
+
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary grow" data-act="practice">Find a problem</button>
+        <button class="btn grow" data-act="contest">Contests</button>
       </div>
     </div>
 
-    ${raw(questSection(qs, day))}
+    ${raw(questSection(qs))}
     ${raw(weekStrip())}
-    ${raw(recommendation(p.level))}
-    ${raw(decaySection())}
-    ${raw(calibrationTeaser())}`;
+    ${raw(staleSection())}`;
 }
 
-/* -------------------------------- retests --------------------------------- */
+/* ------------------------------- not linked ------------------------------- */
 
-function dueCard(due) {
-  const worst = due[0];
+function notLinked(rank, p) {
   return `
-  <button class="card tap rail" style="--rail:var(--bad);margin-top:14px" data-act="retest">
+  <div class="hero-card">
+    <div class="label">${greet()}${S.profile.name ? `, ${S.profile.name}` : ''}</div>
+    <div class="h1" style="margin-top:4px">${rank.icon} ${rank.name}</div>
+    <div class="sub" style="margin-top:6px">Level ${p.level}</div>
+  </div>
+
+  <div class="card rail" style="--rail:var(--warn);margin-top:14px">
+    <div class="h3">Nothing is connected yet</div>
+    <p class="sub" style="margin-top:8px">
+      Every level, tier and streak in this app comes from your accepted submissions
+      on Codeforces. Until a handle is connected there is nothing to read, so the
+      numbers will all sit at zero.
+    </p>
+    <button class="btn primary block" style="margin-top:14px" data-act="link">Connect Codeforces</button>
+  </div>`;
+}
+
+/* ------------------------------ live contest ------------------------------ */
+
+function liveContest(live) {
+  const mins = Math.floor(live.secondsLeft / 60);
+  const secs = live.secondsLeft % 60;
+  return `
+  <button class="card tap rail" style="--rail:${live.won ? 'var(--good)' : 'var(--bad)'};margin-top:14px"
+          data-act="contest">
     <div class="between">
-      <div class="grow">
-        <div class="row" style="gap:8px">
-          <span class="badge bad">${due.length} due</span>
-          <span class="label">RETEST QUEUE</span>
-        </div>
-        <div class="h3" style="margin-top:8px">${esc(worst.node.name)}
-          ${due.length > 1 ? `<span class="sub">and ${due.length - 1} more</span>` : ''}</div>
+      <div>
+        <div class="label">${live.won ? 'Contest won' : 'Contest running'}</div>
+        <div class="h2" style="margin-top:4px">${esc(live.contest.name)}</div>
         <div class="sub" style="margin-top:4px">
-          Last proven ${worst.since} days ago. The model gives it
-          <b>${pct(worst.retention * 100)}</b> — find out.
+          ${live.solved}/${live.need} solved at ${live.contest.minRating}+
         </div>
       </div>
-      <span style="color:var(--dim)">›</span>
+      <div class="right">
+        <div class="num h1">${live.expired ? '—' : `${mins}:${String(secs).padStart(2, '0')}`}</div>
+        <div class="tiny">${live.expired ? 'time up' : 'left'}</div>
+      </div>
     </div>
   </button>`;
 }
 
-function decaySection() {
-  const cold = decayRanking(3).filter(s => s.retention < 0.5 && !s.due);
-  if (!cold.length) return '';
-  return `
-  <div class="section">
-    <div class="label">Fading</div>
-    <div class="stack s2">
-      ${cold.map(s => `
-        <div class="card pad-s rail" style="--rail:${s.freshness.color}">
-          <div class="between">
-            <div class="grow truncate">
-              <div class="h3 truncate">${esc(s.node.name)}</div>
-              <div class="tiny">${pathFor(s.node.path).name} · due ${relDays(s.dueIn)}</div>
-            </div>
-            <span class="badge ${s.freshness.badge}">${pct(s.retention * 100)}</span>
+/* -------------------------------- solves ---------------------------------- */
+
+function solveList(solves) {
+  return `<div class="stack s2" style="margin-top:12px">
+    ${solves.slice(-4).reverse().map(s => `
+      <a class="card pad-s flat" style="display:block;text-decoration:none"
+         href="${esc(problemUrl(s))}" target="_blank" rel="noopener">
+        <div class="between">
+          <div class="grow truncate">
+            <div class="h3 truncate">${esc(s.name)}</div>
+            <div class="tiny truncate">${esc((s.tags || []).slice(0, 3).join(' · '))}</div>
           </div>
-        </div>`).join('')}
-    </div>
+          <span class="badge" style="background:${colorForRating(s.rating)};color:var(--panel)">
+            ${s.rating ?? '—'}</span>
+        </div>
+      </a>`).join('')}
   </div>`;
 }
 
 /* --------------------------------- quests --------------------------------- */
 
-function questSection(qs, day) {
+function questSection(qs) {
+  const day = S.days[dayKey()] || { claimed: [] };
   return `
   <div class="section">
     <div class="between">
@@ -165,7 +163,7 @@ function questSection(qs, day) {
     </div>
     <div class="stack s2">
       ${qs.map(q => {
-        const claimed = day.claimed.includes(q.id);
+        const claimed = (day.claimed || []).includes(q.id);
         return `<div class="card pad-s ${q.done ? 'rail' : ''}" ${q.done ? 'style="--rail:var(--good)"' : ''}>
           <div class="between">
             <div class="grow">
@@ -173,19 +171,14 @@ function questSection(qs, day) {
               <div class="tiny" style="margin-top:2px">${esc(q.hint)}</div>
             </div>
             <div class="right" style="flex:none">
-              <div class="num h3">${Math.min(q.value, q.goal)}<span style="color:var(--faint)">/${q.goal}</span></div>
+              <div class="num h3">${Math.min(q.value, q.goal)}<span style="color:var(--dim)">/${q.goal}</span></div>
               <div class="tiny">${esc(q.unit)}</div>
             </div>
           </div>
-          <div style="margin-top:8px">${bar(q.pct, {
-            color: q.done ? 'var(--good)' : 'var(--accent)' })}</div>
-          <div class="row" style="margin-top:8px">
-            ${claimed
-              ? '<span class="badge good">✓ claimed</span>'
-              : q.done
-                ? `<button class="btn primary sm grow" data-claim="${q.id}">Claim +${q.xp} XP</button>`
-                : `<button class="btn ghost sm grow" data-goto="${q.tab}">Go to ${q.tab}</button>`}
-          </div>
+          <div style="margin-top:8px">${bar(q.pct, { color: q.done ? 'var(--good)' : 'var(--accent)' })}</div>
+          ${claimed ? '<div class="row" style="margin-top:8px"><span class="badge good">claimed</span></div>'
+            : q.done ? `<button class="btn primary sm block" style="margin-top:8px" data-claim="${q.id}">Claim +${q.xp} XP</button>`
+            : ''}
         </div>`;
       }).join('')}
     </div>
@@ -196,91 +189,61 @@ function questSection(qs, day) {
 
 function weekStrip() {
   const days = historySeries(7);
-  const t = targets();
-  const streak = targetStreak();
-
+  const streak = solveStreak();
+  const peak = Math.max(...days.map(d => d.solved), 1);
   return `
   <div class="section">
     <div class="between">
       <div class="label">This week</div>
-      <div class="tiny">${streak ? `${streak}-day target streak` : `${S.streak.current}-day streak`}</div>
+      <div class="tiny">${streak ? `${streak}-day solve streak` : `${S.streak.current}-day streak`}</div>
     </div>
     <div class="week">
-      ${days.map(d => {
-        const ratio = t.focus ? Math.min(1.6, d.minutes / t.focus) : 0;
-        const hgt = Math.max(3, Math.round(ratio * 46));
-        const isToday = d.key === dayKey();
-        return `<div class="week-col ${isToday ? 'now' : ''}">
-          <div class="week-bar" style="height:46px">
-            <i style="height:${hgt}px;background:${
-              ratio >= 1 ? 'var(--good)' : ratio >= 0.6 ? 'var(--warn)' : ratio > 0 ? 'var(--bad)' : 'var(--line)'
-            }"></i>
+      ${days.map(d => `
+        <div class="week-col ${d.key === dayKey() ? 'now' : ''}">
+          <div class="week-bar" style="height:48px">
+            <i style="height:${Math.max(3, Math.round((d.solved / peak) * 46))}px;background:${
+              d.solved ? 'var(--good)' : 'var(--muted)'}"></i>
           </div>
           <div class="tiny">${d.date.toLocaleDateString(undefined, { weekday: 'narrow' })}</div>
-        </div>`;
-      }).join('')}
+        </div>`).join('')}
     </div>
     <div class="between tiny" style="margin-top:8px">
-      <span>${hm(days.reduce((n, d) => n + d.minutes, 0))} this week</span>
-      <span>target ${hm(t.weekly)}</span>
+      <span>${days.reduce((n, d) => n + d.solved, 0)} solved this week</span>
+      <span>${days.reduce((n, d) => n + d.commits, 0)} commits</span>
     </div>
   </div>`;
 }
 
-/* ------------------------------ recommendation ---------------------------- */
+/* --------------------------------- stale ---------------------------------- */
 
-/** One drill to run right now, chosen for level and how much of the day is left. */
-function recommendation(level) {
-  const t = targets();
-  const done = dayTotals().minutes;
-  const room = Math.max(15, t.focus - done);
-
-  const open = DRILLS.filter(d => level >= TIER_LOCK[d.tier]);
-  if (!open.length) return '';
-
-  // Prefer the biggest drill that still fits what is left of the target.
-  const fits = open.filter(d => drillMinutes(d) <= room + 15);
-  const pick = (fits.length ? fits : open).sort((a, b) => drillMinutes(b) - drillMinutes(a))[0];
-  const p = pathFor(pick.path);
+function staleSection() {
+  const stale = staleTopics(3);
+  const last = daysSinceLastSolve();
+  if (!stale.length && (!last || last.days < 7)) return '';
 
   return `
   <div class="section">
-    <div class="label">Suggested now</div>
-    <button class="card tap rail" style="--rail:${p.color}" data-drill="${pick.id}">
-      <div class="between">
-        <div class="grow">
-          <div class="row" style="gap:8px">
-            <span class="badge" style="color:${p.color}">${p.short}</span>
-            <span class="badge">${hm(drillMinutes(pick))}</span>
+    <div class="label">Going cold</div>
+    ${last && last.days >= 7 ? `
+      <div class="card pad-s" style="margin-bottom:8px">
+        <div class="h3">${last.days} days since your last solve</div>
+        <div class="tiny" style="margin-top:2px">Last was ${esc(last.problem.name)}.</div>
+      </div>` : ''}
+    <div class="stack s2">
+      ${stale.map(r => `
+        <button class="card tap pad-s" data-topic="${r.topic.id}">
+          <div class="between">
+            <div class="grow truncate">
+              <div class="h3 truncate">${esc(r.topic.name)}</div>
+              <div class="tiny">${r.solves} solved · best ${r.best || '—'}</div>
+            </div>
+            <span class="badge warn">${r.days}d</span>
           </div>
-          <div class="h3" style="margin-top:8px">${pick.icon} ${esc(pick.name)}</div>
-          <div class="tiny" style="margin-top:4px">${esc(pick.blurb)}</div>
-        </div>
-      </div>
-      <div class="row" style="margin-top:10px">
-        <span class="btn primary sm grow">Start</span>
-      </div>
-    </button>
-  </div>`;
-}
-
-/* ------------------------------- calibration ------------------------------ */
-
-function calibrationTeaser() {
-  const c = calibration();
-  if (c.tooFew) return '';
-  const tone = { good:'var(--good)', bad:'var(--bad)', info:'var(--info)' }[c.verdict.tone];
-  return `
-  <div class="section">
-    <div class="label">Calibration</div>
-    <button class="card tap rail" style="--rail:${tone}" data-act="dash">
-      <div class="h3" style="color:${tone}">${esc(c.verdict.title)}</div>
-      <div class="sub" style="margin-top:6px">
-        Model said ${pct(c.predicted * 100)}, you held ${pct(c.actual * 100)},
-        over ${c.events} retests.
-      </div>
-      <div class="tiny" style="margin-top:8px">See the full breakdown ›</div>
-    </button>
+        </button>`).join('')}
+    </div>
+    <div class="tiny" style="margin-top:8px">
+      Days since the judge last accepted anything with that tag. Not a prediction — a date.
+    </div>
   </div>`;
 }
 
@@ -288,24 +251,24 @@ function calibrationTeaser() {
 
 export function mount(root, rerender) {
   bind(root, {
-    'add-focus':   () => openFocusSheet(rerender),
-    'add-problem': () => openProblemSheet(rerender),
-    'add-ship':    () => openShipSheet(rerender),
-    'retest':      () => openRetest(rerender),
-    'dash':        () => go('log', { scrollTo: 'd-calibration' }),
+    sync: async (el) => {
+      el.textContent = 'Syncing…';
+      const r = await syncAll({ force: true });
+      toast(describeSync(r), 3400);
+      if (r.cf?.reward) rewardToast(r.cf.reward);
+      if (r.gh?.reward) rewardToast(r.gh.reward);
+      rerender();
+    },
+    practice: () => go('skills'),
+    contest:  () => go('train'),
+    link:     () => go('hero'),
   });
 
   $$('[data-claim]', root).forEach(b => b.onclick = () => {
     const r = claimQuest(b.dataset.claim);
     if (!r) return;
-    sfx('reward'); haptic(14);
-    rewardToast(r);
-    rerender();
+    sfx('reward'); haptic(14); rewardToast(r); rerender();
   });
 
-  $$('[data-goto]', root).forEach(b => b.onclick = () => go(b.dataset.goto));
-
-  $$('[data-drill]', root).forEach(b => b.onclick = () => {
-    startSession(b.dataset.drill, rerender);
-  });
+  $$('[data-topic]', root).forEach(b => b.onclick = () => go('skills'));
 }

@@ -1,5 +1,6 @@
 /** Boot: restore the save, audit the streak, wire the global listeners. */
-import { S, applyTheme, auditStreak, on, onSaveError, today, save } from './state.js';
+import { S, applyTheme, auditStreak, on, onSaveError, today, save, isLinked } from './state.js';
+import { autoSync } from './sync.js';
 import { boot, rerender, go } from './router.js';
 import { initPwa } from './pwa.js';
 import { closeTop, $, toast } from './ui.js';
@@ -15,6 +16,9 @@ onSaveError(() => {
   toast('⚠ Could not save — storage is full or blocked. Export a backup from Hero.', 9000);
 });
 
+/* Pull once on open when a handle is linked and the last pull has gone stale. */
+autoSync(() => rerender());
+
 /* Home-screen shortcuts arrive as ?tab=train — honour them, then tidy the URL. */
 const wanted = new URLSearchParams(location.search).get('tab');
 if (wanted) {
@@ -27,7 +31,7 @@ if (wanted) {
 let pending = false;
 on(type => {
   if (pending) return;
-  if (!['focus','problem','ship','skill','retest','session','quest','shop','profile','reset','import'].includes(type)) return;
+  if (!['session','note','quest','shop','profile','reset','import','sync','contest'].includes(type)) return;
   pending = true;
   requestAnimationFrame(() => { pending = false; rerender(); });
 });

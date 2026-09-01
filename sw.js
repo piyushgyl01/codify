@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v2';
+const CACHE_VERSION = 'v3';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -28,7 +28,7 @@ const CORE = [
   './js/analytics.js',
   './js/charts.js',
   './js/data/achievements.js',
-  './js/data/drills.js',
+  './js/data/contests.js',
   './js/data/loot.js',
   './js/data/practice.js',
   './js/data/quests.js',
@@ -36,17 +36,17 @@ const CORE = [
   './js/game.js',
   './js/icons.js',
   './js/main.js',
+  './js/platforms.js',
   './js/pwa.js',
   './js/router.js',
   './js/state.js',
+  './js/sync.js',
   './js/ui.js',
   './js/version.js',
-  './js/views/dashboard.js',
   './js/views/hero.js',
   './js/views/home.js',
   './js/views/log.js',
   './js/views/onboarding.js',
-  './js/views/player.js',
   './js/views/skills.js',
   './js/views/train.js',
 ];

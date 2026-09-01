@@ -172,7 +172,7 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   padding: 12px var(--s3);
   text-align: left;
@@ -199,6 +199,16 @@
 .tree-node.locked .tree-dot    { background: var(--muted); }
 
 .tree-name { display: block; font-size: 14.5px; font-weight: 700; }
+
+/* Five pips, one per rating tier — the whole state of a topic at a glance. */
+.tier-pips { display: flex; gap: 4px; margin-top: 6px; }
+.tier-pips i {
+  width: 18px; height: 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  border: var(--line-w-thin) solid var(--ink);
+}
+.tier-pips i.on { background: var(--good); }
 .tree-meta { display: block; font-size: 11px; margin-top: 2px; font-family: var(--mono); font-weight: 600; color: var(--dim); }
 
 /* ---------------------------------- train --------------------------------- */

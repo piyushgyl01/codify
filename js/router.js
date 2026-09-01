@@ -1,5 +1,5 @@
 /** View switching, the topbar and the bottom nav. */
-import { S, progress, quests, getDay, dueRetests } from './state.js';
+import { S, progress, quests, getDay, isLinked } from './state.js';
 import { icon } from './icons.js';
 import { rankFor } from './game.js';
 import { h, raw, esc, fmt, $, sfx, haptic } from './ui.js';
@@ -13,7 +13,7 @@ import * as onboarding from './views/onboarding.js';
 
 const ROUTES = {
   home:   { view: home,   icon:'home',    label:'Today'  },
-  train:  { view: train,  icon:'train',   label:'Train'  },
+  train:  { view: train,  icon:'train',   label:'Contest' },
   log:    { view: log,    icon:'log',     label:'Log'    },
   skills: { view: skills, icon:'skills',  label:'Skills' },
   hero:   { view: hero,   icon:'profile', label:'Hero'   },
@@ -65,9 +65,8 @@ function topbar() {
 function nav() {
   const day = getDay();
   const claimable = quests().filter(q => q.done && !day.claimed.includes(q.id)).length;
-  const due = dueRetests().length;
-
-  const dots = { home: claimable, skills: due };
+  // A missing connection is the one thing worth a dot on the Hero tab.
+  const dots = { home: claimable, hero: isLinked() ? 0 : 1 };
 
   return raw(Object.entries(ROUTES).map(([k, r]) => `
     <button class="${k === current ? 'on' : ''}" data-nav="${k}"

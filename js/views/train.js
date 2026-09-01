@@ -1,207 +1,204 @@
-/** Train — browse drills by tier and path, preview them, enter a gauntlet. */
-import { S, progress } from '../state.js';
-import { DRILLS, GAUNTLETS, TIER_LOCK, TIER_NAME, drillMinutes, getSession } from '../data/drills.js';
-import { pathFor, PATHS } from '../data/skilltree.js';
-import { modeFor } from '../data/practice.js';
-import { pathOrder } from '../game.js';
-import { startSession } from './player.js';
+/**
+ * Train — the contests.
+ *
+ * A contest is a clock plus a target the judge settles. Start it, go and solve on
+ * Codeforces, come back and sync: solves accepted inside the window at or above
+ * the rating floor are what count. Problems you had already solved before the
+ * clock started are excluded, so the window cannot be gamed.
+ */
 import {
-  h, raw, esc, $, $$, bind, bar, hm, esc as e2, sheet, toast, sfx, haptic,
+  S, progress, isLinked, activeContest, startContest, finishContest, abandonContest,
+} from '../state.js';
+import { CONTESTS } from '../data/contests.js';
+import { syncAll, describeSync } from '../sync.js';
+import { colorForRating } from '../analytics.js';
+import { problemUrl } from '../platforms.js';
+import { go } from '../router.js';
+import {
+  h, raw, esc, $, $$, bind, bar, mmss, fmt, dialog, toast, sfx, haptic, confetti, rewardToast,
 } from '../ui.js';
-import { icon } from '../icons.js';
-
-let filterPath = 'all';
-let filterTier = 'all';
-
-/** Let another view open Train already filtered. */
-export function setPath(id = 'all') { filterPath = id; filterTier = 'all'; }
 
 export function render() {
   const level = progress().level;
-  const paths = pathOrder(S.profile.track);
+  const live = activeContest();
 
-  const open = DRILLS.filter(d => level >= TIER_LOCK[d.tier]);
-  const locked = DRILLS.filter(d => level < TIER_LOCK[d.tier]);
+  if (!isLinked()) {
+    return h`
+      <div class="h2">Contests</div>
+      <div class="empty" style="margin-top:16px">
+        Contests are settled by Codeforces, so connect a handle from the Hero tab first.
+      </div>`;
+  }
 
-  const shown = open.filter(d =>
-    (filterPath === 'all' || d.path === filterPath) &&
-    (filterTier === 'all' || String(d.tier) === filterTier));
+  if (live) return h`${raw(liveView(live))}`;
 
   return h`
-    <div class="between">
-      <div>
-        <div class="h2">Train</div>
-        <div class="sub">${open.length} drills open · ${locked.length} still locked</div>
-      </div>
+    <div>
+      <div class="h2">Contests</div>
+      <div class="sub">A clock and a target. The judge decides, not you.</div>
     </div>
 
-    ${raw(gauntletSection(level))}
-
-    <div class="pill-scroll" style="margin-top:18px">
-      <button class="pill ${filterPath === 'all' ? 'on' : ''}" data-path="all">All paths</button>
-      ${raw(paths.map(p => `<button class="pill ${filterPath === p.id ? 'on' : ''}"
-        data-path="${p.id}">${p.icon} ${p.short}</button>`).join(''))}
+    <div class="stack" style="margin-top:16px">
+      ${raw(CONTESTS.map(c => card(c, level)).join(''))}
     </div>
 
-    <div class="pill-scroll" style="margin-top:8px">
-      <button class="pill ${filterTier === 'all' ? 'on' : ''}" data-tier="all">All lengths</button>
-      ${raw([1, 2, 3, 4, 5].map(t => `<button class="pill ${filterTier === String(t) ? 'on' : ''}"
-        data-tier="${t}" ${level < TIER_LOCK[t] ? 'disabled' : ''}>${TIER_NAME[t]}</button>`).join(''))}
-    </div>
-
-    <div class="section">
-      ${raw(shown.length
-        ? `<div class="stack">${shown.map(d => drillCard(d)).join('')}</div>`
-        : '<div class="empty">Nothing matches that filter.</div>')}
-    </div>
-
-    ${raw(locked.length ? `
-      <div class="section">
-        <div class="label">Locked</div>
-        <div class="stack s2">
-          ${locked.slice(0, 6).map(d => `
-            <div class="card pad-s" style="opacity:.6">
-              <div class="between">
-                <div class="grow truncate">
-                  <div class="h3 truncate">${d.icon} ${esc(d.name)}</div>
-                  <div class="tiny">${TIER_NAME[d.tier]} · ${hm(drillMinutes(d))}</div>
-                </div>
-                <span class="badge">level ${TIER_LOCK[d.tier]}</span>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>` : '')}`;
+    <div class="card sunk" style="margin-top:20px">
+      <div class="label">How it is settled</div>
+      <p class="sub" style="margin-top:8px">
+        Start the clock, then solve on Codeforces as normal. A problem counts if it
+        was accepted inside the window, is rated at or above the floor, and was not
+        already solved before you started. Sync to see the count move.
+      </p>
+    </div>`;
 }
 
-function drillCard(d) {
-  const p = pathFor(d.path);
-  const m = modeFor(d.mode);
+function card(c, level) {
+  const rec = S.contests[c.id] || {};
+  const locked = level < c.lvl;
   return `
-  <button class="card tap rail" style="--rail:${p.color}" data-open="${d.id}">
+  <button class="card tap ${rec.won ? 'gauntlet won' : ''} ${locked ? 'gauntlet locked' : ''}"
+          data-start="${c.id}" ${locked ? 'disabled' : ''}>
     <div class="between">
-      <div class="grow">
-        <div class="row" style="gap:6px">
-          <span class="badge" style="color:${p.color}">${p.short}</span>
-          <span class="badge" style="color:${m.color}">${m.icon} ${m.name}</span>
-          <span class="badge">${TIER_NAME[d.tier]}</span>
+      <div class="row" style="gap:12px">
+        <span class="g-glyph">${c.icon}</span>
+        <div class="grow">
+          <div class="h3">${esc(c.name)}</div>
+          <div class="tiny" style="margin-top:2px">
+            ${locked ? `Unlocks at level ${c.lvl}`
+              : `${c.need} problems rated ${c.minRating}+ in ${c.minutes} minutes`}
+          </div>
         </div>
-        <div class="h3" style="margin-top:8px">${d.icon} ${esc(d.name)}</div>
-        <div class="tiny" style="margin-top:4px">${esc(d.blurb)}</div>
       </div>
+      <span class="badge ${rec.won ? 'good' : locked ? '' : 'warn'}">
+        ${rec.won ? 'won' : locked ? `lvl ${c.lvl}` : `+${c.xp}`}</span>
     </div>
-    <div class="between" style="margin-top:10px">
-      <span class="tiny">${d.steps.length} steps · ${hm(drillMinutes(d))}</span>
-      <span class="badge">+${d.xp} XP</span>
-    </div>
+    ${!locked ? `<div class="tiny" style="margin-top:8px">${esc(c.blurb)}</div>` : ''}
+    ${rec.attempts ? `<div class="tiny" style="margin-top:6px">
+      ${rec.attempts} attempt${rec.attempts === 1 ? '' : 's'} · best ${rec.best}/${c.need}</div>` : ''}
   </button>`;
 }
 
-/* -------------------------------- gauntlets ------------------------------- */
+/* --------------------------------- running -------------------------------- */
 
-function gauntletSection(level) {
+function liveView(live) {
+  const { contest } = live;
+  const mins = Math.floor(live.secondsLeft / 60);
+  const secs = live.secondsLeft % 60;
+
   return `
-  <div class="section">
-    <div class="between">
-      <div class="label">Gauntlets</div>
-      <div class="tiny">You can lose these</div>
+  <div class="between">
+    <div>
+      <div class="h2">${esc(contest.name)}</div>
+      <div class="sub">${contest.need} problems rated ${contest.minRating}+</div>
     </div>
-    <div class="stack s2">
-      ${GAUNTLETS.map(g => {
-        const rec = S.gauntlets[g.id] || {};
-        const locked = level < g.lvl;
-        return `<button class="card tap gauntlet ${rec.won ? 'won' : ''} ${locked ? 'locked' : ''}"
-          data-open="${g.id}" ${locked ? 'disabled' : ''}>
-          <div class="between">
-            <div class="row" style="gap:12px">
-              <span class="g-glyph">${g.icon}</span>
-              <div class="grow">
-                <div class="h3">${esc(g.name)}</div>
-                <div class="tiny" style="margin-top:2px">
-                  ${locked ? `Unlocks at level ${g.lvl}`
-                    : rec.won ? `Beaten · ${rec.attempts} attempt${rec.attempts === 1 ? '' : 's'}`
-                    : rec.attempts ? `${rec.attempts} attempt${rec.attempts === 1 ? '' : 's'} · best ${rec.best}%`
-                    : `${g.hp} HP · ${g.focus} focus`}
-                </div>
-              </div>
+    <span class="badge ${live.won ? 'good' : live.expired ? 'bad' : 'warn'}">
+      ${live.won ? 'won' : live.expired ? 'time up' : 'running'}</span>
+  </div>
+
+  <div class="card" style="margin-top:16px;text-align:center">
+    <div class="pl-timer ${live.expired ? 'over' : ''}" id="ct-clock">
+      ${live.expired ? '00:00' : `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`}
+    </div>
+    <div class="tiny" style="margin-top:12px">${live.expired ? 'window closed' : 'remaining'}</div>
+
+    <div style="margin-top:16px">${bar((live.solved / live.need) * 100, {
+      tall: true, color: live.won ? 'var(--good)' : 'var(--accent)' })}</div>
+    <div class="num h2" style="margin-top:8px">${live.solved} / ${live.need}</div>
+  </div>
+
+  ${live.counted.length ? `
+    <div class="section">
+      <div class="label">Counted so far</div>
+      <div class="stack s2">
+        ${live.counted.map(s => `
+          <a class="card pad-s" style="display:block;text-decoration:none"
+             href="${esc(problemUrl(s))}" target="_blank" rel="noopener">
+            <div class="between">
+              <div class="grow truncate"><div class="h3 truncate">${esc(s.name)}</div></div>
+              <span class="badge" style="background:${colorForRating(s.rating)};color:var(--panel)">${s.rating}</span>
             </div>
-            <span class="badge ${rec.won ? 'good' : locked ? '' : 'warn'}">
-              ${rec.won ? '✓' : locked ? `lvl ${g.lvl}` : 'open'}</span>
-          </div>
-        </button>`;
-      }).join('')}
-    </div>
-  </div>`;
-}
-
-/* --------------------------------- preview -------------------------------- */
-
-function preview(id, rerender) {
-  const s = getSession(id);
-  if (!s) return;
-  const p = pathFor(s.path);
-  const m = modeFor(s.mode);
-  const total = drillMinutes(s);
-  const rec = s.isGauntlet ? (S.gauntlets[s.id] || {}) : null;
-
-  sheet(s.name, `
-    <div class="row" style="gap:6px">
-      <span class="badge" style="color:${p.color}">${p.icon} ${p.name}</span>
-      <span class="badge" style="color:${m.color}">${m.icon} ${m.name}</span>
-      <span class="badge">${hm(total)}</span>
-    </div>
-
-    <p class="sub" style="margin-top:12px">${esc(s.blurb)}</p>
-
-    ${s.isGauntlet ? `
-      <div class="card rail" style="--rail:var(--bad);margin-top:14px">
-        <div class="between">
-          <div><div class="label">Health</div><div class="num h2">${s.hp}</div></div>
-          <div class="right"><div class="label">Your focus</div><div class="num h2">${s.focus}</div></div>
-        </div>
-        <div class="sub" style="margin-top:10px">
-          Finishing a step deals damage scaled by your combo. Skipping one costs a focus
-          pip. Run out and it survives — you keep partial XP and come back stronger.
-        </div>
-        ${rec?.attempts ? `<div class="tiny" style="margin-top:8px">
-          ${rec.won ? 'Already beaten.' : `${rec.attempts} attempt${rec.attempts === 1 ? '' : 's'}, best ${rec.best}% cleared.`}
-        </div>` : ''}
-      </div>` : ''}
-
-    <div class="label" style="margin-top:18px">The steps</div>
-    <div class="stack s2" style="margin-top:8px">
-      ${s.steps.map((st, i) => `
-        <div class="card pad-s sunk">
-          <div class="between">
-            <div class="grow">
-              <div class="h3">${i + 1}. ${esc(st.label)}</div>
-              ${st.note ? `<div class="tiny" style="margin-top:3px">${esc(st.note)}</div>` : ''}
-            </div>
-            <span class="badge">${st.minutes}m</span>
-          </div>
-        </div>`).join('')}
-    </div>
-
-    <div class="card sunk" style="margin-top:14px">
-      <div class="between tiny">
-        <span>${s.steps.length} steps + ${s.steps.length - 1} rests of ${s.rest}m</span>
-        <span>+${s.xp} XP · +${s.coins}c</span>
+          </a>`).join('')}
       </div>
-    </div>
+    </div>` : `
+    <div class="empty" style="margin-top:16px">
+      Nothing counted yet. Solve on Codeforces, then sync.
+    </div>`}
 
-    <button class="btn primary block" style="margin-top:18px" data-start>Start</button>
-  `, (el, close) => {
-    $('[data-start]', el).onclick = () => { close(); startSession(id, rerender); };
-  });
+  <div class="row" style="margin-top:18px">
+    <button class="btn grow" data-act="sync">Sync</button>
+    <button class="btn primary grow" data-act="finish">
+      ${live.won ? 'Claim the win' : live.expired ? 'Bank it' : 'Finish early'}</button>
+  </div>
+  <button class="btn ghost block sm" style="margin-top:8px" data-act="abandon">Abandon</button>
+
+  <a class="btn ghost block sm" style="margin-top:16px;text-decoration:none"
+     href="https://codeforces.com/problemset?tags=*${contest.minRating}-" target="_blank" rel="noopener">
+    Open the Codeforces problem set
+  </a>`;
 }
 
 /* ---------------------------------- mount --------------------------------- */
 
+let ticker = null;
+
 export function mount(root, rerender) {
-  $$('[data-path]', root).forEach(b => b.onclick = () => {
-    filterPath = b.dataset.path; sfx('tick'); rerender();
+  clearInterval(ticker);
+
+  $$('[data-start]', root).forEach(b => b.onclick = () => {
+    const c = CONTESTS.find(x => x.id === b.dataset.start);
+    dialog(`<div class="h2">Start ${esc(c.name)}?</div>
+      <p class="sub" style="margin:12px 0 16px">
+        ${c.need} problems rated ${c.minRating}+ within ${c.minutes} minutes.
+        Everything you have already solved is recorded now and will not count.</p>
+      <button class="btn primary block" data-yes>Start the clock</button>
+      <button class="btn ghost block sm" style="margin-top:8px" data-no>Not now</button>`,
+      (d, close) => {
+        d.querySelector('[data-no]').onclick = close;
+        d.querySelector('[data-yes]').onclick = () => {
+          startContest(c.id); close(); sfx('start'); haptic(16); rerender();
+        };
+      });
   });
-  $$('[data-tier]', root).forEach(b => b.onclick = () => {
-    filterTier = b.dataset.tier; sfx('tick'); rerender();
+
+  bind(root, {
+    sync: async (el) => {
+      el.textContent = 'Syncing…';
+      const r = await syncAll({ force: true });
+      toast(describeSync(r), 3200);
+      rerender();
+    },
+    finish: () => {
+      const done = finishContest();
+      if (!done) return;
+      if (done.result.won) { sfx('reward'); confetti(150); } else sfx('fail');
+      rewardToast(done.reward);
+      toast(done.result.won
+        ? `${done.contest.name} cleared — ${done.result.solved}/${done.contest.need}`
+        : `Banked ${done.result.solved}/${done.contest.need}. Come back stronger.`, 3600);
+      rerender();
+    },
+    abandon: () => {
+      dialog(`<div class="h2">Abandon the run?</div>
+        <p class="sub" style="margin:12px 0 16px">No credit, no attempt recorded.</p>
+        <button class="btn hot block" data-yes>Abandon</button>
+        <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep going</button>`,
+        (d, close) => {
+          d.querySelector('[data-no]').onclick = close;
+          d.querySelector('[data-yes]').onclick = () => { abandonContest(); close(); rerender(); };
+        });
+    },
   });
-  $$('[data-open]', root).forEach(b => b.onclick = () => preview(b.dataset.open, rerender));
+
+  // The clock is redrawn in place rather than by repainting the whole view,
+  // which would fight with anything the user is scrolling.
+  const clock = $('#ct-clock', root);
+  if (clock) {
+    ticker = setInterval(() => {
+      const live = activeContest();
+      if (!live) { clearInterval(ticker); return; }
+      if (live.expired) { clock.textContent = '00:00'; clock.classList.add('over'); return; }
+      const m = Math.floor(live.secondsLeft / 60), s = live.secondsLeft % 60;
+      clock.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }, 1000);
+  }
 }

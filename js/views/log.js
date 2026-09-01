@@ -1,534 +1,359 @@
 /**
- * Log — the three logs and the day they add up to, with the dashboard beneath.
+ * Log — what actually happened, and the charts built from it.
  *
- * One dense scrolling page rather than charts split across tabs: the point is to
- * read today, this week and the trend without navigating, and see how they relate.
+ * Verified entries (accepted solves, public pushes) and unverified ones (notes
+ * you typed) are kept visibly apart. The second kind is here so your record is
+ * complete, not so it can be counted.
  */
 import {
-  S, getDay, dayTotals, targets, today, quests,
-  logFocus, removeFocus, logProblem, removeProblem, logShip, removeShip,
+  S, dayTotals, historySeries, solvedList, solvesOn, pushesOn, getDay,
+  logSession, removeSession, logNote, removeNote, isLinked,
 } from '../state.js';
-import { MODES, modeFor, PATTERNS, patternName, DIFFICULTIES, difficultyFor,
-         SHIP_KINDS, shipKindFor, CONTEXTS, effectiveMinutes } from '../data/practice.js';
-import { PATHS, pathFor } from '../data/skilltree.js';
-import { pathOrder } from '../game.js';
-import { modeBreakdown, dayStats, rollingAverages, overreach } from '../analytics.js';
-import { renderCharts, mountCharts } from './dashboard.js';
+import { targetsFor, dayKey } from '../game.js';
 import {
-  h, raw, esc, $, $$, bar, splitBar, hm, fmt, timeOf, sfx, haptic,
-  sheet, dialog, toast, rewardToast, bind,
+  ratingHistogram, colorForRating, movingAverage, rollingAverages, weeklyBuckets,
+  topicCoverage, ceilingOverTime, verifiedMix, BANDS, treeCompletion,
+} from '../analytics.js';
+import { syncAll, describeSync, lastSync } from '../sync.js';
+import { problemUrl } from '../platforms.js';
+import { seriesChart, lineChart, calendarGrid, barRows } from '../charts.js';
+import {
+  h, raw, esc, $, $$, bind, bar, hm, fmt, pct, timeOf, shortDate,
+  sheet, toast, sfx, haptic, rewardToast,
 } from '../ui.js';
-import { icon } from '../icons.js';
 
-/* --------------------------------- render --------------------------------- */
+let historyDays = 7;
 
 export function render() {
-  const day = getDay();
-  const t = targets();
-  const st = dayStats(day);
-  const modes = modeBreakdown(day);
+  const t = targetsFor(S.profile);
+  const tot = dayTotals();
   const avg = rollingAverages(7);
-  const over = overreach(7);
 
   return h`
     <div class="between">
       <div>
         <div class="h2">Log</div>
-        <div class="sub">${st.sessions
-          ? `${hm(st.minutes)} logged · ${hm(st.effMinutes)} effective`
-          : 'Nothing logged today yet.'}</div>
+        <div class="sub">${tot.solved} solved today · ${tot.commits} commits</div>
       </div>
-      <div class="badge ${st.band === 'on' ? 'good' : st.band === 'near' ? 'warn' : ''}">
-        ${st.minutes}/${t.focus}m
-      </div>
+      <button class="btn xs" data-act="sync">Sync</button>
     </div>
 
-    <div class="wrap" style="margin-top:14px">
-      <button class="btn primary grow" data-act="add-focus">${raw(icon('plus', 16).value)} Session</button>
-      <button class="btn grow" data-act="add-problem">◎ Problem</button>
-      <button class="btn grow" data-act="add-ship">↑ Ship</button>
+    ${raw(todayCard(tot, t, avg))}
+    ${raw(entries())}
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn grow" data-act="timer">Start a timer</button>
+      <button class="btn ghost grow" data-act="note">Add a note</button>
     </div>
 
-    ${raw(over ? `
-      <div class="card rail" style="--rail:var(--warn);margin-top:14px">
-        <div class="row"><span style="color:var(--warn)">⚠</span>
-          <div class="grow">
-            <div class="h3">You are running above your own ceiling</div>
-            <div class="sub" style="margin-top:4px">
-              ${hm(over.avg)} a day across ${over.days} days, against a stated capacity of
-              ${hm(over.capacity)}. That is the pattern that produces three good weeks and
-              then three months off. Nothing here is worth that trade.
-            </div>
-          </div></div>
-      </div>` : '')}
-
-    ${raw(dayCard(st, modes, t, avg))}
-    ${raw(entriesSection(day))}
-
-    <hr class="rule" style="margin-top:28px">
-    ${raw(renderCharts())}`;
+    <hr class="rule" style="margin-top:26px">
+    ${raw(charts())}`;
 }
 
-/* -------------------------------- day card -------------------------------- */
+/* -------------------------------- today ----------------------------------- */
 
-function dayCard(st, modes, t, avg) {
-  const pctOfTarget = t.focus ? (st.minutes / t.focus) * 100 : 0;
-  const effPct = t.focus ? (st.effMinutes / t.focus) * 100 : 0;
-
+function todayCard(tot, t, avg) {
   return `
   <div class="card" style="margin-top:14px">
     <div class="between">
       <div class="label">Today</div>
-      <div class="tiny">${st.trained ? '' : ''}7-day avg ${hm(avg.minutes)}</div>
+      <div class="tiny">7-day avg ${avg.solved}/day</div>
     </div>
-
-    <div class="row" style="margin-top:12px;align-items:flex-end">
-      <div class="grow">
-        <div class="num" style="font-size:30px;font-weight:800;letter-spacing:-.03em">
-          ${hm(st.minutes)}</div>
-        <div class="tiny">logged · target ${hm(t.focus)}</div>
-      </div>
-      <div class="right">
-        <div class="num h2" style="color:var(--accent)">${hm(st.effMinutes)}</div>
-        <div class="tiny">effective</div>
-      </div>
+    <div class="grid3" style="margin-top:12px">
+      <div class="tile"><div class="v">${tot.solved}</div><div class="k">solved</div></div>
+      <div class="tile"><div class="v">${tot.bestRating || '—'}</div><div class="k">best</div></div>
+      <div class="tile"><div class="v">${tot.commits}</div><div class="k">commits</div></div>
     </div>
-
-    <div style="margin-top:10px">${bar(pctOfTarget, { tall: true,
-      color: st.band === 'on' ? 'var(--good)' : st.band === 'near' ? 'var(--warn)' : 'var(--bad)' })}</div>
-    <div style="margin-top:6px">${bar(effPct, { color: 'var(--accent)' })}</div>
+    <div style="margin-top:12px">${bar(t.solves ? (tot.solved / t.solves) * 100 : 0, {
+      tall: true, color: tot.solved >= t.solves ? 'var(--good)' : 'var(--accent)' })}</div>
     <div class="between tiny" style="margin-top:6px">
-      <span>raw ${Math.round(pctOfTarget)}% of target</span>
-      <span>effective ${Math.round(effPct)}%</span>
-    </div>
-
-    ${modes ? `
-      <hr class="rule" style="margin:14px 0">
-      <div class="between">
-        <div class="label">Deliberate share</div>
-        <div class="badge ${st.hitDeliberate ? 'good' : 'warn'}">
-          ${Math.round(modes.deliberatePct)}% / ${st.deliberateFloor}%
-        </div>
-      </div>
-      <div style="margin-top:8px">${splitBar(modes.groups.map(g => ({
-        pct: g.pct, color: g.color, name: `${g.name} ${Math.round(g.pct)}%`,
-      })))}</div>
-      <div class="wrap" style="margin-top:8px">
-        ${modes.groups.filter(g => g.minutes > 0).map(g => `
-          <span class="badge"><span class="dot" style="background:${g.color}"></span>
-            ${g.name} ${hm(g.minutes)} <span style="color:var(--faint)">×${g.weight.toFixed(2)}</span>
-          </span>`).join('')}
-      </div>
-      ${modes.passivePct >= 50 ? `
-        <div class="sub" style="margin-top:10px;color:var(--warn)">
-          Over half of today was video. It counts, at ${modeFor('watch').weight.toFixed(2)}×,
-          but nothing you watched today will show up in a retest.
-        </div>` : ''}
-    ` : ''}
-
-    <hr class="rule" style="margin:14px 0">
-    <div class="grid3">
-      <div class="tile"><div class="v">${st.solved}<span style="font-size:13px;color:var(--faint)">/${st.problems}</span></div><div class="k">solved</div></div>
-      <div class="tile"><div class="v">${st.ships}</div><div class="k">shipped</div></div>
-      <div class="tile"><div class="v">${st.retests}</div><div class="k">retests</div></div>
+      <span>target ${t.solves} a day</span>
+      <span>${hm(tot.verifiedMinutes)} timed</span>
     </div>
   </div>`;
 }
 
-/* -------------------------------- entries --------------------------------- */
-
-function entriesSection(day) {
+function entries() {
+  const key = dayKey();
+  const day = getDay(key);
   const rows = [
-    ...day.focus.map(e => ({ kind: 'focus', ts: e.ts, e })),
-    ...day.problems.map(e => ({ kind: 'problem', ts: e.ts, e })),
-    ...day.ships.map(e => ({ kind: 'ship', ts: e.ts, e })),
-    ...day.retests.map(e => ({ kind: 'retest', ts: e.ts, e })),
+    ...solvesOn(key).map(s => ({ kind:'solve', ts:s.at * 1000, s })),
+    ...pushesOn(key).map(p => ({ kind:'push', ts:p.at * 1000, p })),
+    ...(day.focus || []).map(f => ({ kind:'focus', ts:f.ts, f })),
+    ...(day.notes || []).map(n => ({ kind:'note', ts:n.ts, n })),
   ].sort((a, b) => b.ts - a.ts);
 
   if (!rows.length) {
-    return `<div class="section">
-      <div class="empty"><div class="big">▤</div>
-        Nothing logged today. Start with a session — even fifteen minutes counts.</div>
-    </div>`;
+    return `<div class="empty" style="margin-top:16px">
+      Nothing today yet. Solve something, then sync.</div>`;
   }
 
   return `<div class="section">
-    <div class="label">Today’s entries · ${rows.length}</div>
-    <div class="stack s2">${rows.map(r => entryRow(r)).join('')}</div>
+    <div class="label">Today’s entries</div>
+    <div class="stack s2">${rows.map(r => row(r)).join('')}</div>
   </div>`;
 }
 
-function entryRow({ kind, e }) {
-  if (kind === 'focus') {
-    const m = modeFor(e.mode);
-    const p = e.path ? pathFor(e.path) : null;
-    return `<div class="card pad-s rail entry" style="--rail:${m.color}">
+function row(r) {
+  if (r.kind === 'solve') {
+    return `<a class="card pad-s rail" style="--rail:var(--good);display:block;text-decoration:none"
+       href="${esc(problemUrl(r.s))}" target="_blank" rel="noopener">
       <div class="between">
-        <div class="grow">
-          <div class="row" style="gap:8px">
-            <span class="badge" style="color:${m.color}">${m.icon} ${m.name}</span>
-            ${p ? `<span class="badge">${p.short}</span>` : ''}
-            ${e.drillId ? '<span class="badge">drill</span>' : ''}
-          </div>
-          <div class="h3 truncate" style="margin-top:6px">${esc(e.topic || m.name)}</div>
-          ${e.note ? `<div class="tiny" style="margin-top:3px">${esc(e.note)}</div>` : ''}
+        <div class="grow truncate">
+          <span class="badge good">accepted</span>
+          <div class="h3 truncate" style="margin-top:6px">${esc(r.s.name)}</div>
+          <div class="tiny truncate">${esc((r.s.tags || []).slice(0, 3).join(' · '))}</div>
         </div>
         <div class="right" style="flex:none">
-          <div class="num h3">${hm(e.minutes)}</div>
-          <div class="tiny">${hm(effectiveMinutes(e))} eff</div>
-          <div class="tiny">${timeOf(e.ts)}</div>
+          <span class="badge" style="background:${colorForRating(r.s.rating)};color:var(--panel)">${r.s.rating ?? '—'}</span>
+          <div class="tiny" style="margin-top:4px">${timeOf(r.ts)}</div>
         </div>
       </div>
-      <button class="btn ghost xs" style="margin-top:8px" data-del-focus="${e.uid}">Remove</button>
+    </a>`;
+  }
+  if (r.kind === 'push') {
+    return `<div class="card pad-s rail" style="--rail:var(--info)">
+      <div class="between">
+        <div class="grow truncate">
+          <span class="badge info">pushed</span>
+          <div class="h3 truncate" style="margin-top:6px">${esc(r.p.repo)}</div>
+        </div>
+        <div class="right"><div class="num h3">${r.p.commits}</div>
+          <div class="tiny">${timeOf(r.ts)}</div></div>
+      </div>
     </div>`;
   }
-
-  if (kind === 'problem') {
-    const d = difficultyFor(e.difficulty);
-    return `<div class="card pad-s rail entry" style="--rail:${d.color}">
+  if (r.kind === 'focus') {
+    return `<div class="card pad-s rail" style="--rail:${r.f.verified ? 'var(--accent)' : 'var(--muted)'}">
       <div class="between">
         <div class="grow">
-          <div class="row" style="gap:8px">
-            <span class="badge" style="color:${d.color}">${d.name}</span>
-            ${e.pattern ? `<span class="badge">${esc(patternName(e.pattern))}</span>` : ''}
-            ${e.hinted ? '<span class="badge warn">hint</span>' : ''}
-            ${e.solved ? '' : '<span class="badge bad">unsolved</span>'}
-          </div>
-          <div class="h3 truncate" style="margin-top:6px">${esc(e.name)}</div>
+          <span class="badge ${r.f.verified ? '' : 'mute'}">${r.f.verified ? 'timed' : 'typed · unpaid'}</span>
+          <div class="h3" style="margin-top:6px">${hm(r.f.minutes)} practice</div>
+          ${r.f.note ? `<div class="tiny" style="margin-top:2px">${esc(r.f.note)}</div>` : ''}
         </div>
-        <div class="right" style="flex:none">
-          <div class="num h3">${e.minutes || '—'}${e.minutes ? 'm' : ''}</div>
-          <div class="tiny">${timeOf(e.ts)}</div>
-        </div>
+        <div class="tiny">${timeOf(r.ts)}</div>
       </div>
-      <button class="btn ghost xs" style="margin-top:8px" data-del-problem="${e.uid}">Remove</button>
+      <button class="btn ghost xs" style="margin-top:8px" data-del-focus="${r.f.uid}">Remove</button>
     </div>`;
   }
-
-  if (kind === 'ship') {
-    const k = shipKindFor(e.kind);
-    return `<div class="card pad-s rail entry" style="--rail:${k.color}">
-      <div class="between">
-        <div class="grow">
-          <span class="badge" style="color:${k.color}">${k.icon} ${k.name}</span>
-          <div class="h3" style="margin-top:6px">
-            ${e.count > 1 ? `${e.count} × ` : ''}${esc(e.repo || k.name)}</div>
-          ${e.note ? `<div class="tiny" style="margin-top:3px">${esc(e.note)}</div>` : ''}
-        </div>
-        <div class="tiny" style="flex:none">${timeOf(e.ts)}</div>
-      </div>
-      <button class="btn ghost xs" style="margin-top:8px" data-del-ship="${e.uid}">Remove</button>
-    </div>`;
-  }
-
-  // retest — read-only on purpose: see the note in the sheet that writes them.
-  return `<div class="card pad-s rail entry" style="--rail:${e.passed ? 'var(--good)' : 'var(--bad)'}">
+  return `<div class="card pad-s rail" style="--rail:var(--muted)">
     <div class="between">
       <div class="grow">
-        <span class="badge ${e.passed ? 'good' : 'bad'}">${e.passed ? '✓ held' : '✕ lost'}</span>
-        <div class="h3" style="margin-top:6px">Retest · ${esc(e.nodeId)}</div>
+        <span class="badge mute">note · unpaid</span>
+        <div class="sub" style="margin-top:6px">${esc(r.n.text)}</div>
       </div>
-      <div class="tiny">${timeOf(e.ts)}</div>
+      <div class="tiny">${timeOf(r.ts)}</div>
     </div>
+    <button class="btn ghost xs" style="margin-top:8px" data-del-note="${r.n.uid}">Remove</button>
   </div>`;
+}
+
+/* -------------------------------- charts ---------------------------------- */
+
+const block = (id, title, legend, body) => `
+  <section class="dash" id="${id}">
+    <div class="label">${title}</div>
+    ${legend ? `<div class="tiny" style="margin-top:4px">${legend}</div>` : ''}
+    <div style="margin-top:10px">${body}</div>
+  </section>`;
+
+function charts() {
+  const days = historySeries(60);
+  if (!isLinked()) {
+    return `<div class="empty">Charts fill in once a Codeforces handle is connected.</div>`;
+  }
+
+  return `
+    <div class="between"><div class="h2">Dashboard</div>
+      <div class="tiny">${days.filter(d => d.logged).length} active days</div></div>
+    ${solveChart(days)}
+    ${ceilingChart()}
+    ${histogramBlock()}
+    ${topicsBlock()}
+    ${commitChart(days)}
+    ${mixBlock()}
+    ${activityBlock(days)}
+    ${historyBlock(days)}`;
+}
+
+function solveChart(days) {
+  const shown = days.slice(-30);
+  const t = targetsFor(S.profile);
+  const avg = movingAverage(shown, 'solved', 7);
+  const data = shown.map(d => ({
+    value: d.solved,
+    color: d.solved >= t.solves ? 'var(--good)' : d.solved ? 'var(--warn)' : 'var(--muted)',
+    label: `${shortDate(d.key)} · ${d.solved}`,
+    axis: shortDate(d.key),
+  }));
+  return block('d-solves', 'Problems accepted',
+    `green ≥ target · — 7-day avg · ┆ target ${t.solves}/day`,
+    seriesChart(data, { height: 120, target: t.solves, avg, axisEvery: 6 }));
+}
+
+function ceilingChart() {
+  const pts = ceilingOverTime(12).map(p => ({ value: p.value }));
+  if (pts.length < 2) return '';
+  const best = pts.at(-1).value;
+  return block('d-ceiling', 'Rating ceiling',
+    'The hardest problem you have solved, over twelve weeks. A running maximum.',
+    `${lineChart(pts, { height: 110, color: 'var(--accent)', maxY: Math.max(best * 1.15, 1200) })}
+     <div class="between tiny" style="margin-top:6px"><span>12 weeks ago</span>
+       <span class="num">best ${best}</span></div>`);
+}
+
+function histogramBlock() {
+  const rows = ratingHistogram();
+  const total = rows.reduce((n, r) => n + r.count, 0);
+  if (!total) return '';
+  return block('d-bands', 'Where you solve',
+    'Every rated solve, by Codeforces band. The shape of your comfort zone.',
+    barRows(rows.map(r => ({ name: `${r.name} ${r.min}+`, value: r.count, color: r.color })),
+            { showValue: v => v }));
+}
+
+function topicsBlock() {
+  const cov = topicCoverage();
+  if (!cov.started) return '';
+  return block('d-topics', 'Topic coverage', `${cov.started} of ${cov.of} topics started`,
+    `${barRows(cov.rows.filter(r => r.solves > 0).map(r => ({
+        name: r.topic.name, value: r.solves, color: 'var(--info)' })), { showValue: v => v })}
+     ${cov.untouched.length ? `
+       <div class="card sunk" style="margin-top:12px">
+         <div class="label">Never touched</div>
+         <div class="wrap" style="margin-top:8px">
+           ${cov.untouched.map(t => `<span class="badge warn">${esc(t.name)}</span>`).join('')}
+         </div>
+       </div>` : ''}`);
+}
+
+function commitChart(days) {
+  const shown = days.slice(-30);
+  if (!shown.some(d => d.commits)) return '';
+  const data = shown.map(d => ({
+    value: d.commits, color: d.commits ? 'var(--violet)' : 'var(--muted)',
+    label: `${shortDate(d.key)} · ${d.commits}`, axis: shortDate(d.key),
+  }));
+  return block('d-commits', 'Commits', 'Public pushes, read from GitHub.',
+    seriesChart(data, { height: 96, axisEvery: 6 }));
+}
+
+function mixBlock() {
+  const mix = verifiedMix(30);
+  if (!mix.total && !mix.notes) return '';
+  return block('d-mix', 'Verified vs typed',
+    'Only the verified half moves any number in this app.',
+    `<div class="split">
+       <i style="width:${mix.pct}%;background:var(--good)"></i>
+       <i style="width:${100 - mix.pct}%;background:var(--muted)"></i>
+     </div>
+     <div class="between tiny" style="margin-top:8px">
+       <span>${hm(mix.verified)} timed</span>
+       <span>${hm(mix.unverified)} typed · ${mix.notes} notes</span>
+     </div>`);
+}
+
+function activityBlock(days) {
+  const peak = Math.max(...days.map(d => d.solved), 1);
+  const cells = days.map(d => ({
+    color: !d.solved ? 'var(--muted)'
+      : d.solved >= peak * 0.66 ? 'var(--accent)'
+      : `color-mix(in srgb, var(--accent) ${d.solved >= peak * 0.33 ? 62 : 30}%, var(--panel))`,
+    label: `${d.key} · ${d.solved} solved`,
+  }));
+  return block('d-activity', 'Activity', 'Last 60 days · darker is more',
+    `<div class="card sunk">${calendarGrid(cells)}</div>`);
+}
+
+function historyBlock(days) {
+  const shown = [...days].reverse().filter(d => d.logged).slice(0, historyDays);
+  if (!shown.length) return '';
+  return block('d-history', 'Day by day', '',
+    `<div class="stack">${shown.map(d => `
+       <div class="card">
+         <div class="between">
+           <div><div class="h3">${shortDate(d.key)}</div>
+             <div class="tiny">${d.solved} solved · ${d.commits} commits${
+               d.verifiedMinutes ? ` · ${hm(d.verifiedMinutes)} timed` : ''}</div></div>
+           <span class="badge ${d.solved ? 'good' : ''}">${d.solved}</span>
+         </div>
+         ${solvesOn(d.key).length ? `<div class="wrap" style="margin-top:10px">
+           ${solvesOn(d.key).map(s => `<span class="badge" style="background:${
+             colorForRating(s.rating)};color:var(--panel)">${s.rating ?? '—'}</span>`).join('')}
+         </div>` : ''}
+       </div>`).join('')}</div>
+     <button class="btn ghost block sm" style="margin-top:12px" data-more>
+       Show ${historyDays === 7 ? '30' : 'fewer'} days</button>`);
 }
 
 /* --------------------------------- sheets --------------------------------- */
 
-const guessMode = () => 'build';
-
 /**
- * Log a focus session.
- *
- * Minutes are entered with a stepper and a row of common lengths rather than a
- * keyboard: on a phone the numeric keypad covers the sheet you are filling in.
+ * A timer the app holds itself. This is the only way to earn XP for time, since
+ * it is the only duration the app can vouch for.
  */
-export function openFocusSheet(rerender, preset = {}) {
-  let mode = preset.mode || guessMode();
-  let path = preset.path || null;
-  let minutes = preset.minutes || 45;
-  let ctx = null;
+function openTimer(rerender) {
+  let seconds = 0, running = true, tick = null;
 
-  sheet('Log a session', `
-    <div class="field">
-      <label>What kind of practice?</label>
-      <div class="stack s2">
-        ${MODES.map(m => `
-          <button class="card tap pad-s opt ${m.id === mode ? 'on' : ''}" data-mode="${m.id}">
-            <div class="between">
-              <div class="row" style="gap:10px">
-                <span style="color:${m.color};font-size:17px">${m.icon}</span>
-                <div><div class="h3">${m.name}</div>
-                <div class="tiny">${esc(m.blurb)}</div></div>
-              </div>
-              <span class="badge" style="color:${m.color}">×${m.weight.toFixed(2)}</span>
-            </div>
-          </button>`).join('')}
+  const close = sheet('Practice timer', `
+    <div class="center">
+      <div class="pl-timer" id="tm-clock">00:00</div>
+      <div class="tiny" style="margin-top:14px">
+        The app is holding this clock, so the minutes count. Leave the sheet open.
       </div>
     </div>
-
-    <div class="field" style="margin-top:18px">
-      <label>How long?</label>
-      <div class="stepper">
-        <button data-step="-5" aria-label="Less">−</button>
-        <input class="input num" id="lf-min" type="number" inputmode="numeric"
-               min="1" max="720" value="${minutes}">
-        <button data-step="5" aria-label="More">+</button>
-      </div>
-      <div class="pill-row" style="margin-top:8px">
-        ${[15, 25, 45, 60, 90, 120].map(v =>
-          `<button class="pill" data-quick="${v}">${hm(v)}</button>`).join('')}
-      </div>
-      <div class="sub" id="lf-eff" style="margin-top:8px"></div>
+    <div class="field" style="margin-top:20px">
+      <label>What are you working on?</label>
+      <input class="input" id="tm-note" maxlength="120" placeholder="Graph problems">
     </div>
-
-    <div class="field" style="margin-top:18px">
-      <label>Which path? <span class="tiny">— feeds skill retention</span></label>
-      <div class="pill-row">
-        ${pathOrder(S.profile.track).map(p => `
-          <button class="pill" data-path="${p.id}">${p.icon} ${p.short}</button>`).join('')}
-      </div>
+    <div class="row" style="margin-top:16px">
+      <button class="btn grow" data-pause>Pause</button>
+      <button class="btn primary grow" data-save>Save</button>
     </div>
-
-    <div class="field" style="margin-top:18px">
-      <label>What were you working on?</label>
-      <input class="input" id="lf-topic" maxlength="80" placeholder="Parser for the toy language">
-    </div>
-
-    <div class="field" style="margin-top:14px">
-      <label>What did you learn? <span class="tiny">— optional, but this is the bit you re-read</span></label>
-      <textarea class="input" id="lf-note" maxlength="300"
-        placeholder="Precedence climbing is much shorter than the nested-function version."></textarea>
-    </div>
-
-    <div class="field" style="margin-top:14px">
-      <label>Context</label>
-      <div class="pill-row">
-        ${CONTEXTS.map(c => `<button class="pill" data-ctx="${c.id}">${c.icon} ${c.name}</button>`).join('')}
-      </div>
-    </div>
-
-    <button class="btn primary block" style="margin-top:20px" data-save>Log it</button>
-  `, (el, close) => {
-    const input = $('#lf-min', el);
-    const eff = $('#lf-eff', el);
-
+    <button class="btn ghost block sm" style="margin-top:8px" data-discard>Discard</button>
+  `, (el, closeSheet) => {
+    const clock = $('#tm-clock', el);
     const paint = () => {
-      minutes = Math.max(1, Math.min(720, Math.round(+input.value || 0)));
-      const m = modeFor(mode);
-      eff.innerHTML = `<span class="num">${hm(minutes)}</span> at ${m.name.toLowerCase()}
-        weight ×${m.weight.toFixed(2)} = <b class="num" style="color:var(--accent)">${hm(Math.round(minutes * m.weight))} effective</b>`;
+      const m = Math.floor(seconds / 60), s = seconds % 60;
+      clock.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
     };
-
-    input.addEventListener('input', paint);
-    $$('[data-step]', el).forEach(b => b.onclick = () => {
-      input.value = Math.max(1, (+input.value || 0) + (+b.dataset.step));
-      paint(); haptic(6);
-    });
-    $$('[data-quick]', el).forEach(b => b.onclick = () => {
-      input.value = b.dataset.quick; paint(); haptic(6);
-    });
-    $$('[data-mode]', el).forEach(b => b.onclick = () => {
-      mode = b.dataset.mode;
-      $$('[data-mode]', el).forEach(x => x.classList.toggle('on', x === b));
-      paint(); haptic(6);
-    });
-    $$('[data-path]', el).forEach(b => {
-      if (b.dataset.path === path) b.classList.add('on');
-      b.onclick = () => {
-        path = path === b.dataset.path ? null : b.dataset.path;
-        $$('[data-path]', el).forEach(x => x.classList.toggle('on', x.dataset.path === path));
-        haptic(6);
-      };
-    });
-    $$('[data-ctx]', el).forEach(b => b.onclick = () => {
-      ctx = ctx === b.dataset.ctx ? null : b.dataset.ctx;
-      $$('[data-ctx]', el).forEach(x => x.classList.toggle('on', x.dataset.ctx === ctx));
-    });
-
+    tick = setInterval(() => { if (running) { seconds++; paint(); } }, 1000);
     paint();
 
+    $('[data-pause]', el).onclick = (e) => {
+      running = !running;
+      e.target.textContent = running ? 'Pause' : 'Resume';
+      clock.classList.toggle('paused', !running);
+    };
+    $('[data-discard]', el).onclick = () => { clearInterval(tick); closeSheet(); };
     $('[data-save]', el).onclick = () => {
-      const r = logFocus({
-        minutes, mode, path,
-        topic: $('#lf-topic', el).value,
-        note: $('#lf-note', el).value,
-        ctx,
-      });
-      close(); sfx('reward'); haptic(14);
-      rewardToast(r);
-      rerender();
+      clearInterval(tick);
+      const minutes = Math.round(seconds / 60);
+      if (minutes < 1) { toast('Under a minute — nothing to save.'); closeSheet(); return; }
+      const r = logSession({ minutes, note: $('#tm-note', el).value, verified: true });
+      closeSheet(); sfx('reward'); haptic(14); rewardToast(r); rerender();
     };
   });
 }
 
-/** Log a problem. Defaults to solved, because most logged attempts are. */
-export function openProblemSheet(rerender, preset = {}) {
-  let difficulty = preset.difficulty || 'medium';
-  let pattern = preset.pattern || null;
-  let solved = true, hinted = false;
-
-  sheet('Log a problem', `
-    <div class="field">
-      <label>What was it?</label>
-      <input class="input" id="lp-name" maxlength="90" placeholder="Longest substring without repeats">
+function openNote(rerender) {
+  sheet('Add a note', `
+    <div class="card sunk">
+      <div class="tiny">Notes are kept in your log and pay nothing. Use them for work
+        this app cannot see — a LeetCode problem, a chapter, an hour at your job.</div>
     </div>
-
-    <div class="field" style="margin-top:16px">
-      <label>Pattern</label>
-      <div class="pill-row">
-        ${PATTERNS.map(p => `<button class="pill" data-pattern="${p.id}">${esc(p.name)}</button>`).join('')}
-      </div>
-    </div>
-
-    <div class="field" style="margin-top:16px">
-      <label>Difficulty</label>
-      <div class="seg" id="lp-diff">
-        ${DIFFICULTIES.map(d => `<button class="${d.id === difficulty ? 'on' : ''}"
-          data-diff="${d.id}">${d.name}</button>`).join('')}
-      </div>
-    </div>
-
-    <div class="field" style="margin-top:16px">
-      <label>Minutes taken</label>
-      <div class="stepper">
-        <button data-step="-5">−</button>
-        <input class="input num" id="lp-min" type="number" inputmode="numeric" min="0" max="600" value="25">
-        <button data-step="5">+</button>
-      </div>
-      <div class="tiny" id="lp-par" style="margin-top:6px"></div>
-    </div>
-
-    <div class="stack s2" style="margin-top:18px">
-      <button class="card tap pad-s opt on" data-toggle="solved">
-        <div class="between"><div class="h3">Solved it</div><div class="badge" id="lp-solved">yes</div></div>
-      </button>
-      <button class="card tap pad-s opt" data-toggle="hinted">
-        <div class="between"><div>
-          <div class="h3">Needed a hint</div>
-          <div class="tiny">Worth less XP, but logging it honestly is what makes the stats mean anything.</div>
-        </div><div class="badge" id="lp-hinted">no</div></div>
-      </button>
-    </div>
-
-    <button class="btn primary block" style="margin-top:20px" data-save>Log it</button>
-  `, (el, close) => {
-    const parNote = () => {
-      const d = difficultyFor(difficulty);
-      const mins = +$('#lp-min', el).value || 0;
-      $('#lp-par', el).textContent =
-        `Par for ${d.name.toLowerCase()} is about ${d.par} minutes` +
-        (mins && mins < d.par ? ' — under par pays a small bonus.' : '.');
-    };
-
-    $$('[data-diff]', el).forEach(b => b.onclick = () => {
-      difficulty = b.dataset.diff;
-      $$('[data-diff]', el).forEach(x => x.classList.toggle('on', x === b));
-      parNote(); haptic(6);
-    });
-    $$('[data-pattern]', el).forEach(b => b.onclick = () => {
-      pattern = pattern === b.dataset.pattern ? null : b.dataset.pattern;
-      $$('[data-pattern]', el).forEach(x => x.classList.toggle('on', x.dataset.pattern === pattern));
-      haptic(6);
-    });
-    $$('[data-step]', el).forEach(b => b.onclick = () => {
-      const i = $('#lp-min', el);
-      i.value = Math.max(0, (+i.value || 0) + (+b.dataset.step));
-      parNote();
-    });
-    $('#lp-min', el).addEventListener('input', parNote);
-
-    $$('[data-toggle]', el).forEach(b => b.onclick = () => {
-      const which = b.dataset.toggle;
-      if (which === 'solved') solved = !solved; else hinted = !hinted;
-      b.classList.toggle('on', which === 'solved' ? solved : hinted);
-      $(`#lp-${which}`, el).textContent = (which === 'solved' ? solved : hinted) ? 'yes' : 'no';
-      haptic(6);
-    });
-
-    parNote();
-
-    $('[data-save]', el).onclick = () => {
-      const name = $('#lp-name', el).value.trim();
-      if (!name) { toast('Give it a name so it means something later.'); return; }
-      const r = logProblem({ name, pattern, difficulty,
-        minutes: +$('#lp-min', el).value || 0, solved, hinted });
-      close(); sfx('reward'); haptic(14);
-      rewardToast(r);
-      rerender();
-    };
-  });
-}
-
-export function openShipSheet(rerender) {
-  let kind = 'commit';
-
-  sheet('Log a ship', `
-    <div class="field">
-      <label>What left your machine?</label>
-      <div class="stack s2">
-        ${SHIP_KINDS.map(k => `
-          <button class="card tap pad-s opt ${k.id === kind ? 'on' : ''}" data-kind="${k.id}">
-            <div class="between">
-              <div class="row" style="gap:10px">
-                <span style="color:${k.color};font-size:16px">${k.icon}</span>
-                <div><div class="h3">${k.name}</div><div class="tiny">${esc(k.blurb)}</div></div>
-              </div>
-              <span class="badge">+${k.xp} XP</span>
-            </div>
-          </button>`).join('')}
-      </div>
-    </div>
-
-    <div class="field" style="margin-top:16px" id="ls-count-field">
-      <label>How many?</label>
-      <div class="stepper">
-        <button data-step="-1">−</button>
-        <input class="input num" id="ls-count" type="number" inputmode="numeric" min="1" max="200" value="1">
-        <button data-step="1">+</button>
-      </div>
-    </div>
-
-    <div class="field" style="margin-top:16px">
-      <label>Where?</label>
-      <input class="input" id="ls-repo" maxlength="60" placeholder="repo or project name">
-    </div>
-
     <div class="field" style="margin-top:14px">
-      <label>Note</label>
-      <input class="input" id="ls-note" maxlength="300" placeholder="optional">
+      <label>What happened?</label>
+      <textarea class="input" id="nt-text" maxlength="300"
+        placeholder="Two LeetCode mediums on sliding window"></textarea>
     </div>
-
-    <button class="btn primary block" style="margin-top:20px" data-save>Log it</button>
+    <button class="btn primary block" style="margin-top:16px" data-save>Save note</button>
   `, (el, close) => {
-    const countField = $('#ls-count-field', el);
-
-    const paintKind = () => {
-      // A release or a finished project is not a thing you did seven of today.
-      countField.style.display = shipKindFor(kind).counted ? '' : 'none';
-    };
-
-    $$('[data-kind]', el).forEach(b => b.onclick = () => {
-      kind = b.dataset.kind;
-      $$('[data-kind]', el).forEach(x => x.classList.toggle('on', x === b));
-      paintKind(); haptic(6);
-    });
-    $$('[data-step]', el).forEach(b => b.onclick = () => {
-      const i = $('#ls-count', el);
-      i.value = Math.max(1, (+i.value || 1) + (+b.dataset.step));
-    });
-    paintKind();
-
     $('[data-save]', el).onclick = () => {
-      const r = logShip({
-        kind,
-        count: shipKindFor(kind).counted ? +$('#ls-count', el).value || 1 : 1,
-        repo: $('#ls-repo', el).value,
-        note: $('#ls-note', el).value,
-      });
-      close(); sfx('reward'); haptic(14);
-      rewardToast(r);
-      rerender();
+      const text = $('#nt-text', el).value.trim();
+      if (!text) { toast('Write something first.'); return; }
+      logNote({ text });
+      close(); rerender();
     };
   });
 }
@@ -537,19 +362,24 @@ export function openShipSheet(rerender) {
 
 export function mount(root, rerender) {
   bind(root, {
-    'add-focus':   () => openFocusSheet(rerender),
-    'add-problem': () => openProblemSheet(rerender),
-    'add-ship':    () => openShipSheet(rerender),
+    sync: async (el) => {
+      el.textContent = 'Syncing…';
+      const r = await syncAll({ force: true });
+      toast(describeSync(r), 3200);
+      if (r.cf?.reward) rewardToast(r.cf.reward);
+      rerender();
+    },
+    timer: () => openTimer(rerender),
+    note:  () => openNote(rerender),
   });
 
-  const del = (attr, fn) => $$(`[${attr}]`, root).forEach(b => b.onclick = () => {
-    fn(b.getAttribute(attr));
-    haptic(10);
-    rerender();
+  $$('[data-del-focus]', root).forEach(b => b.onclick = () => {
+    removeSession(b.dataset.delFocus); rerender();
   });
-  del('data-del-focus', removeFocus);
-  del('data-del-problem', removeProblem);
-  del('data-del-ship', removeShip);
+  $$('[data-del-note]', root).forEach(b => b.onclick = () => {
+    removeNote(b.dataset.delNote); rerender();
+  });
 
-  mountCharts(root, rerender);
+  const more = $('[data-more]', root);
+  if (more) more.onclick = () => { historyDays = historyDays === 7 ? 30 : 7; rerender(); };
 }
