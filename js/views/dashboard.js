@@ -20,12 +20,15 @@ export const setLogDays = n => { logDays = n; };
 
 /* --------------------------------- helpers -------------------------------- */
 
+/**
+ * A dashboard section. The legend sits under the title rather than beside it —
+ * these legends run long, and a right-aligned column fighting the label for a
+ * 375px line produces three wrapped lines colliding with the heading.
+ */
 const block = (id, title, legend, body) => `
   <section class="dash" id="${id}">
-    <div class="between">
-      <div class="label">${title}</div>
-      ${legend ? `<div class="tiny right" style="max-width:58%">${legend}</div>` : ''}
-    </div>
+    <div class="label">${title}</div>
+    ${legend ? `<div class="tiny" style="margin-top:4px">${legend}</div>` : ''}
     <div style="margin-top:10px">${body}</div>
   </section>`;
 
@@ -216,12 +219,16 @@ function renderFocus(days) {
     axis: shortDate(d.key),
   }));
 
+  // One scale for both charts, so the second visibly sits lower than the first.
+  const scale = Math.max(...shown.map(d => d.minutes), t.focus, 1) * 1.12;
+
   return block('d-focus', 'Focus minutes',
     `green ≥ target, amber ≥60% · — 7-day avg · ┆ target ${hm(t.focus)} · median ${hm(med)}`,
-    `${seriesChart(data, { height: 128, target: t.focus, avg, axisEvery: 6 })}
+    `${seriesChart(data, { height: 128, target: t.focus, avg, axisEvery: 6, maxValue: scale })}
      <div class="label" style="margin-top:16px">Effective minutes</div>
-     <div class="tiny">The same days after mode weighting — the gap is what passive practice costs you.</div>
-     <div style="margin-top:8px">${seriesChart(effData, { height: 96, target: t.focus, axisEvery: 6 })}</div>`);
+     <div class="tiny">The same days and the same scale, after mode weighting — the drop is
+       what passive practice costs you.</div>
+     <div style="margin-top:8px">${seriesChart(effData, { height: 128, target: t.focus, axisEvery: 6, maxValue: scale })}</div>`);
 }
 
 /* ---------------------------------- modes --------------------------------- */
@@ -319,17 +326,18 @@ function renderPaths() {
   const b = pathBalance();
   if (!b.total) return '';
 
+  const peak = Math.max(...b.rows.map(r => r.hours), 1);
+
   return block('d-paths', 'Where your hours went',
     'Effective hours per path, all time', `
-    ${barRows(b.rows.map(r => ({
-      name: r.name, value: Math.round(r.hours * 10) / 10, color: r.color,
-    })), { showValue: v => `${v}h` })}
-
-    <div class="stack s2" style="margin-top:14px">
+    <div class="stack s2">
       ${b.rows.map(r => `
-        <div class="between tiny">
-          <span style="color:${r.color}">${r.icon} ${esc(r.name)}</span>
-          <span>${r.held}/${r.nodes} nodes</span>
+        <div class="path-row">
+          <div class="between">
+            <span class="h3" style="color:${r.color}">${r.icon} ${esc(r.name)}</span>
+            <span class="tiny num">${Math.round(r.hours * 10) / 10}h · ${r.held}/${r.nodes}</span>
+          </div>
+          <div style="margin-top:6px">${bar((r.hours / peak) * 100, { color: r.color })}</div>
         </div>`).join('')}
     </div>
 

@@ -96,7 +96,7 @@ export function render() {
         <div class="tiny" style="margin-top:14px">Nothing logged yet today.</div>`)}
 
       <div class="wrap" style="margin-top:14px">
-        <button class="btn primary grow" data-act="add-focus">Log a session</button>
+        <button class="btn primary grow" data-act="add-focus">Session</button>
         <button class="btn grow" data-act="add-problem">Problem</button>
         <button class="btn grow" data-act="add-ship">Ship</button>
       </div>

@@ -92,6 +92,9 @@
 
 /* -------------------------------- dashboard ------------------------------- */
 
+.path-row + .path-row { padding-top: 2px; }
+
+
 .dash { margin-top: var(--s5); scroll-margin-top: 12px; }
 
 .chart { position: relative; }
@@ -348,7 +351,11 @@
   border-radius: var(--r-s);
   background: var(--sunk);
   border: 1px solid var(--line);
+  overflow: hidden;
 }
+/* A flex item will not shrink below its content width on its own, so a long
+   gear name escapes the tile and collides with its neighbours. */
+.gear .tiny { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear .g-ico { font-size: 21px; filter: grayscale(1) opacity(.28); }
 .gear.have { border-color: var(--rc); background: color-mix(in srgb, var(--rc) 8%, var(--sunk)); }
 .gear.have .g-ico { filter: none; }

@@ -213,6 +213,9 @@ export function startSession(id, onDone) {
 
       // Steps never reached count as not done.
       for (let i = 0; i < workCount; i++) if (!results[i]) results[i] = { ...session.steps[i], done: false };
+      // The step that triggered this end was recorded after the last repaint, so
+      // without this the segment bar shows the final step as unfinished.
+      paintSegs();
 
       const seconds = Math.max(60, elapsedWork);
       const reward = finishSession(session, {

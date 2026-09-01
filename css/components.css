@@ -36,6 +36,7 @@
   color: var(--ink);
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   transition: transform .06s ease, background .12s ease, border-color .12s ease;
 }
 .btn:active { transform: translateY(1px); }
@@ -231,30 +232,32 @@ select.input {
   padding: 0 var(--gut);
 }
 
+/**
+ * Rank glyph with the level beneath it. The level was originally a badge pinned
+ * to the corner, which a two-digit number overflowed — and it covered the glyph
+ * it was meant to annotate. Stacking them keeps both readable at any level.
+ */
 .avatar {
   position: relative;
-  width: 38px; height: 38px;
+  width: 40px; height: 40px;
   flex: none;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   border-radius: var(--r-s);
   background: var(--raised);
   border: 1px solid var(--line);
-  font-size: 18px;
+  font-size: 15px;
+  line-height: 1;
 }
 .avatar .lvl {
-  position: absolute;
-  right: -5px; bottom: -5px;
-  min-width: 19px; height: 19px;
-  padding: 0 3px;
-  display: grid; place-items: center;
-  border-radius: 5px;
-  background: var(--accent);
-  color: var(--accent-ink);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  border: 2px solid var(--canvas);
+  line-height: 1;
+  color: var(--accent);
 }
 
 .chip-stat {

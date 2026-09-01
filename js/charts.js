@@ -19,24 +19,31 @@ const svg = (w, hgt, body, extra = '') =>
  * or nulls.
  */
 export function seriesChart(data, {
-  height = 120, target = null, avg = null, axisEvery = 5,
-  targetLabel = '', min = 0,
+  height = 120, target = null, avg = null, axisEvery = 5, min = 0,
+  maxValue = null,
 } = {}) {
   if (!data.length) return emptyChart(height);
 
   const w = Math.max(data.length * 10, 100);
-  const peak = Math.max(
-    ...data.map(d => d.value || 0),
-    target || 0,
-    ...(avg || []).map(v => v || 0),
-    min || 1,
-  ) * 1.12;
+
+  // Two charts are only comparable if they share a y-scale. Without `maxValue`
+  // each normalises to its own tallest bar, so a 90-minute day and a 31-minute
+  // day both draw full height — which silently destroys the one comparison the
+  // raw/effective pair exists to make.
+  const peak = maxValue != null
+    ? maxValue
+    : Math.max(
+        ...data.map(d => d.value || 0),
+        target || 0,
+        ...(avg || []).map(v => v || 0),
+        min || 1,
+      ) * 1.12;
 
   const bw = w / data.length;
   const gap = Math.min(2.2, bw * 0.22);
 
   const bars = data.map((d, i) => {
-    const hgt = peak ? ((d.value || 0) / peak) * height : 0;
+    const hgt = peak ? Math.min(height, ((d.value || 0) / peak) * height) : 0;
     return `<rect x="${i * bw + gap / 2}" y="${height - hgt}" width="${bw - gap}" height="${Math.max(0, hgt)}"
       fill="${d.color || 'var(--accent)'}" rx="0.6"><title>${esc(d.label || '')}</title></rect>`;
   }).join('');

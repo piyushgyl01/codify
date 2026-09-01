@@ -1,0 +1,6 @@
+# Nothing here is needed at runtime — the deployed app is static files only.
+test/
+tools/
+dev-server.mjs
+.claude/
+README.md
