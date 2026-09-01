@@ -13,11 +13,21 @@ npm test           # 188 headless assertions over the model
 npm run icons      # regenerate icons/*.png
 ```
 
-**Look:** a dark editor. Near-black canvas, thin cool-grey rules, one saturated accent
-the theme swaps, and monospace for every number — this app is mostly numbers, and a
-font where `1` and `7` differ and columns align without effort is not decoration.
-No web fonts: it has to boot with no network, and a font request that fails leaves
-type reflowing on the one screen you open every day.
+**Look:** neobrutalism. Bone paper, 3px black outlines on everything, hard offset
+shadows with no blur, flat saturated colour. Buttons slide into their own shadow when
+pressed. No gradients, no glass, no glow.
+
+Nothing is de-emphasised with `opacity` — fading an element greys out the black
+outlines the whole style depends on, and the page stops reading as a set of solid
+objects. Secondary things use a muted fill and keep their lines pure black. For the
+same reason colour is carried by *fills* rather than by coloured text: a badge states
+its meaning with a saturated background and black or paper text, so nothing has to
+stay legible as a saturated colour at 11px.
+
+Numbers are monospace throughout — this app is mostly numbers, and a font where `1`
+and `7` differ and columns align without effort is not decoration. No web fonts: it
+has to boot with no network, and a font request that fails leaves type reflowing on
+the one screen you open every day.
 
 ---
 
@@ -289,6 +299,15 @@ Saves are debounced and merged onto a fresh save on load.
 
 - **`icon()` returns a raw-marked object, not a string.** The `h` template escapes plain
   interpolations, so a string would print SVG source as text.
+
+- **Chart marks use `vector-effect="non-scaling-stroke"`.** The bars stretch with
+  `preserveAspectRatio="none"`, which would otherwise make the vertical edges of a
+  rectangle fat and the horizontal ones hairline — the same distortion that pushed the
+  axis labels out into HTML.
+
+- **The two focus charts share one y-scale.** Left to normalise independently, a
+  90-minute day and a 31-effective-minute day both draw full height, which silently
+  destroys the only comparison that pair of charts exists to make.
 
 - All estimates are estimates. The retention model is a defensible shape, not a
   measurement of you — which is what the calibration card is for.

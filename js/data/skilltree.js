@@ -28,9 +28,9 @@ export const PATHS = [
     blurb:'Where the data goes when the process exits.' },
   { id:'sys',   name:'Systems',      short:'Sys',    icon:'#!',  color:'var(--good)',
     blurb:'What is underneath the thing you usually write.' },
-  { id:'craft', name:'Craft',        short:'Craft',  icon:'~/',  color:'#C4B5FD',
+  { id:'craft', name:'Craft',        short:'Craft',  icon:'~/',  color:'#7C3AED',
     blurb:'The habits that decide whether the code survives contact with a team.' },
-  { id:'scale', name:'Scale & Ops',  short:'Scale',  icon:'^^',  color:'#FB923C',
+  { id:'scale', name:'Scale & Ops',  short:'Scale',  icon:'^^',  color:'#C7530F',
     blurb:'What changes when it is not just you and it is not just one box.' },
 ];
 

@@ -233,7 +233,7 @@ export function startSession(id, onDone) {
 
       els.body.innerHTML = `
         <div class="pl-result">
-          <div class="pl-result-glyph" style="color:${won ? 'var(--accent)' : 'var(--bad)'}">
+          <div class="pl-result-glyph${won ? '' : ' lost'}">
             ${isG ? (won ? session.icon : '✕') : '✓'}</div>
           <div class="h1" style="margin-top:12px">
             ${isG ? (won ? 'Gauntlet cleared' : 'It survived') : 'Session complete'}</div>

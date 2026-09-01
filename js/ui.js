@@ -102,14 +102,20 @@ export function ring({ pct: percent = 0, size = 132, stroke = 12,
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
   const filled = Math.max(0, Math.min(100, percent)) / 100 * c;
+  const mid = size / 2;
+  // Outer and inner hairlines fake a black outline around a thick stroked ring,
+  // which SVG cannot draw directly on a stroke.
+  const edge = off => `<circle cx="${mid}" cy="${mid}" r="${r + off}" fill="none"
+      stroke="var(--ink)" stroke-width="2.5"/>`;
   return `<div class="ring-wrap" style="width:${size}px;height:${size}px">
     <svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
-      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none"
+      <circle cx="${mid}" cy="${mid}" r="${r}" fill="none"
               stroke="${track}" stroke-width="${stroke}"/>
-      <circle cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none"
-              stroke="${color}" stroke-width="${stroke}" stroke-linecap="round"
+      <circle cx="${mid}" cy="${mid}" r="${r}" fill="none"
+              stroke="${color}" stroke-width="${stroke}"
               stroke-dasharray="${filled} ${c}"
-              transform="rotate(-90 ${size / 2} ${size / 2})"/>
+              transform="rotate(-90 ${mid} ${mid})"/>
+      ${edge(stroke / 2)}${edge(-stroke / 2)}
     </svg>
     <div class="mid">${value ? `<div class="v">${value}</div>` : ''}
       ${label ? `<div class="k">${label}</div>` : ''}</div>
@@ -170,7 +176,7 @@ export function dialog(body, onMount, { dismissable = true } = {}) {
 export function fullscreen(html, onMount) {
   const wrap = document.createElement('div');
   wrap.className = 'scrim';
-  wrap.style.background = 'var(--canvas)';
+  wrap.style.background = 'var(--paper)';
   wrap.innerHTML = html;
   const close = () => wrap.remove();
   layer().appendChild(wrap);
@@ -259,7 +265,7 @@ export function confetti(count = 90) {
 
   const w = canvas.width = canvas.clientWidth;
   const hgt = canvas.height = canvas.clientHeight;
-  const colors = ['#4AE58C', '#58B4FF', '#F0B849', '#A78BFA', '#F472B6', '#2DD4BF'];
+  const colors = ['#2F6BFF', '#FFD93D', '#FF3D8B', '#22D3A7', '#7C4DFF', '#FF7A2C'];
 
   const bits = Array.from({ length: count }, () => ({
     x: Math.random() * w,
@@ -284,6 +290,9 @@ export function confetti(count = 90) {
       ctx.rotate(b.rot);
       ctx.fillStyle = b.c;
       ctx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s);
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = '#14120F';
+      ctx.strokeRect(-b.s / 2, -b.s / 2, b.s, b.s);
       ctx.restore();
     }
     frames++;

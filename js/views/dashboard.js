@@ -269,7 +269,7 @@ function renderProblems(days) {
 
   const data = shown.map(d => ({
     value: d.solved,
-    color: d.solved ? 'var(--info)' : 'var(--line)',
+    color: d.solved ? 'var(--info)' : 'var(--muted)',
     label: `${shortDate(d.key)} · ${d.solved} solved of ${d.problems}`,
     axis: shortDate(d.key),
   }));
@@ -372,10 +372,10 @@ function renderActivity(days) {
   const cells = days.map(d => {
     const ratio = t.focus ? Math.min(1, d.minutes / t.focus) : 0;
     return {
-      color: !d.logged ? 'var(--line-soft)'
+      color: !d.logged ? 'var(--muted)'
         : ratio >= 1 ? 'var(--accent)'
-        : ratio >= 0.6 ? 'color-mix(in srgb, var(--accent) 60%, var(--sunk))'
-        : 'color-mix(in srgb, var(--accent) 28%, var(--sunk))',
+        : ratio >= 0.6 ? 'color-mix(in srgb, var(--accent) 62%, var(--panel))'
+        : 'color-mix(in srgb, var(--accent) 26%, var(--panel))',
       label: `${d.key} · ${hm(d.minutes)}`,
     };
   });

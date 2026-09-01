@@ -54,9 +54,9 @@ export function render() {
   const left = Math.max(0, t.focus - tot.minutes);
 
   return h`
-    <div class="hero-card" style="border-color:${rank.color}33">
+    <div class="hero-card">
       <div class="label">${greet()}${S.profile.name ? `, ${S.profile.name}` : ''}</div>
-      <div class="h1" style="margin-top:4px;color:${rank.color}">${rank.icon} ${rank.name}</div>
+      <div class="h1" style="margin-top:4px">${rank.icon} ${rank.name}</div>
       <div class="sub" style="margin-top:6px">${lineOfDay(key)}</div>
       ${raw(next ? `<div class="tiny" style="margin-top:10px">
         ${next.icon} ${next.name} at level ${next.at} — ${next.at - p.level} to go
@@ -125,7 +125,7 @@ function dueCard(due) {
           ${due.length > 1 ? `<span class="sub">and ${due.length - 1} more</span>` : ''}</div>
         <div class="sub" style="margin-top:4px">
           Last proven ${worst.since} days ago. The model gives it
-          <b style="color:${worst.freshness.color}">${pct(worst.retention * 100)}</b> — find out.
+          <b>${pct(worst.retention * 100)}</b> — find out.
         </div>
       </div>
       <span style="color:var(--dim)">›</span>
@@ -147,7 +147,7 @@ function decaySection() {
               <div class="h3 truncate">${esc(s.node.name)}</div>
               <div class="tiny">${pathFor(s.node.path).name} · due ${relDays(s.dueIn)}</div>
             </div>
-            <span class="badge" style="color:${s.freshness.color}">${pct(s.retention * 100)}</span>
+            <span class="badge ${s.freshness.badge}">${pct(s.retention * 100)}</span>
           </div>
         </div>`).join('')}
     </div>

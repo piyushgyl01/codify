@@ -47,9 +47,9 @@ export function render() {
 
   return h`
     <div class="hero-head">
-      <div class="hero-rank" style="color:${rank.color}">${rank.icon}</div>
+      <div class="hero-rank">${rank.icon}</div>
       <div class="h1" style="margin-top:10px">${S.profile.name || 'Engineer'}</div>
-      <div class="h3" style="color:${rank.color}">${rank.name} · Level ${p.level}</div>
+      <div class="h3">${rank.name} · Level ${p.level}</div>
       <div style="margin-top:14px">${raw(bar(p.pct))}</div>
       <div class="between tiny" style="margin-top:6px">
         <span>${fmt(p.into)} / ${fmt(p.need)} XP</span>
@@ -146,7 +146,7 @@ export function render() {
           return `<button class="theme ${on ? 'on' : ''} ${owns ? '' : 'locked'}" data-theme="${t2.id}">
             <span class="sw" style="background:${t2.accent}"></span>
             <span class="tiny">${esc(t2.name)}</span>
-            <span class="tiny" style="color:var(--faint)">${owns ? (on ? 'active' : 'owned') : `${t2.cost}c`}</span>
+            <span class="tiny state">${owns ? (on ? 'active' : 'owned') : `${t2.cost}c`}</span>
           </button>`;
         }).join(''))}
       </div>

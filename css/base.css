@@ -1,75 +1,91 @@
 /**
- * Tokens, reset and the app shell.
+ * Tokens, reset and the app shell — neobrutalism.
  *
- * The look is a dark editor: near-black canvas, thin cool-grey rules, one
- * saturated accent that the theme swaps, and monospace for every number. Numbers
- * are the point of this app, so they get a font where a 1 and a 7 cannot be
- * confused and columns line up without effort.
+ * Bone paper, 3px black outlines on everything, hard offset shadows with no
+ * blur, flat saturated colour. Buttons slide into their own shadow when pressed.
+ * No gradients, no glass, no glow.
  *
- * There are no web fonts. The app has to boot with no network at all, and a
- * font request that fails leaves type reflowing on the one screen someone opens
- * every single day.
+ * The rule that keeps it coherent: nothing is de-emphasised with `opacity`.
+ * Fading an element greys out the black outlines the whole style depends on, and
+ * the page immediately stops reading as a set of solid objects. Secondary things
+ * use a muted fill and keep their lines pure black.
+ *
+ * Spacing runs on a 4px scale with one horizontal gutter shared by the topbar,
+ * every view and the nav, so all content edges line up down the page.
+ *
+ * There are no web fonts. The app has to boot with no network, and a font
+ * request that fails leaves type reflowing on the one screen you open daily.
  */
 
 :root {
-  /* Surfaces, darkest first. Panels sit on canvas; sunk is for wells and inputs. */
-  --canvas: #0A0D14;
-  --sunk:   #0E121C;
-  --panel:  #141A27;
-  --raised: #1B2333;
-  --line:   #232C3E;
-  --line-soft: #1A2130;
+  /* Surfaces. Panels sit *above* paper, so they are lighter, not darker. */
+  --paper:  #F5F1E6;
+  --panel:  #FFFDF6;
+  --sunk:   #EDE8D8;
+  --muted:  #DED8C4;
 
-  /* Type */
-  --ink:  #E7ECF5;
-  --dim:  #8B95A9;
-  --faint:#5C6779;
+  /* Ink is both the text colour and the outline colour. That is the point. */
+  --ink:    #14120F;
+  --dim:    #565045;
+  --faint:  #7B7466;
+
+  --line:   #14120F;
+  --line-w: 3px;
+  --line-w-thin: 2px;
+
+  /* Hard shadows, never blurred. */
+  --shadow:    4px 4px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+  --shadow-lg: 6px 6px 0 var(--ink);
 
   /* The accent is swapped by the theme; everything else stays put. */
-  --accent: #4AE58C;
-  --accent-ink: #06120B;
+  --accent: #2F6BFF;
+  --accent-ink: #FFFDF6;
 
-  /* Fixed semantic colours. These never move with the theme, because a chart
-     that changes meaning when you change skin is a chart you cannot read. */
-  --good:  #4AE58C;
-  --warn:  #F0B849;
-  --bad:   #FF6B6B;
-  --info:  #58B4FF;
-  --violet:#A78BFA;
-  --pink:  #F472B6;
-  --teal:  #2DD4BF;
+  /**
+   * Semantic colour.
+   *
+   * Each of these has to work twice: as a chart fill behind a black outline, and
+   * as text on bone paper. That rules out both pastels and neons — these sit in
+   * the middle, saturated enough to read as flat colour blocks and dark enough
+   * to stay legible at 11px.
+   */
+  --good:   #12A150;
+  --warn:   #C77A0F;
+  --bad:    #DD2E3F;
+  --info:   #2563EB;
+  --violet: #6D3FE0;
+  --pink:   #C92A6E;
+  --teal:   #0C8F86;
 
-  /* Practice modes. Used by charts, badges and the tree alike, so they are
-     defined once here rather than per component. */
-  --mode-build: #4AE58C;
-  --mode-drill: #58B4FF;
-  --mode-read:  #F0B849;
-  --mode-watch: #FF6B6B;
+  /* Practice modes — defined once, used by charts, badges and the tree alike. */
+  --mode-build: #12A150;
+  --mode-drill: #2563EB;
+  --mode-read:  #C77A0F;
+  --mode-watch: #DD2E3F;
 
-  /* 4px spacing scale, one gutter shared by topbar, views and nav so every
-     content edge on the page lines up. */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
   --s5: 24px; --s6: 32px; --s7: 48px;
   --gut: 16px;
 
-  --r-s: 6px;
-  --r-m: 10px;
-  --r-l: 14px;
+  --r-s: 8px;
+  --r-m: 12px;
+  --r-l: 16px;
 
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, system-ui, sans-serif;
 
-  --topbar-h: 60px;
-  --nav-h: 62px;
+  --topbar-h: 62px;
+  --nav-h: 66px;
 }
 
-@media (min-width: 560px) { :root { --gut: 24px; } }
+@media (min-width: 560px) { :root { --gut: 22px; } }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
-  background: var(--canvas);
+  background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
   font-size: 15px;
@@ -79,18 +95,16 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* Controls should never offer the WebView's text-selection menu — a long press
-   on a button is a mis-hit, not an attempt to copy the label. */
-button, .pill, .tile, .seg b, .nav button { -webkit-user-select: none; user-select: none; }
+/* A long press on a control is a mis-hit, not an attempt to select text. */
+button, .pill, .tile, .seg button, .nav button, .badge { -webkit-user-select: none; user-select: none; }
 
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; cursor: pointer; }
-a { color: var(--accent); }
+a { color: var(--ink); text-underline-offset: 3px; }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: var(--line-w) solid var(--accent);
   outline-offset: 2px;
-  border-radius: var(--r-s);
 }
 
 /* --------------------------------- shell --------------------------------- */
@@ -105,17 +119,17 @@ a { color: var(--accent); }
   overflow: clip;
   max-width: 620px;
   margin: 0 auto;
-  background: var(--canvas);
+  background: var(--paper);
 }
 
 @media (min-width: 640px) {
-  #app { border-left: 1px solid var(--line-soft); border-right: 1px solid var(--line-soft); }
+  #app { border-left: var(--line-w) solid var(--ink); border-right: var(--line-w) solid var(--ink); }
 }
 
 #chrome {
   flex: none;
-  background: var(--canvas);
-  border-bottom: 1px solid var(--line-soft);
+  background: var(--paper);
+  border-bottom: var(--line-w) solid var(--ink);
   padding-top: env(safe-area-inset-top);
   z-index: 3;
 }
@@ -126,37 +140,28 @@ a { color: var(--accent); }
   overflow-x: hidden;
   padding: var(--s4) var(--gut) calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s5));
   scroll-behavior: smooth;
-  scrollbar-width: thin;
-  scrollbar-color: var(--line) transparent;
 }
-#view::-webkit-scrollbar { width: 6px; }
-#view::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
 
-#fx {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 60;
-}
+#fx { position: absolute; inset: 0; pointer-events: none; z-index: 60; }
 
 /* -------------------------------- typography ------------------------------ */
 
-.h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
-.h2 { font-size: 20px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
-.h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.005em; }
-.sub { font-size: 13px; color: var(--dim); }
-.tiny { font-size: 11px; color: var(--faint); }
+.h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; }
+.h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; }
+.h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
+.sub { font-size: 13.5px; color: var(--dim); }
+.tiny { font-size: 11.5px; color: var(--dim); }
 
-.num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; font-weight: 700; }
 .mono { font-family: var(--mono); }
 
 .label {
   font-family: var(--mono);
-  font-size: 10.5px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--faint);
+  color: var(--ink);
 }
 
 .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -166,30 +171,29 @@ a { color: var(--accent); }
 
 /* --------------------------------- layout -------------------------------- */
 
-.stack   { display: flex; flex-direction: column; gap: var(--s3); }
-.stack.s2{ gap: var(--s2); }
-.stack.s4{ gap: var(--s4); }
-.row     { display: flex; align-items: center; gap: var(--s3); }
-.between { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.wrap    { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.grid2   { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
-.grid3   { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+.stack    { display: flex; flex-direction: column; gap: var(--s3); }
+.stack.s2 { gap: var(--s2); }
+.stack.s4 { gap: var(--s4); }
+.row      { display: flex; align-items: center; gap: var(--s3); }
+.between  { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.wrap     { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.grid2    { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
+.grid3    { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
 
 .section { margin-top: var(--s5); }
 .section > .label { margin-bottom: var(--s2); }
 
 .hide { display: none !important; }
 
-hr.rule { border: 0; border-top: 1px solid var(--line-soft); margin: var(--s4) 0; }
+hr.rule { border: 0; border-top: var(--line-w-thin) solid var(--ink); margin: var(--s4) 0; }
 
 /* --------------------------------- motion -------------------------------- */
 
 @keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes pop     { from { transform: scale(.94); opacity: 0; } to { transform: none; opacity: 1; } }
-@keyframes pulse   { 0%,100% { opacity: 1; } 50% { opacity: .45; } }
-@keyframes sweep   { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes pop     { from { transform: scale(.95); } to { transform: none; } }
+@keyframes blink   { 0%, 100% { background: var(--accent); } 50% { background: var(--panel); } }
 
-.fade-up { animation: fade-up .22s ease both; }
+.fade-up { animation: fade-up .2s ease both; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }

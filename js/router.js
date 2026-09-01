@@ -51,10 +51,10 @@ function topbar() {
   return h`
     <div class="topbar">
       <button class="avatar" data-nav="hero" aria-label="Profile"
-              style="color:${rank.color}">${rank.icon}<span class="lvl num">${p.level}</span></button>
+              >${rank.icon}<span class="lvl num">${p.level}</span></button>
       <div class="grow">
         <div class="h3 truncate">${S.profile.name || 'Engineer'}</div>
-        <div class="tiny truncate" style="color:${rank.color}">${rank.name} · ${fmt(p.into)}/${fmt(p.need)} XP</div>
+        <div class="tiny truncate">${rank.name} · ${fmt(p.into)}/${fmt(p.need)} XP</div>
       </div>
       <div class="chip-stat">${icon('coin', 13)} ${fmt(S.coins)}</div>
       <div class="chip-stat ${S.streak.current > 0 ? 'live' : ''}">${icon('flame', 13)} ${S.streak.current}</div>

@@ -6,7 +6,15 @@
  * The bars stretch with preserveAspectRatio="none" so they fill any width, which
  * also squashes any <text> placed inside the SVG. Labels are therefore HTML laid
  * over the chart, which keeps type crisp at every width.
+ *
+ * Every mark carries a black outline, like everything else in this style. That
+ * needs vector-effect="non-scaling-stroke" for the same reason the labels are
+ * HTML: the non-uniform stretch would otherwise make vertical strokes fat and
+ * horizontal ones hairline on the same rectangle.
  */
+
+/** Outline shared by every drawn mark. */
+const STROKE = 'stroke="var(--ink)" stroke-width="2.5" vector-effect="non-scaling-stroke"';
 import { esc } from './ui.js';
 
 const svg = (w, hgt, body, extra = '') =>
@@ -44,14 +52,17 @@ export function seriesChart(data, {
 
   const bars = data.map((d, i) => {
     const hgt = peak ? Math.min(height, ((d.value || 0) / peak) * height) : 0;
+    // Sub-pixel bars would render as a bare outline, so skip the stroke there.
+    const thin = hgt < 2;
     return `<rect x="${i * bw + gap / 2}" y="${height - hgt}" width="${bw - gap}" height="${Math.max(0, hgt)}"
-      fill="${d.color || 'var(--accent)'}" rx="0.6"><title>${esc(d.label || '')}</title></rect>`;
+      fill="${d.color || 'var(--accent)'}" ${thin ? '' : STROKE}><title>${esc(d.label || '')}</title></rect>`;
   }).join('');
 
   const targetLine = target != null && peak
     ? `<line x1="0" y1="${height - (target / peak) * height}" x2="${w}"
              y2="${height - (target / peak) * height}"
-             stroke="var(--ink)" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>`
+             stroke="var(--ink)" stroke-width="2" stroke-dasharray="6 4"
+             vector-effect="non-scaling-stroke"/>`
     : '';
 
   const avgPath = avg ? linePath(avg, peak, w, height, bw) : '';
@@ -88,7 +99,8 @@ export function stackedChart(data, { height = 120, axisEvery = 5 } = {}) {
       const hgt = (p.v / peak) * height;
       y -= hgt;
       return hgt <= 0 ? '' :
-        `<rect x="${i * bw + gap / 2}" y="${y}" width="${bw - gap}" height="${hgt}" fill="${p.color}"/>`;
+        `<rect x="${i * bw + gap / 2}" y="${y}" width="${bw - gap}" height="${hgt}"
+           fill="${p.color}" ${hgt < 2 ? '' : STROKE}/>`;
     }).join('');
   }).join('');
 
@@ -108,7 +120,7 @@ export function lineChart(points, {
 
   const d = points.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(2)} ${y(p.value).toFixed(2)}`).join(' ');
   const area = fill
-    ? `<path d="${d} L${w} ${height} L0 ${height} Z" fill="${color}" opacity=".12"/>` : '';
+    ? `<path d="${d} L${w} ${height} L0 ${height} Z" fill="${color}" opacity=".22"/>` : '';
 
   // A shaded horizontal band, used to mark the "still yours" region.
   const bandRect = band
@@ -116,8 +128,8 @@ export function lineChart(points, {
              fill="var(--good)" opacity=".07"/>` : '';
 
   return `<div class="chart">${svg(w, height,
-    `${bandRect}${area}<path d="${d}" fill="none" stroke="${color}" stroke-width="1.6"
-      vector-effect="non-scaling-stroke" stroke-linejoin="round"/>`)}</div>`;
+    `${bandRect}${area}<path d="${d}" fill="none" stroke="var(--ink)" stroke-width="3"
+      vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>`)}</div>`;
 }
 
 /**
@@ -134,7 +146,7 @@ export function calendarGrid(days, { cell = 12, gap = 3 } = {}) {
     const col = Math.floor(i / 7), row = i % 7;
     return `<rect x="${col * (cell + gap)}" y="${row * (cell + gap)}"
       width="${cell}" height="${cell}" rx="2" fill="${d.color}"
-      ><title>${esc(d.label || '')}</title></rect>`;
+      stroke="var(--ink)" stroke-width="1.5"><title>${esc(d.label || '')}</title></rect>`;
   }).join('');
 
   return `<svg viewBox="0 0 ${w} ${hgt}" style="width:100%;max-width:${w}px;height:auto;display:block"

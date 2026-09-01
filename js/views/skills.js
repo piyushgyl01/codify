@@ -88,8 +88,7 @@ function bandsBar(b) {
   return `<div style="margin-top:14px">
     ${splitBar(parts)}
     <div class="wrap" style="margin-top:8px">
-      ${FRESHNESS.map(f => `<span class="badge" style="color:${f.color}">
-        <span class="dot" style="background:${f.color}"></span>${f.name} ${b.bands[f.id]}</span>`).join('')}
+      ${FRESHNESS.map(f => `<span class="badge ${f.badge}">${f.name} ${b.bands[f.id]}</span>`).join('')}
     </div>
   </div>`;
 }
@@ -131,7 +130,7 @@ function nodeRow(node, level, hours, path) {
 
   const badge =
     state === 'mastered'
-      ? `<span class="badge" style="color:${st.freshness.color}">
+      ? `<span class="badge ${st.freshness.badge}">
            ${pct(st.retention * 100)}${st.due ? ' · DUE' : ''}</span>`
       : state === 'available'
         ? '<span class="badge good">open</span>'
@@ -181,7 +180,7 @@ function openNode(id, rerender) {
       <div class="card sunk" style="margin-top:12px">
         <div class="between">
           <div class="label">Retention</div>
-          <span class="badge" style="color:${st.freshness.color}">${st.freshness.name}</span>
+          <span class="badge ${st.freshness.badge}">${st.freshness.name}</span>
         </div>
         <div style="margin-top:10px">${bar(st.retention * 100, { color: st.freshness.color })}</div>
         <div class="tiny" style="margin-top:8px">
@@ -277,8 +276,7 @@ function retestOne(nodeId, rerender, remaining = 0) {
   sheet('Retest', `
     <div class="row" style="gap:8px">
       <span class="badge" style="color:${pathFor(node.path).color}">${pathFor(node.path).name}</span>
-      <span class="badge" style="color:${st.freshness.color}">
-        model says ${pct(st.retention * 100)}</span>
+      <span class="badge ${st.freshness.badge}">model says ${pct(st.retention * 100)}</span>
       ${remaining > 1 ? `<span class="badge">${remaining} in queue</span>` : ''}
     </div>
 

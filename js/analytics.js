@@ -228,7 +228,7 @@ export const BAND_COLOR = {
   on:   'var(--good)',
   near: 'var(--warn)',
   off:  'var(--bad)',
-  none: 'var(--line)',
+  none: 'var(--muted)',
 };
 
 /** Share of a day's minutes by practice mode — the tutorial-hell meter. */

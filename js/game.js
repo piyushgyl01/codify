@@ -27,14 +27,14 @@ export function levelFromXp(xp) {
 
 /** Named after a real engineering ladder, because that is the ladder being climbed. */
 export const RANKS = [
-  { at:1,  name:'Novice',        icon:'○', color:'#8B95A9' },
-  { at:5,  name:'Apprentice',    icon:'◆', color:'#58B4FF' },
-  { at:10, name:'Practitioner',  icon:'◈', color:'#2DD4BF' },
-  { at:15, name:'Engineer',      icon:'⬢', color:'#4AE58C' },
-  { at:20, name:'Senior',        icon:'⬡', color:'#F0B849' },
-  { at:30, name:'Staff',         icon:'✦', color:'#A78BFA' },
-  { at:40, name:'Principal',     icon:'✧', color:'#F472B6' },
-  { at:50, name:'Distinguished', icon:'★', color:'#FB923C' },
+  { at:1,  name:'Novice',        icon:'○', color:'#565045' },
+  { at:5,  name:'Apprentice',    icon:'◆', color:'#2563EB' },
+  { at:10, name:'Practitioner',  icon:'◈', color:'#0C8F86' },
+  { at:15, name:'Engineer',      icon:'⬢', color:'#12A150' },
+  { at:20, name:'Senior',        icon:'⬡', color:'#C77A0F' },
+  { at:30, name:'Staff',         icon:'✦', color:'#6D3FE0' },
+  { at:40, name:'Principal',     icon:'✧', color:'#C92A6E' },
+  { at:50, name:'Distinguished', icon:'★', color:'#C7530F' },
 ];
 export const rankFor = level => [...RANKS].reverse().find(r => level >= r.at) || RANKS[0];
 export const nextRank = level => RANKS.find(r => r.at > level) || null;
@@ -231,10 +231,10 @@ export function predictedRetention(daysSince, pathHours = 0, passes = 0) {
 
 /** How a retention figure is described on screen. */
 export const FRESHNESS = [
-  { id:'fresh', at:0.80, name:'Fresh', color:'var(--good)' },
-  { id:'warm',  at:0.50, name:'Warm',  color:'var(--info)' },
-  { id:'rusty', at:0.25, name:'Rusty', color:'var(--warn)' },
-  { id:'cold',  at:0,    name:'Cold',  color:'var(--bad)'  },
+  { id:'fresh', at:0.80, name:'Fresh', color:'var(--good)', badge:'good' },
+  { id:'warm',  at:0.50, name:'Warm',  color:'var(--info)', badge:'info' },
+  { id:'rusty', at:0.25, name:'Rusty', color:'var(--warn)', badge:'warn' },
+  { id:'cold',  at:0,    name:'Cold',  color:'var(--bad)',  badge:'bad'  },
 ];
 export const freshnessFor = r => FRESHNESS.find(f => r >= f.at) || FRESHNESS.at(-1);
 

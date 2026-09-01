@@ -61,9 +61,9 @@ function encodePng(width, height, rgba) {
 
 /* --------------------------------- shapes --------------------------------- */
 
-const ACCENT = [0x4a, 0xe5, 0x8c];   // phosphor, the default theme
-const PLATE  = [0x0e, 0x12, 0x1c];   // panel
-const EDGE   = [0x23, 0x2c, 0x3e];   // line
+const ACCENT = [0x2f, 0x6b, 0xff];   // cobalt, the default theme
+const PLATE  = [0xff, 0xfd, 0xf6];   // panel
+const EDGE   = [0x14, 0x12, 0x0f];   // ink — the outline everything else gets
 
 /** Inside test for a rounded rect. */
 const inRound = (px, py, x, y, w, h, r) => {
@@ -114,7 +114,7 @@ function renderIcon(size, { maskable = false } = {}) {
   // the middle 80% and the background reaches every edge.
   const inset = maskable ? 0 : n * 0.03;
   const radius = maskable ? 0 : n * 0.21;
-  const border = maskable ? 0 : n * 0.03;
+  const border = maskable ? 0 : n * 0.055;
   const markScale = maskable ? n * 0.52 : n * 0.62;
   const { r, segs } = markSegments(markScale, (n - markScale) / 2, (n - markScale) / 2);
 

@@ -22,16 +22,16 @@ const BACKUP_KEY = 'codify.save.prior';
  * than derived.
  */
 export const THEMES = [
-  { id:'phosphor', name:'Phosphor', accent:'#4AE58C', ink:'#06120B', cost:0 },
-  { id:'ice',      name:'Ice',      accent:'#58B4FF', ink:'#04121F', cost:0 },
-  { id:'amber',    name:'Amber',    accent:'#F0B849', ink:'#1A1203', cost:250 },
-  { id:'magenta',  name:'Magenta',  accent:'#F472B6', ink:'#1C0713', cost:250 },
-  { id:'violet',   name:'Violet',   accent:'#A78BFA', ink:'#100722', cost:450 },
-  { id:'coral',    name:'Coral',    accent:'#FF7A66', ink:'#1E0803', cost:450 },
-  { id:'mint',     name:'Mint',     accent:'#2DD4BF', ink:'#04150F', cost:700 },
-  { id:'sulfur',   name:'Sulfur',   accent:'#D8E84A', ink:'#141705', cost:700 },
-  { id:'crimson',  name:'Crimson',  accent:'#FF5A6E', ink:'#1E0409', cost:1200 },
-  { id:'ultra',    name:'Ultraviolet', accent:'#7C6BFF', ink:'#0A0620', cost:1800 },
+  { id:'cobalt',    name:'Cobalt',    accent:'#2F6BFF', ink:'#FFFDF6', cost:0 },
+  { id:'lemon',     name:'Lemon',     accent:'#FFD93D', ink:'#14120F', cost:0 },
+  { id:'mint',      name:'Mint',      accent:'#22D3A7', ink:'#14120F', cost:250 },
+  { id:'magenta',   name:'Magenta',   accent:'#FF3D8B', ink:'#FFFDF6', cost:250 },
+  { id:'violet',    name:'Violet',    accent:'#7C4DFF', ink:'#FFFDF6', cost:450 },
+  { id:'tangerine', name:'Tangerine', accent:'#FF7A2C', ink:'#14120F', cost:450 },
+  { id:'sky',       name:'Sky',       accent:'#38BDF8', ink:'#14120F', cost:700 },
+  { id:'coral',     name:'Coral',     accent:'#FF5A5F', ink:'#FFFDF6', cost:700 },
+  { id:'lime',      name:'Lime',      accent:'#A3E635', ink:'#14120F', cost:1200 },
+  { id:'ultra',     name:'Ultraviolet', accent:'#5B21B6', ink:'#FFFDF6', cost:1800 },
 ];
 
 export const themeFor = id => THEMES.find(t => t.id === id) || THEMES[0];
@@ -57,7 +57,7 @@ const emptyDay = () => ({
 const freshSave = () => ({
   v: 1,
   profile: {
-    name: '', theme: 'phosphor', track: 'generalist', goal: 'levelup',
+    name: '', theme: 'cobalt', track: 'generalist', goal: 'levelup',
     hours: 2, onboarded: false, created: dayKey(),
   },
   xp: 0, coins: 0,
