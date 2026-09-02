@@ -13,6 +13,17 @@ npm start    # http://localhost:5179
 npm test     # 141 headless assertions
 ```
 
+## Look
+
+The same neobrutalist system as Fitify, deliberately: cream paper `#FFF8E8`, 3px black
+outlines on everything, hard offset shadows with no blur, flat saturated colour, Outfit
+for type. Buttons slide into their own shadow when pressed.
+
+Nothing is de-emphasised with `opacity` — it greys out the black outlines the style
+depends on, and the page stops reading as a set of solid objects. Secondary things get a
+muted fill and keep pure black lines. Colour is carried by fills rather than coloured
+text, so no value has to stay legible as a saturated hue at 11px.
+
 ## Why it works this way
 
 The first version of this app was a diary that graded itself. You typed in hours, it

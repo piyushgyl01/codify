@@ -25,15 +25,15 @@ export const TIERS = [
 ];
 
 export const PATHS = [
-  { id:'found',  name:'Foundations', short:'Found', icon:'{}', color:'var(--info)',
+  { id:'found',  name:'Foundations', short:'Found', icon:'{}', color:'var(--blue)',
     blurb:'Writing the thing correctly and quickly, before it gets clever.' },
-  { id:'search', name:'Searching',   short:'Search', icon:'->', color:'var(--teal)',
+  { id:'search', name:'Searching',   short:'Search', icon:'->', color:'var(--cyan)',
     blurb:'Narrowing a space instead of walking all of it.' },
   { id:'struct', name:'Structures',  short:'Struct', icon:'[]', color:'var(--violet)',
     blurb:'Choosing the container that makes the problem easy.' },
   { id:'graph',  name:'Graphs',      short:'Graph', icon:'<>', color:'var(--pink)',
     blurb:'Where most interview and contest difficulty actually lives.' },
-  { id:'dpmath', name:'DP & Maths',  short:'DP', icon:'^^', color:'var(--warn)',
+  { id:'dpmath', name:'DP & Maths',  short:'DP', icon:'^^', color:'var(--orange)',
     blurb:'Recurrences, counting, and the number theory that shows up anyway.' },
 ];
 

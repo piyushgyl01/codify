@@ -115,7 +115,7 @@ function liveView(live) {
              href="${esc(problemUrl(s))}" target="_blank" rel="noopener">
             <div class="between">
               <div class="grow truncate"><div class="h3 truncate">${esc(s.name)}</div></div>
-              <span class="badge" style="background:${colorForRating(s.rating)};color:var(--panel)">${s.rating}</span>
+              <span class="badge" style="background:${colorForRating(s.rating)};color:var(--ink)">${s.rating}</span>
             </div>
           </a>`).join('')}
       </div>

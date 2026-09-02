@@ -1,201 +1,199 @@
 /**
- * Tokens, reset and the app shell — neobrutalism.
+ * Neobrutalist tokens, reset and app shell — the same system as Fitify.
  *
- * Bone paper, 3px black outlines on everything, hard offset shadows with no
- * blur, flat saturated colour. Buttons slide into their own shadow when pressed.
- * No gradients, no glass, no glow.
+ * Rules of the style: hard black outlines, solid offset shadows with no blur,
+ * flat saturated colour, no gradients, no glass. Everything looks like a
+ * physical sticker you could peel off the page.
  *
- * The rule that keeps it coherent: nothing is de-emphasised with `opacity`.
- * Fading an element greys out the black outlines the whole style depends on, and
- * the page immediately stops reading as a set of solid objects. Secondary things
- * use a muted fill and keep their lines pure black.
- *
- * Spacing runs on a 4px scale with one horizontal gutter shared by the topbar,
- * every view and the nav, so all content edges line up down the page.
- *
- * There are no web fonts. The app has to boot with no network, and a font
- * request that fails leaves type reflowing on the one screen you open daily.
+ * Nothing is de-emphasised with `opacity` — it greys out the black outlines the
+ * whole style depends on. Secondary things use a muted fill and keep pure black
+ * lines. For the same reason colour is carried by fills rather than by coloured
+ * text: a badge states its meaning with a saturated background and black text on
+ * top, so no value has to stay legible as a saturated hue at 11px.
  */
 
 :root {
-  /* Surfaces. Panels sit *above* paper, so they are lighter, not darker. */
-  --paper:  #F5F1E6;
-  --panel:  #FFFDF6;
-  --sunk:   #EDE8D8;
-  --muted:  #DED8C4;
+  /* paper + ink */
+  --paper:  #FFF8E8;      /* page */
+  --card:   #FFFFFF;      /* raised surfaces */
+  --sunk:   #F4EBD6;      /* wells, muted fills */
+  --muted:  #E6DBC2;      /* the "off" state that is never opacity */
+  --ink:    #12100E;      /* every border and most text */
+  --dim:    #57514A;
+  --faint:  #8C857C;
 
-  /* Ink is both the text colour and the outline colour. That is the point. */
-  --ink:    #14120F;
-  --dim:    #565045;
-  --faint:  #7B7466;
+  /* the palette — saturated, unapologetic, never blended */
+  --lime:   #B8F02D;
+  --acid:   #7BF17B;
+  --cyan:   #45D9E8;
+  --blue:   #4D7CFF;
+  --violet: #B06BFF;
+  --pink:   #FF5FA2;
+  --red:    #FF4B3E;
+  --orange: #FF8A29;
+  --yellow: #FFD93D;
 
-  --line:   #14120F;
-  --line-w: 3px;
-  --line-w-thin: 2px;
+  /* semantic aliases used across the app */
+  --good:   var(--acid);
+  --warn:   var(--yellow);
+  --bad:    var(--red);
+  --info:   var(--blue);
+  --teal:   var(--cyan);
+  --hot:    var(--orange);
 
-  /* Hard shadows, never blurred. */
-  --shadow:    4px 4px 0 var(--ink);
-  --shadow-sm: 3px 3px 0 var(--ink);
-  --shadow-lg: 6px 6px 0 var(--ink);
+  /* The accent is swapped by the theme; its ink is the text that sits on it. */
+  --accent: var(--lime);
+  --accent-ink: var(--ink);
 
-  /* The accent is swapped by the theme; everything else stays put. */
-  --accent: #2F6BFF;
-  --accent-ink: #FFFDF6;
+  /* structure */
+  --line:      3px;
+  --line-thin: 2px;
+  --radius:    10px;
+  --radius-s:  7px;
+  --radius-l:  14px;
 
-  /**
-   * Semantic colour.
-   *
-   * Each of these has to work twice: as a chart fill behind a black outline, and
-   * as text on bone paper. That rules out both pastels and neons — these sit in
-   * the middle, saturated enough to read as flat colour blocks and dark enough
-   * to stay legible at 11px.
-   */
-  --good:   #12A150;
-  --warn:   #C77A0F;
-  --bad:    #DD2E3F;
-  --info:   #2563EB;
-  --violet: #6D3FE0;
-  --pink:   #C92A6E;
-  --teal:   #0C8F86;
+  /* hard shadows — offset only, never blurred */
+  --sh:    4px 4px 0 var(--ink);
+  --sh-lg: 6px 6px 0 var(--ink);
+  --sh-sm: 3px 3px 0 var(--ink);
 
-  /* Practice modes — defined once, used by charts, badges and the tree alike. */
-  --mode-build: #12A150;
-  --mode-drill: #2563EB;
-  --mode-read:  #C77A0F;
-  --mode-watch: #DD2E3F;
+  --ease: cubic-bezier(.2,.9,.3,1.2);
+  --fast: .12s var(--ease);
+  --med:  .2s var(--ease);
 
+  /* spacing scale — every padding, margin and gap snaps to one of these */
   --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
-  --s5: 24px; --s6: 32px; --s7: 48px;
-  --gut: 16px;
+  --s5: 20px; --s6: 24px; --s7: 32px;
+  --gut: var(--s4);
 
-  --r-s: 8px;
-  --r-m: 12px;
-  --r-l: 16px;
+  --app-w: 480px;
+  --nav-h: 76px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
 
-  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, system-ui, sans-serif;
-
-  --topbar-h: 62px;
-  --nav-h: 66px;
+  --font: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-@media (min-width: 560px) { :root { --gut: 22px; } }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body { height:100%; }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-html, body {
-  height: 100%;
+body {
+  font-family: var(--font);
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--sans);
-  font-size: 15px;
-  line-height: 1.45;
+  overflow: hidden;
   -webkit-font-smoothing: antialiased;
-  -webkit-tap-highlight-color: transparent;
-  overscroll-behavior: none;
+  font-feature-settings: 'tnum' 1;
 }
+
+/* the page behind the app: flat colour plus a printed grid */
+body::before {
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background:
+    linear-gradient(var(--ink) 1px, transparent 1px) 0 0 / 100% 26px,
+    linear-gradient(90deg, var(--ink) 1px, transparent 1px) 0 0 / 26px 100%,
+    var(--yellow);
+  opacity:.14;
+}
+
+button, input, select, textarea { font:inherit; color:inherit; border:none; background:none; outline:none; }
+button { cursor:pointer; }
+a { color:inherit; }
+ul, ol { list-style:none; }
+::-webkit-scrollbar { width:0; height:0; }
+
+:focus-visible { outline: var(--line) solid var(--ink); outline-offset: 2px; }
 
 /* A long press on a control is a mis-hit, not an attempt to select text. */
-button, .pill, .tile, .seg button, .nav button, .badge { -webkit-user-select: none; user-select: none; }
+button, .pill, .tile, .badge, .nav button { -webkit-user-select:none; user-select:none; }
 
-button, input, select, textarea { font: inherit; color: inherit; }
-button { background: none; border: 0; cursor: pointer; }
-a { color: var(--ink); text-underline-offset: 3px; }
-
-:focus-visible {
-  outline: var(--line-w) solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* --------------------------------- shell --------------------------------- */
+/* ------------------------------- app shell -------------------------------- */
 
 #app {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
+  position:relative; z-index:1;
+  width:100%; max-width:var(--app-w); height:100dvh;
+  margin-inline:auto;
+  display:flex; flex-direction:column;
+  background: var(--paper);
+  overflow:hidden;
   /* clip, not hidden: a hidden container is still scrollable, and focusing an
      input near the bottom scrolls the nav bar off-screen on mobile. */
-  overflow: clip;
-  max-width: 620px;
-  margin: 0 auto;
-  background: var(--paper);
+  overflow:clip;
 }
 
-@media (min-width: 640px) {
-  #app { border-left: var(--line-w) solid var(--ink); border-right: var(--line-w) solid var(--ink); }
+@media (min-width:900px) {
+  #app {
+    height:min(920px, 94dvh); margin-top:3dvh;
+    border:var(--line) solid var(--ink);
+    border-radius:var(--radius-l);
+    box-shadow: 10px 10px 0 var(--ink);
+  }
 }
 
 #chrome {
-  flex: none;
+  flex:none;
   background: var(--paper);
-  border-bottom: var(--line-w) solid var(--ink);
+  border-bottom: var(--line) solid var(--ink);
   padding-top: env(safe-area-inset-top);
-  z-index: 3;
+  z-index:3;
 }
 
 #view {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: var(--s4) var(--gut) calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s5));
-  scroll-behavior: smooth;
+  flex:1;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding: var(--s4) var(--gut) calc(var(--nav-h) + var(--safe-b) + var(--s6));
+  scroll-behavior:smooth;
 }
 
-#fx { position: absolute; inset: 0; pointer-events: none; z-index: 60; }
+#fx { position:absolute; inset:0; pointer-events:none; z-index:60; }
 
 /* -------------------------------- typography ------------------------------ */
 
-.h1 { font-size: 27px; font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; }
-.h2 { font-size: 20px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; }
-.h3 { font-size: 15px; font-weight: 700; letter-spacing: -0.005em; }
-.sub { font-size: 13.5px; color: var(--dim); }
-.tiny { font-size: 11.5px; color: var(--dim); }
+.h1 { font-size:28px; font-weight:800; letter-spacing:-.03em; line-height:1.1; }
+.h2 { font-size:21px; font-weight:800; letter-spacing:-.02em; line-height:1.2; }
+.h3 { font-size:15px; font-weight:700; letter-spacing:-.01em; }
+.sub { font-size:13.5px; color:var(--dim); font-weight:500; }
+.tiny { font-size:11.5px; color:var(--dim); font-weight:600; }
 
-.num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; font-weight: 700; }
-.mono { font-family: var(--mono); }
+.num { font-variant-numeric:tabular-nums; font-weight:800; letter-spacing:-.02em; }
+.mono { font-family:var(--mono); }
 
 .label {
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink);
+  font-size:11px; font-weight:800; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--ink);
 }
 
-.truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.grow { flex: 1; min-width: 0; }
-.center { text-align: center; }
-.right { text-align: right; }
+.truncate { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.grow { flex:1; min-width:0; }
+.center { text-align:center; }
+.right { text-align:right; }
 
 /* --------------------------------- layout -------------------------------- */
 
-.stack    { display: flex; flex-direction: column; gap: var(--s3); }
-.stack.s2 { gap: var(--s2); }
-.stack.s4 { gap: var(--s4); }
-.row      { display: flex; align-items: center; gap: var(--s3); }
-.between  { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.wrap     { display: flex; flex-wrap: wrap; gap: var(--s2); }
-.grid2    { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); }
-.grid3    { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+.stack    { display:flex; flex-direction:column; gap:var(--s3); }
+.stack.s2 { gap:var(--s2); }
+.stack.s4 { gap:var(--s4); }
+.row      { display:flex; align-items:center; gap:var(--s3); }
+.between  { display:flex; align-items:center; justify-content:space-between; gap:var(--s3); }
+.wrap     { display:flex; flex-wrap:wrap; gap:var(--s2); }
+.grid2    { display:grid; grid-template-columns:1fr 1fr; gap:var(--s2); }
+.grid3    { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s2); }
 
-.section { margin-top: var(--s5); }
-.section > .label { margin-bottom: var(--s2); }
+.section { margin-top:var(--s6); }
+.section > .label { margin-bottom:var(--s2); }
 
-.hide { display: none !important; }
+.hide { display:none !important; }
 
-hr.rule { border: 0; border-top: var(--line-w-thin) solid var(--ink); margin: var(--s4) 0; }
+hr.rule { border:0; border-top:var(--line-thin) solid var(--ink); margin:var(--s5) 0; }
 
 /* --------------------------------- motion -------------------------------- */
 
-@keyframes fade-up { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes pop     { from { transform: scale(.95); } to { transform: none; } }
-@keyframes blink   { 0%, 100% { background: var(--accent); } 50% { background: var(--panel); } }
-
-.fade-up { animation: fade-up .2s ease both; }
+@keyframes fade-up { from { opacity:0; transform:translateY(6px) } to { opacity:1; transform:none } }
+@keyframes pop     { from { transform:scale(.94) } to { transform:none } }
+@keyframes blink   { 0%,100% { background:var(--accent) } 50% { background:var(--card) } }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
-  #view { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration:.001ms !important; transition-duration:.001ms !important; }
+  #view { scroll-behavior:auto; }
 }

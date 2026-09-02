@@ -169,7 +169,7 @@ function openTopic(id, rerender) {
               <div class="h3 truncate">${esc(pr.name)}</div>
               <div class="tiny truncate">${esc(pr.contestId + pr.index)} · ${esc(pr.tags.slice(0, 3).join(' · '))}</div>
             </div>
-            <span class="badge" style="background:${colorForRating(pr.rating)};color:var(--panel)">${pr.rating}</span>
+            <span class="badge" style="background:${colorForRating(pr.rating)};color:var(--ink)">${pr.rating}</span>
           </div>
         </a>`).join('')}</div>`
         : '<div class="empty">Nothing unsolved left in this band. Move up a tier.</div>';

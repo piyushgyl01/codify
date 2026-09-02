@@ -3,455 +3,338 @@
 /* --------------------------------- cards --------------------------------- */
 
 .card {
-  background: var(--panel);
-  border: var(--line-w) solid var(--ink);
-  border-radius: var(--r-m);
-  box-shadow: var(--shadow);
-  padding: var(--s4);
+  position:relative;
+  background:var(--card);
+  border:var(--line) solid var(--ink);
+  border-radius:var(--radius);
+  padding:var(--s4);
+  box-shadow:var(--sh);
 }
-.card.sunk   { background: var(--sunk); }
-.card.flat   { box-shadow: none; }
-.card.pad-s  { padding: var(--s3); }
-.card.flush  { padding: 0; overflow: hidden; }
+.card.sunk  { background:var(--sunk); }
+.card.flat  { box-shadow:none; }
+.card.pad-s { padding:var(--s3); }
+.card.flush { padding:0; overflow:hidden; }
 
-.card.tap { width: 100%; text-align: left; display: block; transition: transform .07s ease, box-shadow .07s ease; }
-.card.tap:active { transform: translate(4px, 4px); box-shadow: none; }
+.card.tap { width:100%; text-align:left; display:block;
+            transition:transform var(--fast), box-shadow var(--fast); }
+.card.tap:active { transform:translate(4px,4px); box-shadow:0 0 0 var(--ink); }
 
-/* A colour rail down the left edge, for category. Reads at a glance and, unlike
-   coloured text, survives being next to a muted fill. */
-.card.rail { border-left-width: 10px; border-left-color: var(--rail, var(--accent)); }
+/* A colour rail down the left edge, for category. */
+.card.rail { border-left-width:10px; border-left-color:var(--rail, var(--accent)); }
 
 /* -------------------------------- buttons -------------------------------- */
 
 .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s2);
-  min-height: 46px;
-  padding: 0 var(--s4);
-  border-radius: var(--r-s);
-  border: var(--line-w) solid var(--ink);
-  background: var(--panel);
-  color: var(--ink);
-  font-size: 14.5px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: var(--shadow-sm);
-  transition: transform .07s ease, box-shadow .07s ease;
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:12px 20px; border-radius:var(--radius-s);
+  font-weight:800; font-size:15px; letter-spacing:-.01em; text-transform:uppercase;
+  background:var(--card); border:var(--line) solid var(--ink); color:var(--ink);
+  box-shadow:var(--sh);
+  white-space:nowrap;
+  transition:transform var(--fast), box-shadow var(--fast);
 }
 /* The press: the button slides into the space its own shadow occupied. */
-.btn:active { transform: translate(3px, 3px); box-shadow: none; }
-
-.btn.primary { background: var(--accent); color: var(--accent-ink); }
-.btn.hot     { background: var(--bad); color: var(--panel); }
-/* Secondary controls get a muted fill, never reduced opacity — see base.css. */
-.btn.ghost   { background: var(--sunk); color: var(--ink); }
-.btn.block   { display: flex; width: 100%; }
-.btn.sm      { min-height: 38px; padding: 0 var(--s3); font-size: 13.5px; }
-.btn.xs      { min-height: 30px; padding: 0 10px; font-size: 12px; border-width: var(--line-w-thin); box-shadow: 2px 2px 0 var(--ink); }
-.btn.xs:active { transform: translate(2px, 2px); box-shadow: none; }
-
-.btn:disabled { background: var(--muted); color: var(--faint); box-shadow: none; transform: none; pointer-events: none; }
+.btn:active  { transform:translate(4px,4px); box-shadow:0 0 0 var(--ink); }
+.btn.primary { background:var(--accent); color:var(--accent-ink); }
+.btn.hot     { background:var(--red); color:var(--paper); }
+.btn.gold    { background:var(--yellow); }
+.btn.ghost   { background:var(--paper); color:var(--dim); box-shadow:var(--sh-sm); }
+.btn.block   { display:flex; width:100%; }
+.btn.sm      { padding:8px 14px; font-size:12.5px; box-shadow:var(--sh-sm); }
+.btn.xs      { padding:5px 10px; font-size:11px; border-width:var(--line-thin); box-shadow:var(--sh-sm); }
+.btn:disabled { background:var(--paper); color:var(--faint); box-shadow:0 0 0 var(--ink);
+                transform:translate(3px,3px); pointer-events:none; }
 
 /* --------------------------- pills & segmented --------------------------- */
 
-.pill-row { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.pill-row { display:flex; flex-wrap:wrap; gap:var(--s2); }
 
 .pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-  padding: 0 var(--s3);
-  border-radius: 999px;
-  border: var(--line-w-thin) solid var(--ink);
-  background: var(--panel);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
-  box-shadow: 2px 2px 0 var(--ink);
-  transition: transform .07s ease, box-shadow .07s ease, background .1s ease;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:8px 14px; border-radius:999px;
+  border:var(--line-thin) solid var(--ink);
+  background:var(--card); color:var(--ink);
+  font-size:13px; font-weight:700; white-space:nowrap;
+  box-shadow:var(--sh-sm);
+  transition:transform var(--fast), box-shadow var(--fast), background var(--fast);
 }
-.pill.on { background: var(--accent); color: var(--accent-ink); }
-.pill:active { transform: translate(2px, 2px); box-shadow: none; }
-.pill:disabled { background: var(--muted); color: var(--faint); box-shadow: none; pointer-events: none; }
+.pill.on { background:var(--accent); color:var(--accent-ink); }
+.pill:active { transform:translate(3px,3px); box-shadow:0 0 0 var(--ink); }
+.pill:disabled { background:var(--paper); color:var(--faint); box-shadow:none; pointer-events:none; }
 
 /* Scrolls sideways rather than wrapping to three rows on a narrow phone. */
 .pill-scroll {
-  display: flex;
-  gap: var(--s2);
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 3px var(--gut) 5px;
-  margin: 0 calc(var(--gut) * -1);
+  display:flex; gap:var(--s2);
+  overflow-x:auto;
+  padding:var(--s1) var(--gut) 6px;
+  margin:0 calc(var(--gut) * -1);
 }
-.pill-scroll::-webkit-scrollbar { display: none; }
 
 .seg {
-  display: flex;
-  border: var(--line-w) solid var(--ink);
-  border-radius: var(--r-s);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
+  display:flex;
+  border:var(--line) solid var(--ink);
+  border-radius:var(--radius-s);
+  overflow:hidden;
+  box-shadow:var(--sh-sm);
 }
 .seg button {
-  flex: 1;
-  min-height: 40px;
-  font-size: 13.5px;
-  font-weight: 700;
-  background: var(--panel);
-  border-right: var(--line-w-thin) solid var(--ink);
+  flex:1; padding:10px 8px;
+  font-size:13px; font-weight:800; text-transform:uppercase;
+  background:var(--card);
+  border-right:var(--line-thin) solid var(--ink);
 }
-.seg button:last-child { border-right: 0; }
-.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.seg button:last-child { border-right:0; }
+.seg button.on { background:var(--accent); color:var(--accent-ink); }
 
 /* -------------------------------- badges --------------------------------- */
 
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: var(--line-w-thin) solid var(--ink);
-  background: var(--panel);
-  font-family: var(--mono);
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--ink);
-  white-space: nowrap;
+  display:inline-flex; align-items:center; gap:5px;
+  padding:4px 9px; border-radius:var(--radius-s);
+  border:var(--line-thin) solid var(--ink);
+  background:var(--card); color:var(--ink);
+  font-size:11.5px; font-weight:800; letter-spacing:-.01em;
+  white-space:nowrap;
 }
-/* Filled variants carry the meaning; the text on them stays black or paper so
-   it never has to survive being a saturated colour at 11px. */
-.badge.solid { background: var(--accent); color: var(--accent-ink); }
-.badge.good  { background: var(--good);   color: var(--panel); }
-.badge.warn  { background: var(--warn);   color: var(--panel); }
-.badge.bad   { background: var(--bad);    color: var(--panel); }
-.badge.info  { background: var(--info);   color: var(--panel); }
-.badge.mute  { background: var(--muted); }
+/* Filled variants carry the meaning. Black text on every one of them, because
+   the palette is bright enough that paper text would be the unreadable choice. */
+.badge.solid { background:var(--accent); color:var(--accent-ink); }
+.badge.good  { background:var(--acid); }
+.badge.warn  { background:var(--yellow); }
+.badge.bad   { background:var(--red); color:var(--paper); }
+.badge.info  { background:var(--blue); color:var(--paper); }
+.badge.mute  { background:var(--muted); color:var(--dim); }
 
-.dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid var(--ink); background: var(--accent); flex: none; }
+.dot { width:10px; height:10px; border-radius:50%;
+       border:var(--line-thin) solid var(--ink); background:var(--accent); flex:none; }
 
 /* --------------------------------- bars ---------------------------------- */
 
 .bar {
-  position: relative;
-  height: 14px;
-  border-radius: 999px;
-  background: var(--sunk);
-  border: var(--line-w-thin) solid var(--ink);
-  overflow: hidden;
+  position:relative; height:16px;
+  border-radius:999px;
+  background:var(--sunk);
+  border:var(--line-thin) solid var(--ink);
+  overflow:hidden;
 }
-.bar > i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transition: width .3s cubic-bezier(.2,.8,.2,1);
-}
-.bar.tall { height: 18px; }
+.bar > i { display:block; height:100%; background:var(--accent); transition:width var(--med); }
+.bar.tall { height:22px; }
 
-/* A target notch drawn on the bar — "where you were aiming" is more use than a
-   number printed beside it. */
-.bar > .tick {
-  position: absolute;
-  top: -2px; bottom: -2px;
-  width: 3px;
-  background: var(--ink);
-}
+/* A target notch — "where you were aiming" beats a number printed beside it. */
+.bar > .tick { position:absolute; top:-2px; bottom:-2px; width:3px; background:var(--ink); }
 
 .split {
-  display: flex;
-  height: 16px;
-  border-radius: 999px;
-  overflow: hidden;
-  background: var(--sunk);
-  border: var(--line-w-thin) solid var(--ink);
+  display:flex; height:18px; border-radius:999px; overflow:hidden;
+  background:var(--sunk); border:var(--line-thin) solid var(--ink);
 }
-.split > i { display: block; height: 100%; border-right: 2px solid var(--ink); }
-.split > i:last-child { border-right: 0; }
+.split > i { display:block; height:100%; border-right:var(--line-thin) solid var(--ink); }
+.split > i:last-child { border-right:0; }
 
 /* --------------------------------- tiles --------------------------------- */
 
 .tile {
-  background: var(--sunk);
-  border: var(--line-w-thin) solid var(--ink);
-  border-radius: var(--r-s);
-  padding: var(--s3);
-  min-width: 0;
+  background:var(--sunk);
+  border:var(--line-thin) solid var(--ink);
+  border-radius:var(--radius-s);
+  padding:var(--s3);
+  min-width:0;
 }
-.tile .v { font-family: var(--mono); font-size: 20px; font-weight: 800; letter-spacing: -.03em; }
-.tile .k {
-  font-size: 10.5px; margin-top: 3px; text-transform: uppercase;
-  letter-spacing: .09em; font-family: var(--mono); font-weight: 700; color: var(--dim);
-}
+.tile .v { font-size:21px; font-weight:800; letter-spacing:-.03em; font-variant-numeric:tabular-nums; }
+.tile .k { font-size:10.5px; margin-top:3px; text-transform:uppercase;
+           letter-spacing:.1em; font-weight:800; color:var(--dim); }
 
 /* --------------------------------- forms --------------------------------- */
 
-.field { display: flex; flex-direction: column; gap: 7px; }
-.field > label { font-size: 13px; font-weight: 700; }
+.field { display:flex; flex-direction:column; gap:7px; }
+.field > label { font-size:13px; font-weight:700; }
 
 .input, select.input, textarea.input {
-  width: 100%;
-  min-height: 48px;
-  padding: 11px var(--s3);
-  background: var(--panel);
-  border: var(--line-w) solid var(--ink);
-  border-radius: var(--r-s);
-  color: var(--ink);
-  font-size: 15px;
-  font-weight: 600;
-  appearance: none;
-  box-shadow: var(--shadow-sm);
+  width:100%; padding:13px var(--s3);
+  background:var(--card);
+  border:var(--line) solid var(--ink);
+  border-radius:var(--radius-s);
+  color:var(--ink);
+  font-size:15px; font-weight:600;
+  appearance:none;
+  box-shadow:var(--sh-sm);
 }
-.input::placeholder { color: var(--faint); font-weight: 500; }
-.input:focus { outline: none; background: var(--panel); box-shadow: var(--shadow-sm), 0 0 0 3px var(--accent); }
-.input.num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-weight: 700; }
-textarea.input { min-height: 88px; resize: vertical; line-height: 1.5; }
+.input::placeholder { color:var(--faint); font-weight:500; }
+.input:focus { box-shadow:var(--sh-sm), 0 0 0 3px var(--accent); }
+.input.num { font-variant-numeric:tabular-nums; font-weight:800; }
+textarea.input { min-height:88px; resize:vertical; line-height:1.5; }
 
-select.input {
-  background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
-  background-position: calc(100% - 19px) 50%, calc(100% - 13px) 50%;
-  background-size: 6px 6px, 6px 6px;
-  background-repeat: no-repeat;
-  padding-right: 36px;
-}
-
-/* A number with −/+ either side. On a phone the numeric keypad covers the sheet
-   you are filling in, so most edits should not need the keyboard at all. */
-.stepper { display: flex; align-items: stretch; gap: var(--s2); }
-.stepper .input { text-align: center; font-size: 23px; font-weight: 800; }
+.stepper { display:flex; align-items:stretch; gap:var(--s2); }
+.stepper .input { text-align:center; font-size:24px; font-weight:800; }
 .stepper button {
-  width: 52px;
-  flex: none;
-  border: var(--line-w) solid var(--ink);
-  border-radius: var(--r-s);
-  background: var(--sunk);
-  font-size: 22px;
-  font-weight: 800;
-  box-shadow: var(--shadow-sm);
-  transition: transform .07s ease, box-shadow .07s ease;
+  width:54px; flex:none;
+  border:var(--line) solid var(--ink);
+  border-radius:var(--radius-s);
+  background:var(--sunk);
+  font-size:22px; font-weight:800;
+  box-shadow:var(--sh-sm);
+  transition:transform var(--fast), box-shadow var(--fast);
 }
-.stepper button:active { transform: translate(3px, 3px); box-shadow: none; }
+.stepper button:active { transform:translate(3px,3px); box-shadow:0 0 0 var(--ink); }
 
 /* -------------------------------- topbar --------------------------------- */
 
-.topbar { display: flex; align-items: center; gap: var(--s3); height: var(--topbar-h); padding: 0 var(--gut); }
+.topbar { display:flex; align-items:center; gap:var(--s3); padding:var(--s3) var(--gut); }
 
 .avatar {
-  position: relative;
-  width: 44px; height: 44px;
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 1px;
-  border-radius: var(--r-s);
-  background: var(--accent);
-  color: var(--accent-ink);
-  border: var(--line-w) solid var(--ink);
-  box-shadow: 3px 3px 0 var(--ink);
-  font-size: 16px;
-  line-height: 1;
+  position:relative;
+  width:46px; height:46px; flex:none;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  border-radius:var(--radius-s);
+  background:var(--accent); color:var(--accent-ink);
+  border:var(--line) solid var(--ink);
+  box-shadow:var(--sh-sm);
+  font-size:17px; line-height:1;
 }
-/* The level was originally a badge pinned to the corner, which a two-digit
-   number overflowed — and it covered the rank glyph it was annotating. */
-.avatar .lvl { font-family: var(--mono); font-size: 10px; font-weight: 800; line-height: 1; }
+/* The level sits under the glyph. As a corner badge a two-digit number
+   overflowed, and it covered the rank mark it was annotating. */
+.avatar .lvl { font-size:10px; font-weight:800; line-height:1; }
 
 .chip-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 9px;
-  border-radius: var(--r-s);
-  background: var(--panel);
-  border: var(--line-w-thin) solid var(--ink);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 700;
+  display:inline-flex; align-items:center; gap:5px;
+  padding:6px 10px; border-radius:var(--radius-s);
+  background:var(--card); border:var(--line-thin) solid var(--ink);
+  font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
 }
-.chip-stat.live { background: var(--warn); color: var(--panel); }
+.chip-stat.live { background:var(--orange); }
 
-.topbar-xp { height: 8px; background: var(--sunk); border-top: var(--line-w-thin) solid var(--ink); }
-.topbar-xp > i { display: block; height: 100%; background: var(--accent); transition: width .35s ease; }
+.topbar-xp { height:10px; background:var(--sunk); border-top:var(--line-thin) solid var(--ink); }
+.topbar-xp > i { display:block; height:100%; background:var(--accent); transition:width var(--med); }
 
 /* ---------------------------------- nav ---------------------------------- */
 
 .nav {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
-  padding-bottom: env(safe-area-inset-bottom);
-  background: var(--panel);
-  border-top: var(--line-w) solid var(--ink);
-  z-index: 5;
-  max-width: 620px;
-  margin: 0 auto;
+  position:absolute; left:0; right:0; bottom:0; z-index:30;
+  height:calc(var(--nav-h) + var(--safe-b));
+  padding-bottom:var(--safe-b);
+  display:grid; grid-template-columns:repeat(5,1fr);
+  background:var(--card);
+  border-top:var(--line) solid var(--ink);
+  max-width:var(--app-w); margin-inline:auto;
 }
 .nav button {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 3px;
-  font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .07em;
-  text-transform: uppercase;
-  border-right: var(--line-w-thin) solid var(--ink);
+  position:relative;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase;
+  border-right:var(--line-thin) solid var(--ink);
 }
-.nav button:last-child { border-right: 0; }
-.nav button .ico { display: grid; place-items: center; height: 24px; }
-.nav button.on { background: var(--accent); color: var(--accent-ink); }
+.nav button:last-child { border-right:0; }
+.nav button .ico { display:grid; place-items:center; height:24px; }
+.nav button.on { background:var(--accent); color:var(--accent-ink); }
 .nav .nav-dot {
-  position: absolute;
-  top: 7px; left: 50%;
-  margin-left: 10px;
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: var(--bad);
-  border: 2px solid var(--ink);
+  position:absolute; top:9px; left:50%; margin-left:11px;
+  width:11px; height:11px; border-radius:50%;
+  background:var(--red); border:var(--line-thin) solid var(--ink);
 }
 
 /* --------------------------- sheets and dialogs --------------------------- */
 
-#layers { position: absolute; inset: 0; pointer-events: none; z-index: 40; }
-#layers > * { pointer-events: auto; }
+#layers { position:absolute; inset:0; pointer-events:none; z-index:40; }
+#layers > * { pointer-events:auto; }
 
-.scrim {
-  position: absolute;
-  inset: 0;
-  background: rgba(20, 18, 15, .55);
-  display: flex;
-}
-.scrim.bottom { align-items: flex-end; }
-.scrim.centre { align-items: center; justify-content: center; padding: var(--gut); }
+.scrim { position:absolute; inset:0; background:rgba(18,16,14,.5); display:flex; }
+.scrim.bottom { align-items:flex-end; }
+.scrim.centre { align-items:center; justify-content:center; padding:var(--gut); }
 
 .sheet {
-  width: 100%;
-  max-height: 88%;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  border: var(--line-w) solid var(--ink);
-  border-bottom: 0;
-  border-radius: var(--r-l) var(--r-l) 0 0;
-  animation: sheet-up .22s cubic-bezier(.2,.9,.25,1) both;
+  width:100%; max-height:88%;
+  display:flex; flex-direction:column;
+  background:var(--paper);
+  border:var(--line) solid var(--ink);
+  border-bottom:0;
+  border-radius:var(--radius-l) var(--radius-l) 0 0;
+  animation:sheet-up .22s var(--ease) both;
 }
-@keyframes sheet-up { from { transform: translateY(16px); } to { transform: none; } }
+@keyframes sheet-up { from { transform:translateY(18px) } to { transform:none } }
 
 .sheet-hd {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s3);
-  padding: var(--s4) var(--s4) var(--s3);
-  border-bottom: var(--line-w) solid var(--ink);
-  flex: none;
+  display:flex; align-items:center; justify-content:space-between; gap:var(--s3);
+  padding:var(--s4) var(--s4) var(--s3);
+  border-bottom:var(--line) solid var(--ink);
+  flex:none;
 }
 .sheet-hd .x {
-  width: 36px; height: 36px;
-  flex: none;
-  display: grid; place-items: center;
-  border-radius: var(--r-s);
-  background: var(--sunk);
-  border: var(--line-w-thin) solid var(--ink);
-  font-size: 15px;
-  font-weight: 800;
-  box-shadow: 2px 2px 0 var(--ink);
+  width:38px; height:38px; flex:none;
+  display:grid; place-items:center;
+  border-radius:var(--radius-s);
+  background:var(--card); border:var(--line-thin) solid var(--ink);
+  font-size:15px; font-weight:800;
+  box-shadow:var(--sh-sm);
 }
-.sheet-hd .x:active { transform: translate(2px, 2px); box-shadow: none; }
-
-.sheet-bd { padding: var(--s4); overflow-y: auto; padding-bottom: calc(var(--s4) + env(safe-area-inset-bottom)); }
+.sheet-hd .x:active { transform:translate(3px,3px); box-shadow:0 0 0 var(--ink); }
+.sheet-bd { padding:var(--s4); overflow-y:auto; padding-bottom:calc(var(--s4) + var(--safe-b)); }
 
 .dialog {
-  width: 100%;
-  max-width: 380px;
-  background: var(--paper);
-  border: var(--line-w) solid var(--ink);
-  border-radius: var(--r-l);
-  box-shadow: var(--shadow-lg);
-  padding: var(--s5);
-  text-align: center;
-  animation: pop .18s cubic-bezier(.2,.9,.25,1) both;
-  max-height: 86%;
-  overflow-y: auto;
+  width:100%; max-width:380px;
+  background:var(--paper);
+  border:var(--line) solid var(--ink);
+  border-radius:var(--radius-l);
+  box-shadow:var(--sh-lg);
+  padding:var(--s6);
+  text-align:center;
+  animation:pop .18s var(--ease) both;
+  max-height:86%; overflow-y:auto;
 }
 
 /* -------------------------------- toasts --------------------------------- */
 
 .toasts {
-  position: absolute;
-  left: 0; right: 0;
-  bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + var(--s3));
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--s2);
-  padding: 0 var(--gut);
-  pointer-events: none;
-  z-index: 50;
+  position:absolute; left:0; right:0;
+  bottom:calc(var(--nav-h) + var(--safe-b) + var(--s3));
+  display:flex; flex-direction:column; align-items:center; gap:var(--s2);
+  padding:0 var(--gut);
+  pointer-events:none; z-index:50;
 }
 .toast {
-  max-width: 100%;
-  padding: 11px var(--s4);
-  border-radius: var(--r-s);
-  background: var(--panel);
-  border: var(--line-w) solid var(--ink);
-  box-shadow: var(--shadow);
-  font-size: 13.5px;
-  font-weight: 700;
-  animation: pop .16s ease both;
+  max-width:100%;
+  padding:11px var(--s4);
+  border-radius:var(--radius-s);
+  background:var(--card);
+  border:var(--line) solid var(--ink);
+  box-shadow:var(--sh);
+  font-size:13.5px; font-weight:700;
+  animation:pop .16s var(--ease) both;
 }
-.toast b { background: var(--accent); color: var(--accent-ink); padding: 1px 5px; border-radius: 4px; }
+.toast b { background:var(--accent); color:var(--accent-ink); padding:1px 6px; border-radius:5px; }
 
 /* -------------------------------- floaters -------------------------------- */
 
 .floater {
-  position: absolute;
-  font-family: var(--mono);
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--ink);
-  background: var(--accent);
-  padding: 2px 8px;
-  border: var(--line-w-thin) solid var(--ink);
-  border-radius: 6px;
-  pointer-events: none;
-  z-index: 55;
-  animation: float-up .9s ease-out both;
+  position:absolute;
+  font-size:18px; font-weight:800;
+  color:var(--ink); background:var(--accent);
+  padding:3px 9px;
+  border:var(--line-thin) solid var(--ink);
+  border-radius:var(--radius-s);
+  pointer-events:none; z-index:55;
+  animation:float-up .9s ease-out both;
 }
 @keyframes float-up {
-  from { transform: translate(-50%, 0); opacity: 1 }
-  to   { transform: translate(-50%, -56px); opacity: 0 }
+  from { transform:translate(-50%,0); opacity:1 }
+  to   { transform:translate(-50%,-58px); opacity:0 }
 }
 
 /* --------------------------------- rings --------------------------------- */
 
-.ring-wrap { position: relative; display: grid; place-items: center; flex: none; }
-.ring-wrap .mid { position: absolute; display: grid; place-items: center; text-align: center; line-height: 1.1; }
-.ring-wrap .mid .v { font-family: var(--mono); font-size: 25px; font-weight: 800; letter-spacing: -.04em; }
-.ring-wrap .mid .k {
-  font-size: 10px; color: var(--dim); text-transform: uppercase;
-  letter-spacing: .1em; font-family: var(--mono); font-weight: 700; margin-top: 3px;
-}
+.ring-wrap { position:relative; display:grid; place-items:center; flex:none; }
+.ring-wrap .mid { position:absolute; display:grid; place-items:center; text-align:center; line-height:1.1; }
+.ring-wrap .mid .v { font-size:26px; font-weight:800; letter-spacing:-.04em; font-variant-numeric:tabular-nums; }
+.ring-wrap .mid .k { font-size:10px; color:var(--dim); text-transform:uppercase;
+                     letter-spacing:.1em; font-weight:800; margin-top:3px; }
 
 /* ------------------------------- empty state ------------------------------ */
 
 .empty {
-  text-align: center;
-  padding: var(--s5) var(--s4);
-  color: var(--dim);
-  font-size: 13.5px;
-  font-weight: 600;
-  background: var(--sunk);
-  border: var(--line-w-thin) dashed var(--ink);
-  border-radius: var(--r-m);
+  text-align:center;
+  padding:var(--s6) var(--s4);
+  color:var(--dim);
+  font-size:13.5px; font-weight:600;
+  background:var(--sunk);
+  border:var(--line-thin) dashed var(--ink);
+  border-radius:var(--radius);
 }
-.empty .big { font-size: 26px; margin-bottom: var(--s2); }
+.empty .big { font-size:28px; margin-bottom:var(--s2); }

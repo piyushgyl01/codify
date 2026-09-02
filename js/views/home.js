@@ -144,7 +144,7 @@ function solveList(solves) {
             <div class="h3 truncate">${esc(s.name)}</div>
             <div class="tiny truncate">${esc((s.tags || []).slice(0, 3).join(' · '))}</div>
           </div>
-          <span class="badge" style="background:${colorForRating(s.rating)};color:var(--panel)">
+          <span class="badge" style="background:${colorForRating(s.rating)};color:var(--ink)">
             ${s.rating ?? '—'}</span>
         </div>
       </a>`).join('')}

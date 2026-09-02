@@ -105,7 +105,7 @@ function row(r) {
           <div class="tiny truncate">${esc((r.s.tags || []).slice(0, 3).join(' · '))}</div>
         </div>
         <div class="right" style="flex:none">
-          <span class="badge" style="background:${colorForRating(r.s.rating)};color:var(--panel)">${r.s.rating ?? '—'}</span>
+          <span class="badge" style="background:${colorForRating(r.s.rating)};color:var(--ink)">${r.s.rating ?? '—'}</span>
           <div class="tiny" style="margin-top:4px">${timeOf(r.ts)}</div>
         </div>
       </div>
@@ -279,7 +279,7 @@ function historyBlock(days) {
          </div>
          ${solvesOn(d.key).length ? `<div class="wrap" style="margin-top:10px">
            ${solvesOn(d.key).map(s => `<span class="badge" style="background:${
-             colorForRating(s.rating)};color:var(--panel)">${s.rating ?? '—'}</span>`).join('')}
+             colorForRating(s.rating)};color:var(--ink)">${s.rating ?? '—'}</span>`).join('')}
          </div>` : ''}
        </div>`).join('')}</div>
      <button class="btn ghost block sm" style="margin-top:12px" data-more>

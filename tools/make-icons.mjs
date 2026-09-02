@@ -61,9 +61,9 @@ function encodePng(width, height, rgba) {
 
 /* --------------------------------- shapes --------------------------------- */
 
-const ACCENT = [0x2f, 0x6b, 0xff];   // cobalt, the default theme
-const PLATE  = [0xff, 0xfd, 0xf6];   // panel
-const EDGE   = [0x14, 0x12, 0x0f];   // ink — the outline everything else gets
+const ACCENT = [0xb8, 0xf0, 0x2d];   // lime, the default theme
+const PLATE  = [0xff, 0xf8, 0xe8];   // paper
+const EDGE   = [0x12, 0x10, 0x0e];   // ink — the outline everything else gets
 
 /** Inside test for a rounded rect. */
 const inRound = (px, py, x, y, w, h, r) => {

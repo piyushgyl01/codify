@@ -29,14 +29,14 @@ export function levelFromXp(xp) {
 
 /** Named after the Codeforces ladder, since that is the ladder being climbed. */
 export const RANKS = [
-  { at:1,  name:'Newcomer',         icon:'○', color:'#565045' },
-  { at:5,  name:'Pupil',            icon:'◆', color:'#12A150' },
-  { at:10, name:'Specialist',       icon:'◈', color:'#0C8F86' },
-  { at:15, name:'Expert',           icon:'⬢', color:'#2563EB' },
-  { at:22, name:'Candidate Master', icon:'⬡', color:'#6D3FE0' },
-  { at:30, name:'Master',           icon:'✦', color:'#C77A0F' },
-  { at:40, name:'Grandmaster',      icon:'✧', color:'#DD2E3F' },
-  { at:52, name:'Legendary',        icon:'★', color:'#C7530F' },
+  { at:1,  name:'Newcomer',         icon:'🥚', color:'#57514A' },
+  { at:5,  name:'Pupil',            icon:'🌱', color:'#5EA82E' },
+  { at:10, name:'Specialist',       icon:'⚔️', color:'#1E9AA8' },
+  { at:15, name:'Expert',           icon:'🛡️', color:'#2B5BD7' },
+  { at:22, name:'Candidate Master', icon:'🏆', color:'#8A3FD1' },
+  { at:30, name:'Master',           icon:'🔮', color:'#C77A0F' },
+  { at:40, name:'Grandmaster',      icon:'🌟', color:'#D6265A' },
+  { at:52, name:'Legendary',        icon:'🐉', color:'#D64524' },
 ];
 export const rankFor = level => [...RANKS].reverse().find(r => level >= r.at) || RANKS[0];
 export const nextRank = level => RANKS.find(r => r.at > level) || null;

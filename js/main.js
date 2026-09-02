@@ -66,4 +66,4 @@ const sizeFx = () => { fx.width = fx.clientWidth; fx.height = fx.clientHeight; }
 addEventListener('resize', sizeFx);
 sizeFx();
 
-console.log('%cCODIFY', 'font:700 20px ui-monospace,monospace;color:#2F6BFF', '— save v' + S.v);
+console.log('%cCODIFY', 'font:700 20px ui-monospace,monospace;color:#5EA82E', '— save v' + S.v);

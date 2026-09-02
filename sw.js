@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v3';
+const CACHE_VERSION = 'v4';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -115,6 +115,21 @@ self.addEventListener('fetch', event => {
   // cache-first branch below and every later call would return the first frozen
   // answer. There is no API here today; this guard is what keeps it true when
   // there is one.
+  // Fonts are cross-origin and optional: serve whatever is cached, refresh in
+  // the background, and fall back to the system stack if neither works. Without
+  // this the type reflows on every offline launch.
+  if (url.origin.includes('fonts.googleapis.com') || url.origin.includes('fonts.gstatic.com')) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE);
+      const cached = await cache.match(request);
+      const network = fetch(request)
+        .then(res => { if (res.ok || res.type === 'opaque') cache.put(request, res.clone()); return res; })
+        .catch(() => null);
+      return cached || (await network) || Response.error();
+    })());
+    return;
+  }
+
   if (url.pathname.startsWith('/api/')) return;
 
   if (url.origin !== self.location.origin) return;

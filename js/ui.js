@@ -265,7 +265,7 @@ export function confetti(count = 90) {
 
   const w = canvas.width = canvas.clientWidth;
   const hgt = canvas.height = canvas.clientHeight;
-  const colors = ['#2F6BFF', '#FFD93D', '#FF3D8B', '#22D3A7', '#7C4DFF', '#FF7A2C'];
+  const colors = ['#B8F02D', '#7BF17B', '#45D9E8', '#4D7CFF', '#B06BFF', '#FF5FA2', '#FFD93D', '#FF8A29'];
 
   const bits = Array.from({ length: count }, () => ({
     x: Math.random() * w,
@@ -291,7 +291,7 @@ export function confetti(count = 90) {
       ctx.fillStyle = b.c;
       ctx.fillRect(-b.s / 2, -b.s / 2, b.s, b.s);
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#14120F';
+      ctx.strokeStyle = '#12100E';
       ctx.strokeRect(-b.s / 2, -b.s / 2, b.s, b.s);
       ctx.restore();
     }

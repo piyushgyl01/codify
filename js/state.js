@@ -24,16 +24,16 @@ const SAVE_KEY = 'codify.save.v1';
 const BACKUP_KEY = 'codify.save.prior';
 
 export const THEMES = [
-  { id:'cobalt',    name:'Cobalt',    accent:'#2F6BFF', ink:'#FFFDF6', cost:0 },
-  { id:'lemon',     name:'Lemon',     accent:'#FFD93D', ink:'#14120F', cost:0 },
-  { id:'mint',      name:'Mint',      accent:'#22D3A7', ink:'#14120F', cost:250 },
-  { id:'magenta',   name:'Magenta',   accent:'#FF3D8B', ink:'#FFFDF6', cost:250 },
-  { id:'violet',    name:'Violet',    accent:'#7C4DFF', ink:'#FFFDF6', cost:450 },
-  { id:'tangerine', name:'Tangerine', accent:'#FF7A2C', ink:'#14120F', cost:450 },
-  { id:'sky',       name:'Sky',       accent:'#38BDF8', ink:'#14120F', cost:700 },
-  { id:'coral',     name:'Coral',     accent:'#FF5A5F', ink:'#FFFDF6', cost:700 },
-  { id:'lime',      name:'Lime',      accent:'#A3E635', ink:'#14120F', cost:1200 },
-  { id:'ultra',     name:'Ultraviolet', accent:'#5B21B6', ink:'#FFFDF6', cost:1800 },
+  { id:'lime',   name:'Lime',   accent:'#B8F02D', ink:'#12100E', cost:0 },
+  { id:'acid',   name:'Acid',   accent:'#7BF17B', ink:'#12100E', cost:0 },
+  { id:'cyan',   name:'Cyan',   accent:'#45D9E8', ink:'#12100E', cost:250 },
+  { id:'sun',    name:'Sun',    accent:'#FFD93D', ink:'#12100E', cost:250 },
+  { id:'punch',  name:'Punch',  accent:'#FF5FA2', ink:'#12100E', cost:450 },
+  { id:'blaze',  name:'Blaze',  accent:'#FF8A29', ink:'#12100E', cost:450 },
+  { id:'grape',  name:'Grape',  accent:'#B06BFF', ink:'#12100E', cost:700 },
+  { id:'cobalt', name:'Cobalt', accent:'#4D7CFF', ink:'#FFF8E8', cost:700 },
+  { id:'siren',  name:'Siren',  accent:'#FF4B3E', ink:'#FFF8E8', cost:1200 },
+  { id:'mint',   name:'Mint',   accent:'#5FE3C0', ink:'#12100E', cost:1800 },
 ];
 
 export const themeFor = id => THEMES.find(t => t.id === id) || THEMES[0];
@@ -52,7 +52,7 @@ const emptyDay = () => ({ focus: [], notes: [], claimed: [] });
 
 const freshSave = () => ({
   v: 2,
-  profile: { name:'', theme:'cobalt', goal:'levelup', hours:2, onboarded:false, created:dayKey() },
+  profile: { name:'', theme:'lime', goal:'levelup', hours:2, onboarded:false, created:dayKey() },
   xp: 0, coins: 0,
   streak: { current:0, best:0, lastActive:null, freezes:1 },
   days: {},                       // only what this app owns: timer sessions, notes, quests

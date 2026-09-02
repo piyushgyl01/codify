@@ -15,12 +15,12 @@ import { daysBetween, dayKey } from './game.js';
 
 /** The Codeforces bands, so the histogram reads the way the site does. */
 export const BANDS = [
-  { min:800,  max:1199, name:'Newcomer',  color:'var(--dim)' },
-  { min:1200, max:1399, name:'Pupil',     color:'var(--good)' },
-  { min:1400, max:1599, name:'Specialist',color:'var(--teal)' },
-  { min:1600, max:1899, name:'Expert',    color:'var(--info)' },
-  { min:1900, max:2099, name:'Cand. Mas', color:'var(--violet)' },
-  { min:2100, max:3500, name:'Master+',   color:'var(--bad)' },
+  { min:800,  max:1199, name:'Newcomer',   color:'var(--muted)' },
+  { min:1200, max:1399, name:'Pupil',      color:'var(--acid)' },
+  { min:1400, max:1599, name:'Specialist', color:'var(--cyan)' },
+  { min:1600, max:1899, name:'Expert',     color:'var(--blue)' },
+  { min:1900, max:2099, name:'Cand. Mas',  color:'var(--violet)' },
+  { min:2100, max:3500, name:'Master+',    color:'var(--red)' },
 ];
 
 export const bandFor = rating =>
