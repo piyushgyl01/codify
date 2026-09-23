@@ -1,89 +1,91 @@
 /**
- * Daily quests — three a day, drawn deterministically from the date.
+ * Daily quests — three a day, dealt from the date.
  *
- * Every metric here is one the app can check against Codeforces or GitHub. There
- * is deliberately no quest for "read for 30 minutes": a goal you complete by
- * telling the app you completed it is not a goal.
+ * One is always from the shared focus pool. The other two come from the tracks
+ * you have switched on: with two tracks, one from each; with one, both from it;
+ * with more, two tracks rotate by date. A track only deals quests once it can be
+ * checked — programming quests need a Codeforces handle, shipping quests need a
+ * GitHub username — because a quest you cannot possibly finish is not a quest.
  *
- * One quest per bucket rather than three from one pool, so a day can never roll
- * three problems and leave nothing else to do. Goals scale with level but never
- * past +50% of the base — a quest you cannot finish in a day is a reminder that
- * you are behind, not a quest.
- *
- * Six per bucket rather than four, because four collides often enough that
- * consecutive days visibly repeat. The output bucket deliberately mixes GitHub
- * metrics with solve and timer ones: without that, anyone who has not linked
- * GitHub has one impossible quest every single day.
+ * Every quest reads a number from `ctx`, which state.js builds from things the
+ * app measured: judge-accepted solves, graded answers, timed minutes, commits.
  */
 
-export const BUCKETS = ['solve', 'depth', 'output'];
+const q = (track, pool, id, name, desc, goal, xp, coins, go, value, available) =>
+  ({ track, pool, id, name, desc, goal, xp, coins, go, value, available });
 
-export const QUEST_POOL = [
-  /* --------------------------------- solve -------------------------------- */
-  { id:'q-solve-1',  bucket:'solve', metric:'solved', base:1, step:0, xp:60,  coins:18,
-    name:'One a day',        unit:'solved', hint:'One accepted problem. The floor, not the target.' },
-  { id:'q-solve-2',  bucket:'solve', metric:'solved', base:2, step:1, xp:90,  coins:26,
-    name:'Solve two',        unit:'solved', hint:'Any two accepted problems on Codeforces.' },
-  { id:'q-solve-3',  bucket:'solve', metric:'solved', base:3, step:1, xp:140, coins:40,
-    name:'Solve three',      unit:'solved', hint:'A proper session rather than a token one.' },
-  { id:'q-rated-2',  bucket:'solve', metric:'ratedSolved', base:2, step:1, xp:110, coins:32,
-    name:'Two rated',        unit:'solved', hint:'Unrated problems do not count towards this.' },
-  { id:'q-rated-3',  bucket:'solve', metric:'ratedSolved', base:3, step:1, xp:150, coins:44,
-    name:'Three rated',      unit:'solved', hint:'Three problems that carry a difficulty rating.' },
-  { id:'q-sessions', bucket:'solve', metric:'sessions', base:2, step:0, xp:70,  coins:20,
-    name:'Two sittings',     unit:'sessions', hint:'Two logged practice sessions today.' },
+export const QUESTS = [
+  /* shared: the focus timer and shipping */
+  q('core', 'focus', 't45',    'Forty-five',     '45 minutes on the focus timer',        45, 45, 15, 'timer', c => c.day.timerMin),
+  q('core', 'focus', 't60',    'An hour',        '60 minutes on the focus timer',        60, 55, 18, 'timer', c => c.day.timerMin),
+  q('core', 'focus', 't90',    'Ninety',         '90 minutes on the focus timer',        90, 70, 22, 'timer', c => c.day.timerMin),
+  q('core', 'focus', 'tag30',  'On something',   '30 timer minutes tagged to a task',    30, 50, 15, 'timer', c => c.day.timerTagged),
+  q('core', 'focus', 'ship1',  'Push something', 'One public commit, read from GitHub',   1, 60, 18, 'hero',  c => c.commits, c => c.github),
+  q('core', 'focus', 'ship3',  'Three commits',  'Three public commits today',            3, 90, 28, 'hero',  c => c.commits, c => c.github),
 
-  /* --------------------------------- depth -------------------------------- */
-  { id:'q-tags-2',   bucket:'depth', metric:'tags', base:2, step:1, xp:80,  coins:24,
-    name:'Two topics',       unit:'tags', hint:'Solves covering two different Codeforces tags.' },
-  { id:'q-tags-3',   bucket:'depth', metric:'tags', base:3, step:1, xp:120, coins:34,
-    name:'Three topics',     unit:'tags', hint:'Spread the day across three tags.' },
-  { id:'q-rating-1300', bucket:'depth', metric:'bestRating', base:1300, step:0, xp:150, coins:44,
-    name:'Reach 1300',       unit:'rating', hint:'Solve something rated 1300 or above today.' },
-  { id:'q-rating-1600', bucket:'depth', metric:'bestRating', base:1600, step:0, xp:220, coins:64,
-    name:'Reach 1600',       unit:'rating', hint:'Solve something rated 1600 or above today.' },
-  { id:'q-rating-1900', bucket:'depth', metric:'bestRating', base:1900, step:0, xp:320, coins:92,
-    name:'Reach 1900',       unit:'rating', hint:'One properly hard problem. Worth a whole evening.' },
-  { id:'q-minutes',  bucket:'depth', metric:'verifiedMinutes', base:45, step:5, xp:100, coins:28,
-    name:'Timed practice',   unit:'min', hint:'Minutes the app timed itself. Typed hours do not count.' },
+  /* competitive programming */
+  q('cp', 'solve', 'solve1', 'One a day',   'One accepted problem on Codeforces',   1, 60,  18, 'cp', c => c.cp.solved),
+  q('cp', 'solve', 'solve2', 'Solve two',   'Two accepted problems',                2, 90,  26, 'cp', c => c.cp.solved),
+  q('cp', 'solve', 'rated2', 'Two rated',   'Two problems that carry a rating',     2, 110, 32, 'cp', c => c.cp.ratedSolved),
+  q('cp', 'solve', 'solve3', 'Solve three', 'A proper session, not a token one',    3, 140, 40, 'cp', c => c.cp.solved),
+  q('cp', 'depth', 'tags2',  'Two topics',  'Solves across two different tags',     2, 80,  24, 'cp', c => c.cp.tags),
+  q('cp', 'depth', 'tags3',  'Three topics','Solves across three different tags',   3, 120, 34, 'cp', c => c.cp.tags),
+  // A rating goal is only dealt when it is within reach of your actual rating.
+  q('cp', 'depth', 'r1300',  'Reach 1300',  'Solve something rated 1300+ today', 1300, 150, 44, 'cp', c => c.cp.bestRating, c => (c.rating || 800) + 300 >= 1300),
+  q('cp', 'depth', 'r1600',  'Reach 1600',  'Solve something rated 1600+ today', 1600, 220, 64, 'cp', c => c.cp.bestRating, c => (c.rating || 800) + 300 >= 1600),
+  q('cp', 'depth', 'r1900',  'Reach 1900',  'Solve something rated 1900+ today', 1900, 320, 92, 'cp', c => c.cp.bestRating, c => (c.rating || 800) + 300 >= 1900),
 
-  /* --------------------------------- output ------------------------------- */
-  /* Deliberately not all GitHub: a quest nobody without a linked account can
-     ever finish is a quest that makes one third of every day impossible. */
-  { id:'q-commits-1', bucket:'output', metric:'commits', base:1, step:0, xp:60,  coins:18,
-    name:'Push something',   unit:'commits', hint:'One public commit. Small ones still count.' },
-  { id:'q-commits-3', bucket:'output', metric:'commits', base:3, step:1, xp:100, coins:30,
-    name:'Three commits',    unit:'commits', hint:'Public pushes, read from GitHub.' },
-  { id:'q-push-2',    bucket:'output', metric:'pushes', base:2, step:0, xp:110, coins:32,
-    name:'Two pushes',       unit:'pushes', hint:'Two separate pushes, not one big one.' },
-  { id:'q-solve-4',   bucket:'output', metric:'solved', base:4, step:1, xp:190, coins:55,
-    name:'Four in a day',    unit:'solved', hint:'A heavy day. Usually a contest or a long evening.' },
-  { id:'q-minutes-90',bucket:'output', metric:'verifiedMinutes', base:90, step:5, xp:170, coins:48,
-    name:'Ninety minutes',   unit:'min', hint:'An hour and a half on the timer.' },
-  { id:'q-rated-4',   bucket:'output', metric:'ratedSolved', base:4, step:1, xp:200, coins:58,
-    name:'Four rated',       unit:'solved', hint:'Four rated problems in one day.' },
+  /* robotics */
+  q('robotics', 'drill',    'four',  'Four of five',     'Score 4+ in today\'s drill',          4,  50, 15, 'drill',    c => c.robo.drill?.score || 0),
+  q('robotics', 'drill',    'clean', 'Clean sheet',      'Five from five in today\'s drill',    5,  80, 25, 'drill',    c => c.robo.drill?.score || 0),
+  q('robotics', 'drill',    'run3',  'Three in a row',   'Three right answers back to back',    3,  45, 15, 'drill',    c => c.robo.bestRun),
+  q('robotics', 'drill',    'ten',   'Ten answered',     'Answer ten robotics questions',       10, 40, 12, 'practice', c => c.robo.answered),
+  q('robotics', 'practice', 'prac5', 'Extra reps',       '5 right in practice mode',            5,  50, 15, 'practice', c => c.robo.practiceCorrect),
+  q('robotics', 'practice', 'rt10',  'Ten right',        '10 correct robotics answers today',   10, 55, 18, 'practice', c => c.robo.correct),
+  q('robotics', 'practice', 'ans15', 'Fifteen answered', 'Answer fifteen robotics questions',   15, 50, 15, 'practice', c => c.robo.answered),
 ];
 
-/** FNV-1a. Small, stable, and identical on every device — which is the point. */
-function hash(str) {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+/** The pools each track deals from, in order. */
+export const TRACK_POOLS = { cp: ['solve', 'depth'], robotics: ['drill', 'practice'] };
+
+/** FNV-1a with a final avalanche, so consecutive dates do not deal alike. */
+export function hash(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  h ^= h >>> 16; h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13; h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
   return h >>> 0;
 }
 
-/** A rating goal is a threshold, not a count, so it must not scale with level. */
-const isThreshold = q => q.metric === 'bestRating';
-
-export function goalFor(quest, level) {
-  if (isThreshold(quest)) return quest.base;
-  const raw = quest.base + quest.step * Math.floor(Math.max(0, level - 1) / 3);
-  return Math.min(raw, Math.round(quest.base * 1.5));
+function dealFrom(track, pool, key, ctx, taken) {
+  const list = QUESTS.filter(x => x.track === track && x.pool === pool && !taken.includes(x.id) && (!x.available || x.available(ctx)));
+  return list.length ? list[hash(`${key}:${track}:${pool}`) % list.length] : null;
 }
 
-export function questsForDay(dateKey, level = 1) {
-  return BUCKETS.map((bucket, i) => {
-    const pool = QUEST_POOL.filter(q => q.bucket === bucket);
-    const pick = pool[hash(`${dateKey}:${bucket}:${i}`) % pool.length];
-    return { ...pick, goal: goalFor(pick, level) };
-  });
+/**
+ * The day's three quests. `ctx.usable` lists the tracks that are switched on and
+ * checkable — the caller decides that, because it knows which accounts exist.
+ */
+export function questsForDay(key, ctx) {
+  const out = [];
+  const add = x => { if (x) out.push(x); };
+  add(dealFrom('core', 'focus', key, ctx, []));
+
+  const tracks = [...(ctx.usable || [])].filter(t => TRACK_POOLS[t]).sort();
+  if (tracks.length >= 2) {
+    const start = hash(`${key}:rotate`) % tracks.length;
+    for (const t of [tracks[start], tracks[(start + 1) % tracks.length]]) {
+      const pools = TRACK_POOLS[t];
+      add(dealFrom(t, pools[hash(`${key}:${t}`) % pools.length], key, ctx, out.map(x => x.id)));
+    }
+  } else if (tracks.length === 1) {
+    for (const p of TRACK_POOLS[tracks[0]]) add(dealFrom(tracks[0], p, key, ctx, out.map(x => x.id)));
+  }
+  while (out.length < 3) {
+    const extra = dealFrom('core', 'focus', `${key}:${out.length}`, ctx, out.map(x => x.id));
+    if (!extra) break;
+    out.push(extra);
+  }
+  return out;
 }

@@ -1,99 +1,100 @@
-/** View switching, the topbar and the bottom nav. */
-import { S, progress, quests, getDay, isLinked } from './state.js';
+/**
+ * View switching, the topbar and the bottom nav.
+ *
+ * The tabs follow the tracks you have switched on: Today, one tab per track, and
+ * Hero. Past three tracks they fold into a single Tracks tab, so the nav never
+ * needs more than five buttons however far the app grows.
+ */
+import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks } from './state.js';
+import { drillDoneToday } from './tracks/robotics/actions.js';
+import { TRACKS, trackById } from './tracks/index.js';
 import { icon } from './icons.js';
 import { rankFor } from './game.js';
-import { h, raw, esc, fmt, $, sfx, haptic } from './ui.js';
+import { h, raw, fmt, $, sfx, haptic, hm } from './ui.js';
 
-import * as home     from './views/home.js';
-import * as train    from './views/train.js';
-import * as log      from './views/log.js';
-import * as skills   from './views/skills.js';
-import * as hero     from './views/hero.js';
+import * as home       from './views/home.js';
+import * as hero       from './views/hero.js';
 import * as onboarding from './views/onboarding.js';
+import * as tracksView from './views/tracks.js';
 
-const ROUTES = {
-  home:   { view: home,   icon:'home',    label:'Today'  },
-  train:  { view: train,  icon:'train',   label:'Contest' },
-  log:    { view: log,    icon:'log',     label:'Log'    },
-  skills: { view: skills, icon:'skills',  label:'Skills' },
-  hero:   { view: hero,   icon:'profile', label:'Hero'   },
-};
+function routes() {
+  const on = enabledTracks().map(trackById);
+  const middle = on.length <= 3
+    ? Object.fromEntries(on.map(t => [t.id, { view: t.hub, icon: t.navIcon, label: t.nav }]))
+    : { tracks: { view: tracksView, icon: 'grid', label: 'Tracks' } };
+  return {
+    home: { view: home, icon: 'home', label: 'Today' },
+    ...middle,
+    hero: { view: hero, icon: 'profile', label: 'Hero' },
+  };
+}
 
 let current = 'home';
 const scrollMemory = {};
 
-export function go(name, { scrollTo = null } = {}) {
-  if (!ROUTES[name]) return;
-  if (name === current) {
-    if (scrollTo) scrollIntoView(scrollTo);
-    return;
-  }
+export function go(name) {
+  const R = routes();
+  // A track hidden inside the Tracks tab is still reachable by name.
+  const target = R[name] ? name : trackById(name) ? name : null;
+  if (!target) return;
+  if (target === current) { $('#view').scrollTo({ top: 0, behavior: 'smooth' }); return; }
   scrollMemory[current] = $('#view').scrollTop;
-  current = name;
+  current = target;
   sfx('tick'); haptic(8);
   paint({ resetScroll: true });
-  if (scrollTo) requestAnimationFrame(() => scrollIntoView(scrollTo));
-}
-
-function scrollIntoView(id) {
-  const el = document.getElementById(id);
-  el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 export function rerender() { paint({ resetScroll: false }); }
 export const currentRoute = () => current;
 
-/* -------------------------------- chrome ---------------------------------- */
+function viewFor(name) {
+  const R = routes();
+  if (R[name]) return R[name].view;
+  const t = trackById(name);
+  return t && enabledTracks().includes(t.id) ? t.hub : null;
+}
+
+/* --------------------------------- chrome --------------------------------- */
 
 function topbar() {
-  const p = progress();
-  const rank = rankFor(p.level);
+  const p = progress(), rank = rankFor(p.level);
+  const timer = timerRunning()
+    ? `<button class="chip-stat live" data-timer aria-label="Focus timer running">${icon('clock', 13).value} <span data-timer-text>${hm(timerMinutes())}</span></button>` : '';
   return h`
     <div class="topbar">
-      <button class="avatar" data-nav="hero" aria-label="Profile"
-              >${rank.icon}<span class="lvl num">${p.level}</span></button>
+      <button class="avatar" data-nav="hero" aria-label="Profile">${rank.icon}<span class="lvl">${p.level}</span></button>
       <div class="grow">
         <div class="h3 truncate">${S.profile.name || 'Engineer'}</div>
         <div class="tiny truncate">${rank.name} · ${fmt(p.into)}/${fmt(p.need)} XP</div>
       </div>
+      ${raw(timer)}
       <div class="chip-stat">${icon('coin', 13)} ${fmt(S.coins)}</div>
-      <div class="chip-stat ${S.streak.current > 0 ? 'live' : ''}">${icon('flame', 13)} ${S.streak.current}</div>
+      <div class="chip-stat ${S.streak.current > 0 ? 'hot' : ''}">${icon('flame', 13)} ${S.streak.current}</div>
     </div>
     <div class="topbar-xp"><i style="width:${p.pct}%"></i></div>`;
 }
 
 function nav() {
   const day = getDay();
-  const claimable = quests().filter(q => q.done && !day.claimed.includes(q.id)).length;
-  // A missing connection is the one thing worth a dot on the Hero tab.
-  const dots = { home: claimable, hero: isLinked() ? 0 : 1 };
-
-  return raw(Object.entries(ROUTES).map(([k, r]) => `
-    <button class="${k === current ? 'on' : ''}" data-nav="${k}"
-            aria-current="${k === current ? 'page' : 'false'}">
-      <span class="ico">${icon(r.icon, 21).value}</span>${r.label}
+  const claimable = quests().some(q => q.done && !day.claimed.includes(q.id));
+  const drillTodo = enabledTracks().includes('robotics') && !drillDoneToday();
+  const dots = { home: claimable || drillTodo, hero: needsBackup() };
+  return Object.entries(routes()).map(([k, r]) => `
+    <button class="${k === current ? 'on' : ''}" data-nav="${k}" aria-current="${k === current ? 'page' : 'false'}">
+      <span class="ico">${icon(r.icon, 22).value}</span>${r.label}
       ${dots[k] ? '<span class="nav-dot"></span>' : ''}
-    </button>`).join(''));
+    </button>`).join('');
 }
 
-/* --------------------------------- paint ---------------------------------- */
+/* ---------------------------------- paint --------------------------------- */
 
-/**
- * Render a view into a throwaway container. Listeners are bound to that
- * container, so the next paint discards them rather than stacking duplicates.
- */
-function mountView(view, onRerender) {
+function mountView(view) {
   const holder = document.createElement('div');
   holder.innerHTML = view.render();
-  // The markup is already built by this point. If wiring listeners throws, show
-  // the page anyway and lose only its interactivity — letting the error escape
-  // would skip the swap below and leave a blank screen under a working nav,
-  // which is far harder to diagnose from a bug report.
-  try {
-    view.mount(holder, onRerender);
-  } catch (err) {
-    console.error('View failed to mount:', err);
-  }
+  // If wiring listeners throws, still show the page: a blank screen under a
+  // working nav is far harder to diagnose than a page with one dead button.
+  try { view.mount(holder, rerender); }
+  catch (err) { console.error('View failed to mount:', err); }
   return holder;
 }
 
@@ -104,26 +105,39 @@ function paint({ resetScroll = false } = {}) {
     chrome.innerHTML = '';
     navEl.classList.add('hide');
     viewEl.style.paddingBottom = '32px';
-    viewEl.replaceChildren(mountView(onboarding, rerender));
+    viewEl.replaceChildren(mountView(onboarding));
     return;
   }
 
+  // A track switched off while its tab was open sends you home.
+  if (!viewFor(current)) current = 'home';
+
   navEl.classList.remove('hide');
+  navEl.style.gridTemplateColumns = `repeat(${Object.keys(routes()).length}, 1fr)`;
   viewEl.style.paddingBottom = '';
   chrome.innerHTML = topbar();
-  navEl.innerHTML = nav().value;
+  navEl.innerHTML = nav();
 
   const keep = viewEl.scrollTop;
-  viewEl.replaceChildren(mountView(ROUTES[current].view, rerender));
+  viewEl.replaceChildren(mountView(viewFor(current)));
   viewEl.scrollTop = resetScroll ? (scrollMemory[current] ?? 0) : keep;
 }
 
-export function boot() {
+/** Keep the live timer chip honest without repainting the whole page. */
+export function tickTimerChip() {
+  const el = document.querySelector('[data-timer-text]');
+  if (el) el.textContent = hm(timerMinutes());
+}
+
+export function boot({ onTimer } = {}) {
   for (const sel of ['#nav', '#chrome']) {
     $(sel).addEventListener('click', e => {
+      if (e.target.closest('[data-timer]')) { onTimer?.(); return; }
       const b = e.target.closest('[data-nav]');
       if (b) go(b.dataset.nav);
     });
   }
   paint({ resetScroll: true });
 }
+
+export { TRACKS, MAX_SESSION_MIN };

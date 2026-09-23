@@ -1,27 +1,31 @@
 /**
- * The save file.
+ * The save file: one character across every track.
  *
- * The important rule, and the reason this file was rewritten: the log records
- * what you say, and the game pays only for what it can check.
+ * The rule every track follows: the game pays only for what it can check.
  *
- * Verified sources are Codeforces solves and GitHub pushes, both read from
- * public APIs that do not care what you typed here. Those award XP. Anything you
- * enter by hand — a LeetCode problem, an hour of reading — is kept in the log
- * because your record should be complete, but it is marked unverified and pays
- * nothing. That is the difference between a tracker and a diary that flatters you.
+ *   Programming   solves read from Codeforces, which does not care what you typed
+ *   Robotics      answers graded in code; builds verified against your GitHub
+ *   Shared        minutes the app's own timer measured; commits read from GitHub
  *
- * Solves and pushes are not copied into day records. They live in one list per
- * platform and are bucketed by date when something needs them, so re-syncing is
- * idempotent and cannot double-count.
+ * There is no field anywhere to type in minutes or claim a solve. Things you
+ * choose — a direction, a reading list — are recorded, and pay nothing.
+ *
+ * Each track keeps its own slice under `tracks`. Everything a character has only
+ * once — level, credits, streak, gear, quests, the timer — lives here.
  */
-import { TOPICS, TIERS, PATHS, topicById, topicProgress, tierXp, tierCoins } from './data/skilltree.js';
-import { ACHIEVEMENTS } from './data/achievements.js';
-import { rollLoot, lootBonus } from './data/loot.js';
-import { levelFromXp, dayKey, daysBetween, newlyEarned, dailyQuests } from './game.js';
-import { contestById, settle, contestReward } from './data/contests.js';
+import { ACHIEVEMENTS, BOTIFY_IDS } from './data/achievements.js';
+import { lootBonus, RARITY } from './data/loot.js';
+import { questsForDay } from './data/quests.js';
+import { dayKey, daysBetween, levelFromXp, newlyEarned, XP } from './game.js';
+import * as cpModel from './tracks/cp/model.js';
+import * as roboModel from './tracks/robotics/model.js';
 
-const SAVE_KEY = 'codify.save.v1';
+const SAVE_KEY = 'codify.save.v1';     // unchanged, so an existing Codify save upgrades in place
 const BACKUP_KEY = 'codify.save.prior';
+
+export const TRACK_IDS = ['cp', 'robotics'];
+
+/* --------------------------------- themes --------------------------------- */
 
 export const THEMES = [
   { id:'lime',   name:'Lime',   accent:'#B8F02D', ink:'#12100E', cost:0 },
@@ -35,152 +39,289 @@ export const THEMES = [
   { id:'siren',  name:'Siren',  accent:'#FF4B3E', ink:'#FFF8E8', cost:1200 },
   { id:'mint',   name:'Mint',   accent:'#5FE3C0', ink:'#12100E', cost:1800 },
 ];
-
 export const themeFor = id => THEMES.find(t => t.id === id) || THEMES[0];
 export const ownsTheme = id => themeFor(id).cost === 0 || S.owned.includes(id);
 
 export function applyTheme() {
-  if (typeof document === 'undefined') return;      // the test suite has no DOM
+  if (typeof document === 'undefined' || !document.documentElement) return;
   const t = themeFor(S.profile.theme);
-  const root = document.documentElement;
-  if (!root) return;
-  root.style.setProperty('--accent', t.accent);
-  root.style.setProperty('--accent-ink', t.ink);
+  document.documentElement.style.setProperty('--accent', t.accent);
+  document.documentElement.style.setProperty('--accent-ink', t.ink);
 }
 
-const emptyDay = () => ({ focus: [], notes: [], claimed: [] });
+/* ------------------------------- save shape ------------------------------- */
+
+export const emptyDay = () => ({ timer: [], timerMin: 0, timerTagged: 0, timerXp: 0, claimed: [], robotics: null });
+
+const freshCp = () => ({
+  handle:'', rating:null, rank:null, avatar:null, solved:[], syncedAt:0, error:'',
+  credited:{ problems:{}, tiers:{} }, contest:null, contests:{}, dailySolves:2,
+});
+const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{} });
 
 const freshSave = () => ({
-  v: 2,
-  profile: { name:'', theme:'lime', goal:'levelup', hours:2, onboarded:false, created:dayKey() },
+  v: 3,
+  profile: { name:'', theme:'lime', focusGoal:120, tracks:[...TRACK_IDS], onboarded:false, created: dayKey() },
   xp: 0, coins: 0,
   streak: { current:0, best:0, lastActive:null, freezes:1 },
-  days: {},                       // only what this app owns: timer sessions, notes, quests
-  platforms: {
-    cf: { handle:'', rating:null, rank:null, solved:[], syncedAt:0, error:'' },
-    gh: { user:'', avatar:null, pushes:[], syncedAt:0, error:'' },
-  },
-  /* What has already been paid for. Without this, every sync pays again. */
-  credited: { problems:{}, tiers:{}, pushes:{} },
-  /* The contest currently running, and the record of past attempts. */
-  active: null,                   // { id, startedAt, known: [problemKeys] }
-  contests: {},                   // id -> { won, attempts, best, date }
-  earned: {},
-  owned: [],
-  loot: {},
+  days: {},
+  timer: null,                // { start, day, tag } — the one focus timer
+  active: null,               // an unfinished robotics drill, practice set or boss fight
+  github: { user:'', avatar:null, pushes:[], syncedAt:0, error:'', credited:{} },
+  tracks: { cp: freshCp(), robotics: freshRobotics() },
+  earned: {}, owned: [], loot: {},
   stats: {
-    solved:0, ratedSolved:0, bestRating:0, tiersCleared:0,
-    commits:0, pushes:0,
-    focusMinutes:0, verifiedMinutes:0, sessions:0,
-    quests:0, xpEarned:0, contestsWon:0, contestsRun:0,
+    xpEarned:0, quests:0, timerMin:0, sessions:0, commits:0, pushes:0,
+    solved:0, ratedSolved:0, bestRating:0, tiersCleared:0, contestsWon:0, contestsRun:0,
+    drills:0, perfectDrills:0, answered:0, correct:0, bossFights:0,
   },
   settings: { sound:true, reduceMotion:false },
+  notice: null,               // a one-time message after an upgrade
+  legacy: null,               // anything an older format had that this one no longer shows
+  backupAt: 0,
 });
 
-/* ------------------------------ persistence ------------------------------ */
+/* -------------------------------- migration ------------------------------- */
+
+const isV3 = o => o && o.v === 3 && o.tracks;
+const isCodify = o => o && o.platforms && o.credited;                    // Codify, Codeforces era
+const isBotify = o => o && o.skills && o.builds && o.profile?.start;     // Botify
+
+function mergeV3(o) {
+  const base = freshSave();
+  return {
+    ...base, ...o,
+    profile:  { ...base.profile,  ...(o.profile  || {}) },
+    streak:   { ...base.streak,   ...(o.streak   || {}) },
+    stats:    { ...base.stats,    ...(o.stats    || {}) },
+    settings: { ...base.settings, ...(o.settings || {}) },
+    github:   { ...base.github,   ...(o.github   || {}) },
+    tracks: {
+      cp:       { ...base.tracks.cp,       ...(o.tracks?.cp       || {}) },
+      robotics: { ...base.tracks.robotics, ...(o.tracks?.robotics || {}) },
+    },
+  };
+}
+
+/** Codify's daily goals were named; their minutes become the focus goal. */
+const CODIFY_GOALS = { casual:[30, 1], levelup:[60, 2], grind:[90, 3], sprint:[120, 4] };
+
+/**
+ * Codify → one character. Codeforces progress, gear, streak and achievements
+ * carry over as they were. Timed sessions become timer minutes; hand-typed
+ * sessions and notes paid nothing and are no longer shown, so they are kept
+ * under `legacy` rather than deleted.
+ */
+export function fromCodify(o) {
+  const s = freshSave();
+  const [focusGoal, dailySolves] = CODIFY_GOALS[o.profile?.goal] || [60, 2];
+  s.profile = { ...s.profile, name: o.profile?.name || '', theme: o.profile?.theme || 'lime',
+                focusGoal, onboarded: !!o.profile?.onboarded, created: o.profile?.created || dayKey() };
+  Object.assign(s, { xp: o.xp || 0, coins: o.coins || 0, earned: o.earned || {}, owned: o.owned || [], loot: o.loot || {} });
+  s.streak = { ...s.streak, ...(o.streak || {}) };
+  s.settings = { ...s.settings, ...(o.settings || {}) };
+  const cf = o.platforms?.cf || {}, gh = o.platforms?.gh || {};
+  s.tracks.cp = { ...freshCp(), handle: cf.handle || '', rating: cf.rating ?? null, rank: cf.rank ?? null,
+    solved: cf.solved || [], syncedAt: cf.syncedAt || 0,
+    credited: { problems: o.credited?.problems || {}, tiers: o.credited?.tiers || {} },
+    contest: o.active?.id && o.active?.startedAt ? o.active : null,
+    contests: o.contests || {}, dailySolves };
+  s.github = { ...s.github, user: gh.user || '', avatar: gh.avatar || null, pushes: gh.pushes || [],
+               syncedAt: gh.syncedAt || 0, credited: o.credited?.pushes || {} };
+  const st = o.stats || {};
+  Object.assign(s.stats, {
+    xpEarned: st.xpEarned || 0, quests: st.quests || 0, timerMin: st.verifiedMinutes || 0,
+    sessions: st.sessions || 0, commits: st.commits || 0, pushes: st.pushes || 0,
+    solved: st.solved || 0, ratedSolved: st.ratedSolved || 0, bestRating: st.bestRating || 0,
+    tiersCleared: st.tiersCleared || 0, contestsWon: st.contestsWon || 0, contestsRun: st.contestsRun || 0,
+  });
+  const legacy = {};
+  for (const [key, d] of Object.entries(o.days || {})) {
+    const timed = (d.focus || []).filter(f => f.verified);
+    s.days[key] = {
+      ...emptyDay(),
+      claimed: d.claimed || [],
+      timer: timed.map(f => ({ start: (f.ts || 0) - f.minutes * 60000, end: f.ts || 0, min: f.minutes, tag: f.topic ? `cp:${f.topic}` : null })),
+      timerMin: timed.reduce((n, f) => n + f.minutes, 0),
+      timerTagged: timed.filter(f => f.topic).reduce((n, f) => n + f.minutes, 0),
+    };
+    const typed = (d.focus || []).filter(f => !f.verified);
+    if (typed.length || (d.notes || []).length) legacy[key] = { sessions: typed, notes: d.notes || [] };
+  }
+  if (Object.keys(legacy).length) s.legacy = { from: 'codify', days: legacy };
+  s.notice = 'merged';
+  return s;
+}
+
+/** Botify → the robotics track of a fresh character. Used on its own and by importBotify. */
+export function fromBotify(o) {
+  const s = freshSave();
+  s.profile = { ...s.profile, name: o.profile?.name || '', theme: o.profile?.theme || 'lime',
+                focusGoal: o.profile?.goal || 120, tracks: ['robotics'],
+                onboarded: !!o.profile?.onboarded, created: o.profile?.created || dayKey() };
+  Object.assign(s, { xp: o.xp || 0, coins: o.coins || 0, owned: o.owned || [], loot: o.loot || {},
+                     active: o.active || null, backupAt: o.backupAt || 0 });
+  s.earned = Object.fromEntries(Object.entries(o.earned || {}).map(([id, d]) => [BOTIFY_IDS[id] || id, d]));
+  s.streak = { ...s.streak, ...(o.streak || {}) };
+  s.settings = { ...s.settings, ...(o.settings || {}) };
+  s.github.user = o.profile?.github || '';
+  s.tracks.robotics = { ...freshRobotics(), start: o.profile?.start || dayKey(), direction: o.profile?.direction || null,
+    skills: o.skills || {}, builds: o.builds || {}, bosses: o.bosses || {}, read: o.read || {} };
+  const st = o.stats || {};
+  Object.assign(s.stats, {
+    xpEarned: st.xpEarned || 0, quests: st.quests || 0, timerMin: st.benchMin || 0, sessions: st.sessions || 0,
+    drills: st.drills || 0, perfectDrills: st.perfectDrills || 0, answered: st.answered || 0,
+    correct: st.correct || 0, bossFights: st.bossFights || 0,
+  });
+  if (o.timer) s.timer = { ...o.timer, tag: o.timer.tag ? `robotics:${o.timer.tag}` : null };
+  for (const [key, d] of Object.entries(o.days || {})) {
+    s.days[key] = {
+      ...emptyDay(),
+      claimed: d.claimed || [],
+      timer: (d.bench || []).map(b => ({ ...b, tag: b.tag ? `robotics:${b.tag}` : null })),
+      timerMin: d.benchMin || 0, timerTagged: d.benchTagged || 0, timerXp: d.benchXp || 0,
+      robotics: { drill: d.drill || null, answered: d.answered || 0, correct: d.correct || 0, bestRun: d.bestRun || 0,
+                  reviewCorrect: d.reviewCorrect || 0, practiceCorrect: d.practiceCorrect || 0, practiceXp: d.practiceXp || 0 },
+    };
+  }
+  return s;
+}
+
+export function migrate(o) {
+  if (isV3(o)) return mergeV3(o);
+  if (isCodify(o)) return fromCodify(o);
+  if (isBotify(o)) return fromBotify(o);
+  return null;
+}
+
+/* ------------------------------ persistence ------------------------------- */
 
 function load() {
   try {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return freshSave();
-    const parsed = JSON.parse(raw);
-    const base = freshSave();
-    return {
-      ...base, ...parsed,
-      profile:   { ...base.profile,   ...(parsed.profile   || {}) },
-      streak:    { ...base.streak,    ...(parsed.streak    || {}) },
-      stats:     { ...base.stats,     ...(parsed.stats     || {}) },
-      settings:  { ...base.settings,  ...(parsed.settings  || {}) },
-      credited:  { ...base.credited,  ...(parsed.credited  || {}) },
-      contests:  { ...base.contests,  ...(parsed.contests  || {}) },
-      platforms: {
-        cf: { ...base.platforms.cf, ...(parsed.platforms?.cf || {}) },
-        gh: { ...base.platforms.gh, ...(parsed.platforms?.gh || {}) },
-      },
-    };
+    return migrate(JSON.parse(raw)) || freshSave();
   } catch (err) {
-    console.warn('Save file unreadable, starting fresh.', err);
+    console.warn('Save unreadable, starting fresh.', err);
     return freshSave();
   }
 }
 
 export const S = load();
 
-let saveTimer = null;
-let lastSaveFailed = false;
+// An upgraded save is written back at once, so the migration runs a single time.
+try {
+  const stored = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+  if (stored && stored.v !== 3) localStorage.setItem(SAVE_KEY, JSON.stringify(S));
+} catch { /* unreadable or full — load() already fell back */ }
+
+let saveTimer = null, lastSaveFailed = false;
 const saveErrorHandlers = new Set();
 export const onSaveError = fn => (saveErrorHandlers.add(fn), () => saveErrorHandlers.delete(fn));
 export const saveHealthy = () => !lastSaveFailed;
 
-/** A failed write means every action after it is being discarded. Say so. */
+/** A failed write means everything after it is being thrown away. Say so. */
 export function save({ immediate = false } = {}) {
   clearTimeout(saveTimer);
   const write = () => {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(S)); lastSaveFailed = false; }
-    catch (err) {
-      lastSaveFailed = true;
-      console.error('Could not write the save.', err);
-      saveErrorHandlers.forEach(fn => fn(err));
-    }
+    catch (err) { lastSaveFailed = true; console.error('Could not save.', err); saveErrorHandlers.forEach(fn => fn(err)); }
   };
   if (immediate) write(); else saveTimer = setTimeout(write, 140);
 }
 
+function replaceS(next) {
+  Object.keys(S).forEach(k => delete S[k]);
+  Object.assign(S, next);
+}
+
 export function resetSave() {
   localStorage.removeItem(SAVE_KEY);
-  Object.assign(S, freshSave());
+  replaceS(freshSave());
   emit('reset');
 }
 
 export const exportSave = () => JSON.stringify(S, null, 2);
 export const backupFilename = () => `codify-backup-${today()}.json`;
+export function markBackup() { S.backupAt = Date.now(); save(); }
+
+export const needsBackup = () => {
+  if (!S.profile.onboarded || S.xp <= 0) return false;
+  const since = S.backupAt || new Date((S.profile.created || dayKey()) + 'T00:00:00').getTime();
+  return Date.now() - since > 7 * 86400000;
+};
 
 export function describeSave(obj) {
-  const days = Object.keys(obj?.days || {}).sort();
+  const o = migrate(obj) || freshSave();
   return {
-    name: obj?.profile?.name || '(no name)',
-    level: levelFromXp(obj?.xp || 0).level,
-    created: obj?.profile?.created || '?',
-    days: days.length,
-    firstDay: days[0] || null,
-    lastDay: days.at(-1) || null,
-    handle: obj?.platforms?.cf?.handle || '—',
-    solved: (obj?.platforms?.cf?.solved || []).length,
-    commits: obj?.stats?.commits || 0,
+    name: o.profile.name || '(no name)',
+    level: levelFromXp(o.xp).level,
+    days: Object.keys(o.days).length,
+    handle: o.tracks.cp.handle || '—',
+    solved: (o.tracks.cp.solved || []).length,
+    builds: roboModel.verifiedCount(o.tracks.robotics),
+    bosses: Object.values(o.tracks.robotics.bosses).filter(b => b.won).length,
+    kind: isV3(obj) ? 'Codify' : isCodify(obj) ? 'Codify (older)' : isBotify(obj) ? 'Botify' : '?',
   };
 }
 
-const looksLikeSave = obj =>
-  !!obj && typeof obj === 'object' && !Array.isArray(obj)
-  && typeof obj.profile === 'object' && obj.profile !== null
-  && ('xp' in obj);
+function stashPrior() {
+  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch { /* no room for an undo copy */ }
+}
 
+/** Replace everything with a backup — this app's, older Codify's, or Botify's. */
 export function importSave(text) {
   let obj;
   try { obj = JSON.parse(text); }
   catch { return { ok:false, error:'That is not valid JSON. Paste the whole file, braces included.' }; }
-  if (!looksLikeSave(obj)) return { ok:false, error:'That JSON is not a Codify backup.' };
-
-  try { localStorage.setItem(BACKUP_KEY, JSON.stringify(S)); } catch { /* no room for undo */ }
-
-  const fresh = freshSave();
+  const next = migrate(obj);
+  if (!next) return { ok:false, error:'That JSON is not a Codify or Botify backup.' };
+  stashPrior();
   const summary = describeSave(obj);
-  Object.keys(S).forEach(k => delete S[k]);
-  Object.assign(S, fresh, obj, {
-    profile:   { ...fresh.profile,   ...(obj.profile   || {}) },
-    streak:    { ...fresh.streak,    ...(obj.streak    || {}) },
-    stats:     { ...fresh.stats,     ...(obj.stats     || {}) },
-    settings:  { ...fresh.settings,  ...(obj.settings  || {}) },
-    credited:  { ...fresh.credited,  ...(obj.credited  || {}) },
-    contests:  { ...fresh.contests,  ...(obj.contests  || {}) },
-    platforms: {
-      cf: { ...fresh.platforms.cf, ...(obj.platforms?.cf || {}) },
-      gh: { ...fresh.platforms.gh, ...(obj.platforms?.gh || {}) },
-    },
-  });
-  save({ immediate: true });
+  if (next.notice === 'merged' && isV3(obj)) next.notice = null;
+  replaceS(next);
+  save({ immediate: true }); applyTheme();
   emit('import', { summary });
   return { ok:true, summary };
+}
+
+/**
+ * Fold a Botify backup into this character instead of replacing it: its robotics
+ * progress becomes this robotics track, and its XP, credits, gear and history
+ * are added to yours. For anyone who used both apps before they became one.
+ */
+export function importBotify(text) {
+  let obj;
+  try { obj = JSON.parse(text); } catch { return { ok:false, error:'That is not valid JSON.' }; }
+  if (!isBotify(obj)) return { ok:false, error:'That is not a Botify backup.' };
+  const b = fromBotify(obj);
+  stashPrior();
+
+  S.tracks.robotics = b.tracks.robotics;
+  S.xp += b.xp; S.coins += b.coins;
+  for (const k of ['xpEarned', 'quests', 'timerMin', 'sessions', 'drills', 'perfectDrills', 'answered', 'correct', 'bossFights']) {
+    S.stats[k] = (S.stats[k] || 0) + (b.stats[k] || 0);
+  }
+  for (const [id, n] of Object.entries(b.loot)) S.loot[id] = Math.max(S.loot[id] || 0, n);
+  for (const [id, d] of Object.entries(b.earned)) if (!S.earned[id]) S.earned[id] = d;
+  S.owned = [...new Set([...S.owned, ...b.owned])];
+  S.streak.best = Math.max(S.streak.best, b.streak.best);
+  S.streak.freezes = Math.max(S.streak.freezes, b.streak.freezes);
+  if ((b.streak.lastActive || '') > (S.streak.lastActive || '')) {
+    S.streak.current = b.streak.current; S.streak.lastActive = b.streak.lastActive;
+  }
+  for (const [key, d] of Object.entries(b.days)) {
+    const mine = getDay(key);
+    mine.robotics = d.robotics;
+    mine.timer.push(...d.timer);
+    mine.timerMin += d.timerMin; mine.timerTagged += d.timerTagged; mine.timerXp += d.timerXp;
+  }
+  if (!S.github.user && b.github.user) S.github.user = b.github.user;
+  if (!S.profile.tracks.includes('robotics')) S.profile.tracks.push('robotics');
+  if (!S.active && b.active) S.active = b.active;
+  save({ immediate: true });
+  emit('import', { botify: true });
+  return { ok:true, summary: describeSave(obj) };
 }
 
 export function priorSave() {
@@ -195,117 +336,90 @@ export function undoImport() {
   return r.ok;
 }
 
-/* ------------------------------- event bus -------------------------------- */
+/* -------------------------------- event bus ------------------------------- */
 
 const listeners = new Set();
 export const on = fn => (listeners.add(fn), () => listeners.delete(fn));
-export function emit(type, detail) { save(); listeners.forEach(fn => fn(type, detail)); }
+export function emit(type, detail) {
+  save();
+  listeners.forEach(fn => { try { fn(type, detail); } catch (err) { console.error(err); } });
+}
 
 /* -------------------------------- selectors ------------------------------- */
 
 export const today = () => dayKey();
 
 export function getDay(key = today()) {
-  if (!S.days[key]) S.days[key] = emptyDay();
-  const d = S.days[key];
-  for (const k of ['focus', 'notes', 'claimed']) if (!Array.isArray(d[k])) d[k] = [];
-  return d;
+  S.days[key] = { ...emptyDay(), ...(S.days[key] || {}) };
+  for (const k of ['timer', 'claimed']) if (!Array.isArray(S.days[key][k])) S.days[key][k] = [];
+  return S.days[key];
 }
 
 export const progress = () => levelFromXp(S.xp);
 export const gearBonus = () => lootBonus(S.loot);
 
-export const solvedList = () => S.platforms.cf.solved || [];
-export const pushList = () => S.platforms.gh.pushes || [];
-export const isLinked = () => !!S.platforms.cf.handle;
+export const enabledTracks = () => TRACK_IDS.filter(t => S.profile.tracks.includes(t));
+export const trackOn = id => S.profile.tracks.includes(id);
+export const cp = () => S.tracks.cp;
+export const robo = () => S.tracks.robotics;
 
-/** Verified solves on a given day. */
-export const solvesOn = (key = today()) => solvedList().filter(s => s.day === key);
-export const pushesOn = (key = today()) => pushList().filter(p => p.day === key);
-export const commitsOn = (key = today()) => pushesOn(key).reduce((n, p) => n + p.commits, 0);
+/** A track deals quests once it can actually be checked. */
+export const usableTracks = () => enabledTracks().filter(t => t !== 'cp' || !!S.tracks.cp.handle);
 
-/** Everything a day adds up to, verified and unverified kept apart. */
-export function dayTotals(key = today()) {
-  const d = getDay(key);
-  const solves = solvesOn(key);
-  const focus = d.focus || [];
-  return {
-    solved: solves.length,
-    ratedSolved: solves.filter(s => s.rating != null).length,
-    bestRating: solves.reduce((n, s) => Math.max(n, s.rating || 0), 0),
-    tags: new Set(solves.flatMap(s => s.tags || [])).size,
-    commits: commitsOn(key),
-    pushes: pushesOn(key).length,
-    minutes: focus.reduce((n, e) => n + (e.minutes || 0), 0),
-    verifiedMinutes: focus.filter(e => e.verified).reduce((n, e) => n + (e.minutes || 0), 0),
-    sessions: focus.length,
-    notes: (d.notes || []).length,
-  };
-}
-
-export const quests = (key = today()) => dailyQuests(key, progress().level, dayTotals(key));
-
-/* --------------------------------- the tree ------------------------------- */
-
-export const treeProgress = () => TOPICS.map(t => topicProgress(t, solvedList()));
-
-export function topicStatus(id) {
-  const t = topicById(id);
-  return t ? topicProgress(t, solvedList()) : null;
-}
+export const commitsOn = (key = today()) =>
+  (S.github.pushes || []).filter(p => p.day === key).reduce((n, p) => n + p.commits, 0);
 
 /**
- * Days since the most recent solve carrying this tag.
- *
- * This replaces the forgetting model that used to live here. That model invented
- * its own constants and then checked itself against tests you graded yourself —
- * two guesses agreeing with each other. "You last solved a graph problem 74 days
- * ago" is not a model at all. It is a date, from a judge, and it is the only
- * honest thing this app can say about what has gone stale.
+ * A day counts when something verified happened on it, in any track: a solve the
+ * judge accepted, a finished drill, a commit, or twenty timed minutes.
  */
-export function staleness(topicId) {
-  const t = topicById(topicId);
-  if (!t) return null;
-  const mine = solvedList().filter(s => (s.tags || []).includes(t.cf));
-  if (!mine.length) return { never: true, days: null, last: null };
-  const last = mine.reduce((a, b) => (a.at > b.at ? a : b));
-  return { never: false, days: daysBetween(last.day, today()), last };
-}
-
-/** Stalest first: topics you have touched, ordered by how long ago. */
-export function rustiest(limit = 5) {
-  return TOPICS
-    .map(t => ({ topic: t, ...staleness(t.id) }))
-    .filter(x => !x.never)
-    .sort((a, b) => b.days - a.days)
-    .slice(0, limit);
-}
-
-/* --------------------------------- history -------------------------------- */
-
-export function historySeries(n = 30) {
-  const out = [];
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const key = dayKey(d);
-    const t = dayTotals(key);
-    out.push({ key, date: d, ...t, logged: t.solved > 0 || t.commits > 0 || t.minutes > 0 });
-  }
-  return out;
+export function dayIsActive(key = today()) {
+  const day = S.days[key];
+  return cpModel.solvesOn(S.tracks.cp, key).length >= 1
+    || !!day?.robotics?.drill
+    || commitsOn(key) >= 1
+    || (day?.timerMin || 0) >= 20;
 }
 
 export function statsSnapshot() {
-  const tree = treeProgress();
+  const cpSnap = cpModel.snapshot(S.tracks.cp);
+  const roSnap = roboModel.snapshot(S.tracks.robotics);
+  const tracksActive = (S.stats.solved > 0 ? 1 : 0) + (S.stats.drills > 0 || roSnap.builds > 0 ? 1 : 0);
+  return { ...S.stats, ...cpSnap, ...roSnap, level: progress().level, bestStreak: S.streak.best, tracksActive };
+}
+
+/* --------------------------------- quests --------------------------------- */
+
+export function questContext(key = today()) {
+  const day = getDay(key);
   return {
-    ...S.stats,
-    level: progress().level,
-    bestStreak: S.streak.best,
-    tiersCleared: tree.reduce((n, t) => n + t.cleared, 0),
-    contestsWon: S.stats.contestsWon || 0,
-    topicsStarted: tree.filter(t => t.total > 0).length,
-    topicsMaxed: tree.filter(t => t.cleared === TIERS.length).length,
-    linked: isLinked() ? 1 : 0,
+    key, day,
+    cp: cpModel.dayTotals(S.tracks.cp, key),
+    robo: roboModel.roboDayOf(day),
+    commits: commitsOn(key),
+    rating: S.tracks.cp.rating,
+    github: !!S.github.user,
+    usable: usableTracks(),
   };
+}
+
+export function quests(key = today()) {
+  const ctx = questContext(key);
+  return questsForDay(key, ctx).map(q => {
+    const value = q.value(ctx) || 0;
+    return { ...q, value, done: value >= q.goal, claimed: ctx.day.claimed.includes(q.id),
+             pct: Math.min(100, (value / q.goal) * 100) };
+  });
+}
+
+export function claimQuest(id, key = today()) {
+  const q = quests(key).find(x => x.id === id);
+  if (!q || !q.done || q.claimed) return null;
+  getDay(key).claimed.push(id);
+  S.stats.quests += 1;
+  const r = award(q.xp, q.coins, q.name);
+  emit('quest', { quest: q, reward: r });
+  return r;
 }
 
 /* --------------------------------- rewards -------------------------------- */
@@ -315,302 +429,159 @@ export function award(rawXp, coins = 0, reason = '') {
   const xp = Math.round(rawXp * bonus);
   const before = progress().level;
   S.xp += xp; S.coins += coins; S.stats.xpEarned += xp;
-  const after = progress().level;
 
   const levelUps = [];
-  for (let l = before + 1; l <= after; l++) {
+  for (let l = before + 1; l <= progress().level; l++) {
     levelUps.push(l);
-    S.coins += 40 * l;
+    S.coins += XP.levelPurse * l;
     if (l % 5 === 0) S.streak.freezes += 1;
   }
 
-  const unlocked = newlyEarned(statsSnapshot(), S.earned);
-  for (const a of unlocked) { S.earned[a.id] = today(); S.xp += a.xp; S.stats.xpEarned += a.xp; }
-  return { xp, coins, reason, levelUps, achievements: unlocked, gearBonus: bonus > 1 ? bonus : null };
+  const achievements = newlyEarned(ACHIEVEMENTS, statsSnapshot(), S.earned);
+  for (const a of achievements) { S.earned[a.id] = today(); S.xp += a.xp; S.stats.xpEarned += a.xp; }
+  return { xp, coins, reason, levelUps, achievements, gearBonus: bonus > 1 ? bonus : null };
 }
 
-export function checkAchievements() {
-  const unlocked = newlyEarned(statsSnapshot(), S.earned);
-  for (const a of unlocked) { S.earned[a.id] = today(); S.xp += a.xp; S.stats.xpEarned += a.xp; }
-  return unlocked;
+/** Add a piece of gear. A duplicate converts to credits instead. */
+export function grantLoot(item) {
+  if (!item) return null;
+  if (S.loot[item.id]) {
+    const credit = RARITY[item.rarity].dupe;
+    S.coins += credit;
+    return { ...item, dupe: true, credit };
+  }
+  S.loot[item.id] = 1;
+  return { ...item, dupe: false };
 }
-
-/** What one accepted problem is worth. Difficulty is the judge's rating. */
-export const solveXp = rating => (rating == null ? 20 : Math.round(20 + Math.pow(rating / 100, 1.6)));
-export const solveCoins = rating => (rating == null ? 5 : Math.round(5 + rating / 60));
 
 /* --------------------------------- streak --------------------------------- */
 
-/** A day counts when something verifiable happened on it. */
-export const dayIsActive = (key = today()) => {
-  const t = dayTotals(key);
-  return t.solved >= 1 || t.commits >= 1 || t.verifiedMinutes >= 20;
-};
-
+/** Advance the streak once today has something verified in it. */
 export function touchStreak(key = today()) {
   if (key !== today() || !dayIsActive(key)) return;
-  const st = S.streak, t = today();
-  if (st.lastActive === t) return;
-  const gap = st.lastActive ? daysBetween(st.lastActive, t) : 1;
+  const st = S.streak;
+  if (st.lastActive === key) return;
+  const gap = st.lastActive ? daysBetween(st.lastActive, key) : 1;
   if (gap === 1 || !st.lastActive) st.current += 1;
-  else if (gap > 1 && st.freezes > 0 && gap - 1 <= st.freezes) { st.freezes -= (gap - 1); st.current += 1; }
+  else if (gap > 1 && st.freezes >= gap - 1) { st.freezes -= gap - 1; st.current += 1; }
   else st.current = 1;
-  st.lastActive = t;
+  st.lastActive = key;
   st.best = Math.max(st.best, st.current);
 }
 
-export function auditStreak() {
+/** On open: spend freezes on missed days, or break the streak. */
+export function auditStreak(key = today()) {
   const st = S.streak;
   if (!st.lastActive) return;
-  const gap = daysBetween(st.lastActive, today());
+  const gap = daysBetween(st.lastActive, key);
   if (gap <= 1) return;
   const missed = gap - 1;
-  if (st.freezes >= missed) { st.freezes -= missed; st.lastActive = today(); }
-  else st.current = 0;
+  if (st.freezes >= missed) {
+    st.freezes -= missed;
+    const d = new Date(key + 'T00:00:00'); d.setDate(d.getDate() - 1);
+    st.lastActive = dayKey(d);
+  } else st.current = 0;
   save();
 }
 
-/* ------------------------------ platform sync ----------------------------- */
+/* ---------------------------------- timer --------------------------------- */
 
-/**
- * Fold a fetched solve list into the save and pay for what is new.
- *
- * Pure with respect to the network: the caller does the fetching, this does the
- * accounting. That is what lets the whole thing be tested without a socket.
- *
- * Returns a summary of what was newly credited.
- */
-export function applySolves(solved) {
-  const before = treeProgress();
-  const clearedBefore = new Set();
-  before.forEach(p => p.tiers.forEach(t => { if (t.cleared) clearedBefore.add(`${p.topic.id}:${t.n}`); }));
+/** One session counts for at most four hours. A forgotten timer should not pay. */
+export const MAX_SESSION_MIN = 240;
 
-  S.platforms.cf.solved = solved;
-  S.platforms.cf.syncedAt = Date.now();
+export const timerRunning = () => !!S.timer;
+export const timerMinutes = () => (S.timer ? Math.floor((Date.now() - S.timer.start) / 60000) : 0);
+export const timerCap = () => Math.round((S.profile.focusGoal || 120) * XP.timerCapFactor);
 
-  let xp = 0, coins = 0;
-  const fresh = [];
-  for (const s of solved) {
-    if (S.credited.problems[s.key]) continue;
-    S.credited.problems[s.key] = s.day;
-    fresh.push(s);
-    xp += solveXp(s.rating);
-    coins += solveCoins(s.rating);
-    S.stats.solved += 1;
-    if (s.rating != null) {
-      S.stats.ratedSolved += 1;
-      S.stats.bestRating = Math.max(S.stats.bestRating, s.rating);
-    }
-  }
-
-  const newTiers = [];
-  for (const p of treeProgress()) {
-    for (const t of p.tiers) {
-      const id = `${p.topic.id}:${t.n}`;
-      if (!t.cleared || clearedBefore.has(id) || S.credited.tiers[id]) continue;
-      S.credited.tiers[id] = today();
-      newTiers.push({ topic: p.topic, tier: t });
-      xp += tierXp(t);
-      coins += tierCoins(t);
-      S.stats.tiersCleared += 1;
-    }
-  }
-
-  // One drop per sync that actually found something, so gear tracks real work.
-  const drop = fresh.length ? rollLoot({ chance: Math.min(0.7, 0.18 * fresh.length) }) : null;
-  if (drop) S.loot[drop.id] = (S.loot[drop.id] || 0) + 1;
-
-  const reward = (xp || coins) ? award(xp, coins, 'Codeforces sync') : null;
-  touchStreak();
-  emit('sync', { source:'cf', fresh, newTiers, reward, drop });
-  return { fresh, newTiers, reward, drop };
+/** `tag` is "track:item" — a topic, a build — or null for general work. */
+export function timerStart(tag = null) {
+  if (S.timer) return S.timer;
+  S.timer = { start: Date.now(), day: today(), tag };
+  emit('timer');
+  return S.timer;
 }
 
-export function applyPushes(pushes) {
-  S.platforms.gh.pushes = pushes;
-  S.platforms.gh.syncedAt = Date.now();
+/** Stop the timer. `keep` trims a session down — never up. */
+export function timerStop(keep = null) {
+  const t = S.timer;
+  if (!t) return null;
+  const elapsed = Math.floor((Date.now() - t.start) / 60000);
+  let min = Math.min(elapsed, MAX_SESSION_MIN);
+  if (keep != null) min = Math.max(0, Math.min(min, Math.round(keep)));
+  S.timer = null;
+  if (min < 1) { emit('timer'); return { min: 0, reward: null }; }
 
-  let xp = 0, coins = 0, commits = 0;
+  const day = getDay(t.day);
+  day.timer.push({ start: t.start, end: Date.now(), min, tag: t.tag });
+  day.timerMin += min;
+  if (t.tag) day.timerTagged += min;
+  S.stats.timerMin += min; S.stats.sessions += 1;
+
+  const xp = Math.max(0, Math.min(min * XP.timerPerMin, timerCap() - day.timerXp));
+  day.timerXp += xp;
+  const reward = award(xp, 0, 'Focus time');
+  touchStreak(t.day);
+  emit('timer', { min, reward });
+  return { min, reward };
+}
+
+/* ---------------------------------- github -------------------------------- */
+
+export function linkGithub({ login, avatar = null }) {
+  Object.assign(S.github, { user: login, avatar, error:'' });
+  emit('profile');
+}
+export function unlinkGithub() {
+  Object.assign(S.github, { user:'', avatar:null, pushes:[], syncedAt:0, error:'' });
+  emit('profile');
+}
+
+/** Fold fetched push events into the save; each event id pays once. */
+export function applyPushes(pushes) {
+  S.github.pushes = pushes;
+  S.github.syncedAt = Date.now();
+  let commits = 0;
   const fresh = [];
   for (const p of pushes) {
-    if (S.credited.pushes[p.id]) continue;
-    S.credited.pushes[p.id] = p.day;
+    if (S.github.credited[p.id]) continue;
+    S.github.credited[p.id] = p.day;
     fresh.push(p);
     commits += p.commits;
-    S.stats.commits += p.commits;
-    S.stats.pushes += 1;
-    xp += 6 * p.commits;
-    coins += 2 * p.commits;
+    S.stats.commits += p.commits; S.stats.pushes += 1;
   }
-
-  const reward = (xp || coins) ? award(xp, coins, 'GitHub sync') : null;
+  const reward = commits ? award(XP.commit * commits, 2 * commits, 'GitHub') : null;
   touchStreak();
   emit('sync', { source:'gh', fresh, commits, reward });
   return { fresh, commits, reward };
 }
 
-export function linkCodeforces({ handle, rating, rank }) {
-  Object.assign(S.platforms.cf, { handle, rating, rank, error:'' });
+/* ------------------------------ profile & shop ---------------------------- */
+
+export function saveProfile(patch) { Object.assign(S.profile, patch); applyTheme(); emit('profile'); }
+
+export function setTrack(id, on) {
+  if (!TRACK_IDS.includes(id)) return false;
+  const next = on ? [...new Set([...S.profile.tracks, id])] : S.profile.tracks.filter(t => t !== id);
+  if (!next.length) return false;              // a character needs at least one track
+  S.profile.tracks = TRACK_IDS.filter(t => next.includes(t));
   emit('profile');
-}
-export function linkGithub({ login, avatar }) {
-  Object.assign(S.platforms.gh, { user: login, avatar, error:'' });
-  emit('profile');
-}
-export function unlinkCodeforces() {
-  Object.assign(S.platforms.cf, { handle:'', rating:null, rank:null, solved:[], syncedAt:0 });
-  emit('profile');
-}
-export function unlinkGithub() {
-  Object.assign(S.platforms.gh, { user:'', avatar:null, pushes:[], syncedAt:0 });
-  emit('profile');
-}
-
-/* -------------------------------- the log --------------------------------- */
-
-const uid = () => (crypto.randomUUID ? crypto.randomUUID() : `id-${Date.now()}-${Math.random()}`);
-
-/**
- * A practice session the app timed itself.
- *
- * `verified` is true only when the app held the clock. A hand-typed duration is
- * recorded and shown, but pays nothing — see the note at the top of this file.
- */
-export function logSession({ minutes, topic = null, note = '', verified = false }, key = today()) {
-  const m = Math.max(1, Math.min(600, Math.round(+minutes || 0)));
-  const entry = { uid: uid(), minutes: m, topic, note: String(note || '').slice(0, 300),
-                  verified: !!verified, ts: Date.now() };
-  getDay(key).focus.push(entry);
-  S.stats.sessions += 1;
-  S.stats.focusMinutes += m;
-  if (entry.verified) S.stats.verifiedMinutes += m;
-
-  const reward = entry.verified ? award(Math.round(m * 1.2), Math.round(m * 0.4), 'Timed session') : null;
-  touchStreak(key);
-  emit('session', { entry, reward });
-  return reward;
-}
-
-export function removeSession(id, key = today()) {
-  const d = getDay(key);
-  const e = d.focus.find(x => x.uid === id);
-  if (!e) return false;
-  d.focus = d.focus.filter(x => x.uid !== id);
-  S.stats.sessions = Math.max(0, S.stats.sessions - 1);
-  S.stats.focusMinutes = Math.max(0, S.stats.focusMinutes - e.minutes);
-  if (e.verified) S.stats.verifiedMinutes = Math.max(0, S.stats.verifiedMinutes - e.minutes);
-  emit('session', {});
   return true;
 }
 
-/** An unverified note — a LeetCode problem, a chapter read. Kept, never paid. */
-export function logNote({ text, source = 'note' }, key = today()) {
-  const entry = { uid: uid(), text: String(text || '').slice(0, 300), source, ts: Date.now() };
-  getDay(key).notes.push(entry);
-  emit('note', { entry });
-  return entry;
-}
-
-export function removeNote(id, key = today()) {
-  const d = getDay(key);
-  d.notes = d.notes.filter(n => n.uid !== id);
-  emit('note', {});
-}
-
-/* --------------------------------- quests --------------------------------- */
-
-export function claimQuest(questId, key = today()) {
-  const d = getDay(key);
-  if (d.claimed.includes(questId)) return null;
-  const q = quests(key).find(x => x.id === questId);
-  if (!q || !q.done) return null;
-  d.claimed.push(questId);
-  S.stats.quests += 1;
-  const r = award(q.xp, q.coins, q.name);
-  emit('quest', { quest: q, reward: r });
-  return r;
-}
-
-/* -------------------------------- contests -------------------------------- */
-
-/**
- * Start the clock. Everything already solved is recorded at this moment, so a
- * problem you finished last week cannot be counted towards the run.
- */
-export function startContest(id) {
-  const contest = contestById(id);
-  if (!contest || S.active) return null;
-  S.active = { id, startedAt: Date.now(), known: solvedList().map(s => s.key) };
-  S.stats.contestsRun += 1;
-  emit('contest', { started: contest });
-  return S.active;
-}
-
-/** How the running contest currently stands. Null when none is running. */
-export function activeContest() {
-  if (!S.active) return null;
-  const contest = contestById(S.active.id);
-  if (!contest) return null;
-  return {
-    contest,
-    startedAt: S.active.startedAt,
-    ...settle(contest, S.active.startedAt, solvedList(), new Set(S.active.known)),
-  };
-}
-
-/** Bank the running contest, won or lost. */
-export function finishContest() {
-  const live = activeContest();
-  if (!live) return null;
-
-  const { contest } = live;
-  const prev = S.contests[contest.id] || { won:false, attempts:0, best:0 };
-  S.contests[contest.id] = {
-    won: prev.won || live.won,
-    attempts: prev.attempts + 1,
-    best: Math.max(prev.best, live.solved),
-    date: live.won ? today() : prev.date,
-  };
-  if (live.won && !prev.won) S.stats.contestsWon += 1;
-
-  const { xp, coins } = contestReward(contest, live);
-  const reward = (xp || coins) ? award(xp, coins, contest.name) : null;
-  const drop = live.won ? rollLoot({ minRarity: 'rare' }) : null;
-  if (drop) S.loot[drop.id] = (S.loot[drop.id] || 0) + 1;
-
-  S.active = null;
-  touchStreak();
-  emit('contest', { finished: contest, result: live, reward, drop });
-  return { contest, result: live, reward, drop };
-}
-
-export function abandonContest() {
-  if (!S.active) return false;
-  S.active = null;
-  emit('contest', {});
-  return true;
-}
-
-/* ---------------------------------- shop ---------------------------------- */
+export function dismissNotice() { S.notice = null; emit('profile'); }
 
 export function buyTheme(id) {
   const t = THEMES.find(x => x.id === id);
   if (!t || ownsTheme(id) || S.coins < t.cost) return false;
   S.coins -= t.cost; S.owned.push(id); S.profile.theme = id;
-  applyTheme(); emit('shop', { theme: t });
-  return true;
+  applyTheme(); emit('shop'); return true;
 }
 export function selectTheme(id) {
   if (!ownsTheme(id)) return false;
-  S.profile.theme = id; applyTheme(); emit('shop', {});
-  return true;
+  S.profile.theme = id; applyTheme(); emit('shop'); return true;
 }
-export function buyFreeze(cost = 200) {
-  if (S.coins < cost) return false;
-  S.coins -= cost; S.streak.freezes += 1; emit('shop', { freeze:true });
-  return true;
+export const FREEZE_COST = 200;
+export function buyFreeze() {
+  if (S.coins < FREEZE_COST) return false;
+  S.coins -= FREEZE_COST; S.streak.freezes += 1; emit('shop'); return true;
 }
-export function saveProfile(patch) { Object.assign(S.profile, patch); applyTheme(); emit('profile'); }
-
-export const ACHIEVEMENT_LIST = ACHIEVEMENTS;
-export { TOPICS, TIERS, PATHS };

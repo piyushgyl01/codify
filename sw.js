@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -25,30 +25,46 @@ const CORE = [
   './css/base.css',
   './css/components.css',
   './css/views.css',
-  './js/analytics.js',
   './js/charts.js',
   './js/data/achievements.js',
-  './js/data/contests.js',
   './js/data/loot.js',
-  './js/data/practice.js',
   './js/data/quests.js',
-  './js/data/skilltree.js',
   './js/game.js',
+  './js/github.js',
   './js/icons.js',
   './js/main.js',
   './js/platforms.js',
   './js/pwa.js',
+  './js/quiz.js',
   './js/router.js',
   './js/state.js',
   './js/sync.js',
+  './js/tracks/cp/actions.js',
+  './js/tracks/cp/codeforces.js',
+  './js/tracks/cp/contests.js',
+  './js/tracks/cp/hub.js',
+  './js/tracks/cp/model.js',
+  './js/tracks/cp/today.js',
+  './js/tracks/cp/topics.js',
+  './js/tracks/index.js',
+  './js/tracks/robotics/actions.js',
+  './js/tracks/robotics/bosses.js',
+  './js/tracks/robotics/hub.js',
+  './js/tracks/robotics/model.js',
+  './js/tracks/robotics/player.js',
+  './js/tracks/robotics/roadmap.js',
+  './js/tracks/robotics/skills.js',
+  './js/tracks/robotics/today.js',
+  './js/tracks/robotics/view-builds.js',
+  './js/tracks/robotics/view-plan.js',
+  './js/tracks/robotics/view-skills.js',
   './js/ui.js',
   './js/version.js',
+  './js/views/focus.js',
   './js/views/hero.js',
   './js/views/home.js',
-  './js/views/log.js',
   './js/views/onboarding.js',
-  './js/views/skills.js',
-  './js/views/train.js',
+  './js/views/tracks.js',
 ];
 
 /** Nice to have offline, not worth failing an install over. */

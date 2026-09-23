@@ -1,323 +1,222 @@
-/** Hero — the connected accounts, lifetime totals, gear, achievements, data. */
+/** Hero: the character, both tracks at a glance, accounts, gear, achievements, settings, backup. */
 import {
-  S, THEMES, themeFor, ownsTheme, buyTheme, selectTheme, buyFreeze, progress,
-  statsSnapshot, gearBonus, resetSave, exportSave, importSave, describeSave,
-  priorSave, undoImport, backupFilename, saveHealthy, isLinked,
-  linkCodeforces, linkGithub, unlinkCodeforces, unlinkGithub, treeProgress,
+  S, THEMES, ownsTheme, buyTheme, selectTheme, buyFreeze, FREEZE_COST, progress, gearBonus, statsSnapshot,
+  saveProfile, setTrack, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
+  priorSave, undoImport, backupFilename, markBackup, saveHealthy, linkGithub, unlinkGithub, dayIsActive,
 } from '../state.js';
-import { rankFor, nextRank, GOALS } from '../game.js';
-import { LOOT, RARITY, LOOT_BY_ID, MAX_BONUS } from '../data/loot.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
-import { TOPICS, TIERS } from '../data/skilltree.js';
-import { CONTESTS } from '../data/contests.js';
-import { checkHandle, checkGithub } from '../platforms.js';
-import { syncAll, describeSync, lastSync } from '../sync.js';
-import { treeCompletion } from '../analytics.js';
-import { openProfileEditor } from './onboarding.js';
+import { LOOT, RARITY, LOOT_CAP } from '../data/loot.js';
+import { TRACKS, trackById } from '../tracks/index.js';
+import { linkCodeforces, unlinkCodeforces, setDailySolves } from '../tracks/cp/actions.js';
+import { checkHandle } from '../tracks/cp/codeforces.js';
+import { colorForRating } from '../tracks/cp/model.js';
+import { currentMonth, verifiedCount, setStart } from '../tracks/robotics/actions.js';
+import { SOURCE, BUILDS } from '../tracks/robotics/roadmap.js';
+import { checkGithub } from '../platforms.js';
+import { syncAll, describeSync } from '../sync.js';
+import { rankFor, nextRank, dayKey, addDays } from '../game.js';
+import { seriesChart, calendarGrid } from '../charts.js';
+import { h, raw, esc, bind, sheet, dialog, toast, fmt, hm, confetti, sfx, $, shortDate } from '../ui.js';
 import { canInstall, isInstalled, promptInstall } from '../pwa.js';
 import { APP_VERSION } from '../version.js';
-import {
-  h, raw, esc, $, $$, bind, bar, hm, fmt, pct, sheet, dialog, toast, sfx, haptic, confetti,
-} from '../ui.js';
-import { icon } from '../icons.js';
 
-export function render() {
-  const p = progress();
-  const rank = rankFor(p.level);
-  const next = nextRank(p.level);
-  const st = statsSnapshot();
-  const bonus = gearBonus();
-  const owned = Object.keys(S.loot).filter(id => LOOT_BY_ID[id]).length;
-  const done = treeCompletion();
-  const cf = S.platforms.cf, gh = S.platforms.gh;
+/* --------------------------------- pieces --------------------------------- */
 
-  const tiles = [
-    [fmt(st.solved), 'solved'],
-    [fmt(st.bestRating || 0), 'best rating'],
-    [`${done.cleared}/${done.total}`, 'tiers'],
-    [fmt(st.commits), 'commits'],
-    [fmt(st.topicsStarted), 'topics'],
-    [hm(st.verifiedMinutes), 'timed'],
-    [fmt(S.streak.best), 'best streak'],
-    [`${st.contestsWon}/${CONTESTS.length}`, 'contests'],
-    [fmt(st.xpEarned), 'lifetime xp'],
+function head() {
+  const p = progress(), rank = rankFor(p.level), next = nextRank(p.level);
+  return h`<div class="hero-head">
+    <div class="hero-rank">${rank.icon}</div>
+    <div class="h1" style="margin-top:12px">${S.profile.name || 'Engineer'}</div>
+    <div class="h3" style="margin-top:4px">${rank.name} · level ${p.level}</div>
+    <div class="bar" style="margin:14px auto 0;max-width:280px"><i style="width:${p.pct}%;background:var(--card)"></i></div>
+    <div class="tiny" style="margin-top:8px">${fmt(p.into)} / ${fmt(p.need)} XP${raw(next ? ` · ${esc(next.name)} at level ${next.at}` : '')}</div>
+  </div>`;
+}
+
+/** Each track's own measure of you, beside the character level. */
+function trackBadges() {
+  const cards = [];
+  if (trackOn('cp')) {
+    const c = S.tracks.cp;
+    cards.push(`<div class="card pad-s rail" style="--rail:var(--blue)"><div class="label">⌨️ Programming</div>
+      <div class="h3" style="margin-top:4px">${c.handle ? `${esc(c.rank || 'unrated')} · ${c.rating ?? '—'}` : 'Not connected'}</div>
+      <div class="tiny">${S.stats.solved} solved · ${S.stats.tiersCleared} tiers</div></div>`);
+  }
+  if (trackOn('robotics')) {
+    const won = Object.values(S.tracks.robotics.bosses).filter(b => b.won).length;
+    cards.push(`<div class="card pad-s rail" style="--rail:var(--acid)"><div class="label">🤖 Robotics</div>
+      <div class="h3" style="margin-top:4px">Month ${currentMonth()} · ${won}/6 bosses</div>
+      <div class="tiny">${verifiedCount()}/${BUILDS.length} builds verified</div></div>`);
+  }
+  return `<div class="grid2">${cards.join('')}</div>`;
+}
+
+function tiles() {
+  const s = statsSnapshot();
+  const acc = s.answered ? `${Math.round((s.correct / s.answered) * 100)}%` : '—';
+  const t = [
+    [S.streak.current, 'streak'], [S.streak.best, 'best streak'], [S.streak.freezes, 'freezes'],
+    [hm(s.timerMin), 'focus time'], [s.commits, 'commits'], [s.quests, 'quests'],
   ];
-
-  return h`
-    <div class="hero-head">
-      <div class="hero-rank">${rank.icon}</div>
-      <div class="h1" style="margin-top:10px">${S.profile.name || 'Engineer'}</div>
-      <div class="h3">${rank.name} · Level ${p.level}</div>
-      <div style="margin-top:14px">${raw(bar(p.pct))}</div>
-      <div class="between tiny" style="margin-top:6px">
-        <span>${fmt(p.into)} / ${fmt(p.need)} XP</span>
-        ${raw(next ? `<span>${next.icon} ${next.name} @ ${next.at}</span>` : '<span>max rank</span>')}
-      </div>
-      <button class="btn ghost sm" style="margin-top:14px" data-act="edit">Edit profile</button>
-    </div>
-
-    ${raw(saveHealthy() ? '' : `
-      <div class="card rail" style="--rail:var(--bad);margin-top:16px">
-        <div class="h3">Your last save did not write</div>
-        <div class="sub" style="margin-top:6px">Storage is full or blocked, so changes are
-          being lost. Export a backup now.</div>
-        <button class="btn hot block sm" style="margin-top:10px" data-act="backup">Export now</button>
-      </div>`)}
-
-    <div class="section">
-      <div class="label">Connected accounts</div>
-      <div class="stack s2">
-        <button class="card tap pad-s ${cf.handle ? 'rail' : ''}" ${cf.handle ? 'style="--rail:var(--good)"' : ''}
-                data-act="cf">
-          <div class="between">
-            <div class="grow truncate">
-              <div class="h3">Codeforces</div>
-              <div class="tiny truncate">${cf.handle
-                ? `${esc(cf.handle)}${cf.rating ? ` · rating ${cf.rating}` : ''} · ${(cf.solved || []).length} solved`
-                : 'Not connected — nothing can be verified'}</div>
-              ${raw(cf.error ? `<div class="tiny" style="color:var(--bad)">${esc(cf.error)}</div>` : '')}
-            </div>
-            <span class="badge ${cf.handle ? 'good' : 'warn'}">${cf.handle ? 'linked' : 'connect'}</span>
-          </div>
-        </button>
-
-        <button class="card tap pad-s ${gh.user ? 'rail' : ''}" ${gh.user ? 'style="--rail:var(--info)"' : ''}
-                data-act="gh">
-          <div class="between">
-            <div class="grow truncate">
-              <div class="h3">GitHub</div>
-              <div class="tiny truncate">${gh.user
-                ? `${esc(gh.user)} · ${fmt(st.commits)} commits counted`
-                : 'Optional — credits your public pushes'}</div>
-              ${raw(gh.error ? `<div class="tiny" style="color:var(--bad)">${esc(gh.error)}</div>` : '')}
-            </div>
-            <span class="badge ${gh.user ? 'info' : ''}">${gh.user ? 'linked' : 'connect'}</span>
-          </div>
-        </button>
-
-        <button class="btn block" data-act="sync">Sync now</button>
-        ${raw(lastSync() ? `<div class="tiny center">Last synced ${
-          new Date(lastSync()).toLocaleString()}</div>` : '')}
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="label">Lifetime</div>
-      <div class="grid3">
-        ${raw(tiles.map(([v, k]) =>
-          `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join(''))}
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="between">
-        <div class="label">Gear</div>
-        <div class="tiny">${owned}/${LOOT.length} · ×${bonus.toFixed(2)} (cap ×${(1 + MAX_BONUS).toFixed(2)})</div>
-      </div>
-      <div class="gear-grid">
-        ${raw(LOOT.map(l => {
-          const have = (S.loot[l.id] || 0) > 0;
-          const r = RARITY[l.rarity];
-          return `<button class="gear ${have ? 'have' : ''}" data-loot="${l.id}"
-            style="--rc:${r.color}" ${have ? '' : 'disabled'}>
-            <span class="g-ico">${have ? l.icon : '?'}</span>
-            <span class="tiny">${have ? esc(l.name) : '—'}</span></button>`;
-        }).join(''))}
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="between">
-        <div class="label">Achievements</div>
-        <div class="tiny">${Object.keys(S.earned).length}/${ACHIEVEMENTS.length}</div>
-      </div>
-      <div class="stack s2">
-        ${raw(ACHIEVEMENTS.map(a => {
-          const got = S.earned[a.id];
-          return `<div class="card pad-s ach ${got ? 'got' : ''}">
-            <div class="between">
-              <div class="row" style="gap:10px">
-                <span class="ach-ico">${got ? a.icon : '·'}</span>
-                <div><div class="h3">${esc(a.name)}</div><div class="tiny">${esc(a.desc)}</div></div>
-              </div>
-              <span class="badge ${got ? 'good' : ''}">${got ? `+${a.xp}` : `${a.xp} XP`}</span>
-            </div>
-          </div>`;
-        }).join(''))}
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="between">
-        <div class="label">Accents</div>
-        <div class="chip-stat">${raw(icon('coin', 13).value)} ${fmt(S.coins)}</div>
-      </div>
-      <div class="theme-grid">
-        ${raw(THEMES.map(t => {
-          const owns = ownsTheme(t.id), on = S.profile.theme === t.id;
-          return `<button class="theme ${on ? 'on' : ''} ${owns ? '' : 'locked'}" data-theme="${t.id}">
-            <span class="sw" style="background:${t.accent}"></span>
-            <span class="tiny">${esc(t.name)}</span>
-            <span class="tiny state">${owns ? (on ? 'active' : 'owned') : `${t.cost}c`}</span>
-          </button>`;
-        }).join(''))}
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="label">Streak</div>
-      <div class="card">
-        <div class="between">
-          <div><div class="num h1">${S.streak.current}</div><div class="tiny">current</div></div>
-          <div class="right"><div class="num h3">${S.streak.freezes}</div><div class="tiny">freezes</div></div>
-        </div>
-        <div class="sub" style="margin-top:10px">
-          A day counts when the judge accepted something, you pushed a commit, or you
-          ran the timer for twenty minutes. A freeze covers one missed day.
-        </div>
-        <button class="btn block sm" style="margin-top:12px" data-act="freeze"
-          ${S.coins < 200 ? 'disabled' : ''}>Buy a freeze · 200c</button>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="label">Your data</div>
-      <div class="stack s2">
-        <button class="card tap pad-s" data-act="backup">
-          <div class="between"><div><div class="h3">Backup &amp; restore</div>
-            <div class="tiny">Everything is in this browser. This is the only copy.</div></div>
-            <span>›</span></div>
-        </button>
-        ${raw(isInstalled() ? '' : `
-        <button class="card tap pad-s" data-act="install">
-          <div class="between"><div><div class="h3">Install app</div>
-            <div class="tiny">Fullscreen, and the shell works offline.</div></div><span>›</span></div>
-        </button>`)}
-        <button class="card tap pad-s" data-act="sound">
-          <div class="between"><div class="h3">Sound</div>
-            <span class="badge">${S.settings.sound ? 'on' : 'off'}</span></div>
-        </button>
-        <button class="card tap pad-s" data-act="motion">
-          <div class="between"><div class="h3">Reduce motion</div>
-            <span class="badge">${S.settings.reduceMotion ? 'on' : 'off'}</span></div>
-        </button>
-        <button class="card tap pad-s" data-act="reset">
-          <div class="between"><div><div class="h3" style="color:var(--bad)">Reset everything</div>
-            <div class="tiny">Deletes every level and record on this device.</div></div></div>
-        </button>
-      </div>
-    </div>
-
-    <div class="center tiny" style="margin-top:28px">
-      Codify ${APP_VERSION} · all data local · since ${esc(S.profile.created || '?')}
-    </div>`;
+  if (trackOn('cp')) t.push([s.solved, 'solved'], [s.bestRating || '—', 'hardest'], [s.contestsWon, 'contests won']);
+  if (trackOn('robotics')) t.push([s.drills, 'drills'], [acc, 'accuracy'], [s.box5, 'in box 5']);
+  return `<div class="grid3">${t.map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('')}</div>`;
 }
 
-/* ------------------------------ linking flows ----------------------------- */
+function charts() {
+  const goal = S.profile.focusGoal || 120;
+  const keys = Array.from({ length: 30 }, (_, i) => addDays(dayKey(), i - 29));
+  const focus = keys.map((k, i) => {
+    const m = S.days[k]?.timerMin || 0;
+    return { value: m, color: m >= goal ? 'var(--acid)' : 'var(--card)', label: `${shortDate(k)}: ${hm(m)}`,
+             axis: i % 7 === 0 || i === 29 ? shortDate(k) : '' };
+  });
+  const start = addDays(dayKey(), -181);
+  const grid = Array.from({ length: 182 }, (_, i) => {
+    const k = addDays(start, i), m = S.days[k]?.timerMin || 0;
+    const level = !dayIsActive(k) ? 0 : 1 + (m >= goal / 2 ? 1 : 0) + (m >= goal ? 1 : 0);
+    return { color: ['var(--sunk)', 'var(--yellow)', 'var(--lime)', 'var(--acid)'][level], label: `${shortDate(k)}${m ? ` · ${hm(m)}` : ''}` };
+  });
+  return `
+    <div class="card"><div class="between"><span class="label">Focus minutes · 30 days</span><span class="tiny">green = goal met</span></div>
+      <div style="margin-top:12px">${seriesChart(focus, { height: 110, target: goal, axisEvery: 7 })}</div></div>
+    <div class="card"><div class="between"><span class="label">Six months</span><span class="tiny">every day that counted</span></div>
+      <div style="margin-top:12px">${calendarGrid(grid, { cell: 11, gap: 3 })}</div>
+      <div class="tiny" style="margin-top:8px">Yellow: the day counted. Lime: plus half your focus goal. Green: the full goal.</div></div>`;
+}
 
-function openCodeforces(rerender) {
-  const cf = S.platforms.cf;
-  sheet('Codeforces', `
-    <p class="sub">Your handle only. No password and no token — this reads the same
-      public API anyone can, and it is where every point in the game comes from.</p>
+function accounts() {
+  const c = S.tracks.cp, g = S.github;
+  return `<div class="stack s2">
+    ${trackOn('cp') ? `<button class="card tap pad-s" data-act="cf"><div class="between"><div><div class="h3">Codeforces</div>
+      <div class="tiny">${c.handle ? `${esc(c.handle)} · ${c.rating ?? 'unrated'}` : 'Not connected — Programming reads nothing until it is'}</div></div>
+      ${c.handle ? `<span class="badge" style="background:${colorForRating(c.rating)}">${c.rating ?? '—'}</span>` : '<span>›</span>'}</div></button>` : ''}
+    <button class="card tap pad-s" data-act="gh"><div class="between"><div><div class="h3">GitHub</div>
+      <div class="tiny">${g.user ? `${esc(g.user)} · ${S.stats.commits} commits credited` : 'Not connected — builds cannot be verified, commits earn nothing'}</div></div><span>›</span></div></button>
+    ${c.handle || g.user ? '<button class="btn block sm" data-act="sync">Sync now</button>' : ''}
+  </div>`;
+}
 
-    ${cf.handle ? `
-      <div class="card" style="margin-top:14px">
-        <div class="between">
-          <div><div class="h3">${esc(cf.handle)}</div>
-            <div class="tiny">${cf.rating ? `rating ${cf.rating} · ` : ''}${(cf.solved || []).length} problems read</div></div>
-          <span class="badge good">linked</span>
-        </div>
-      </div>
-      <button class="btn ghost block sm" style="margin-top:12px" data-unlink>Disconnect</button>
-    ` : `
-      <div class="field" style="margin-top:16px">
-        <label>Handle</label>
-        <input class="input" id="cf-handle" placeholder="tourist" autocapitalize="none" spellcheck="false">
-        <div class="tiny" id="cf-status" style="min-height:18px"></div>
-      </div>
-      <button class="btn primary block" style="margin-top:12px" data-link>Connect</button>
-    `}
-  `, (el, close) => {
-    $('[data-unlink]', el)?.addEventListener('click', () => {
-      dialog(`<div class="h2">Disconnect Codeforces?</div>
-        <p class="sub" style="margin:12px 0 16px">Your solved list is cleared from this device.
-          XP and levels already earned are kept.</p>
-        <button class="btn hot block" data-yes>Disconnect</button>
-        <button class="btn ghost block sm" style="margin-top:8px" data-no>Cancel</button>`,
-        (d, closeD) => {
-          d.querySelector('[data-no]').onclick = closeD;
-          d.querySelector('[data-yes]').onclick = () => { unlinkCodeforces(); closeD(); close(); rerender(); };
-        });
+function tracks() {
+  return `<div class="stack s2">${TRACKS.map(t => `
+    <div class="card pad-s"><div class="between"><div class="grow"><div class="h3">${t.icon} ${esc(t.name)}</div>
+      <div class="tiny">${esc(t.tagline)}</div></div>
+      <button class="pill ${trackOn(t.id) ? 'on' : ''}" data-track="${t.id}">${trackOn(t.id) ? 'On' : 'Off'}</button></div></div>`).join('')}
+    <div class="tiny">Switching a track off hides it; nothing in it is deleted. At least one stays on.</div></div>`;
+}
+
+function gear() {
+  const bonus = Math.round((gearBonus() - 1) * 100);
+  const set = (id, title) => `<div class="label" style="margin:12px 0 8px">${title}</div>
+    <div class="gear-grid">${LOOT.filter(l => l.set === id).map(l => {
+      const have = !!S.loot[l.id];
+      return `<div class="gear ${have ? 'have' : ''}" style="--rc:${RARITY[l.rarity].color}" title="${esc(l.desc)}">
+        <div class="g-ico">${have ? l.icon : '?'}</div>
+        <div class="tiny">${have ? esc(l.name) : esc(RARITY[l.rarity].name)}</div>
+        ${have ? `<div class="tiny num">+${(l.bonus * 100).toFixed(1).replace('.0', '')}%</div>` : ''}</div>`;
+    }).join('')}</div>`;
+  return `<div class="between"><span class="label">Gear</span>
+      <span class="badge ${bonus ? 'solid' : ''}">+${bonus}% XP${bonus >= LOOT_CAP * 100 ? ' (max)' : ''}</span></div>
+    ${set('desk', 'Desk · drops from programming')}${set('bench', 'Bench · drops from robotics')}
+    <div class="tiny" style="margin-top:8px">Each piece is a permanent XP bonus on everything, capped at +${LOOT_CAP * 100}%. Duplicates become credits.</div>`;
+}
+
+function achievements() {
+  const groups = [['core', 'The character'], ...TRACKS.map(t => [t.id, `${t.icon} ${t.name}`])];
+  const got = ACHIEVEMENTS.filter(a => S.earned[a.id]).length;
+  return `<div class="between"><span class="label">Achievements</span><span class="tiny">${got}/${ACHIEVEMENTS.length}</span></div>
+    ${groups.map(([id, title]) => `<div class="tiny" style="margin:12px 0 6px;font-weight:800">${esc(title)}</div>
+      <div class="stack s2">${ACHIEVEMENTS.filter(a => a.track === id).map(a => {
+        const on = !!S.earned[a.id];
+        return `<div class="card pad-s ach ${on ? 'got' : ''}"><div class="row"><div class="ach-ico">${on ? a.icon : '·'}</div>
+          <div class="grow"><div class="h3">${esc(a.name)}</div><div class="tiny">${esc(a.desc)}</div></div>
+          ${a.xp ? `<span class="badge">${on ? '✓' : `${a.xp} XP`}</span>` : on ? '<span class="badge">✓</span>' : ''}</div></div>`;
+      }).join('')}</div>`).join('')}`;
+}
+
+function shop() {
+  return `<div class="card"><div class="between"><div><div class="h3">Streak freeze</div>
+      <div class="tiny">Covers a missed day automatically. You have ${S.streak.freezes}. One more every five levels.</div></div>
+      <button class="btn sm" data-act="freeze" ${S.coins < FREEZE_COST ? 'disabled' : ''}>${FREEZE_COST}c</button></div></div>
+    <div class="between" style="margin:16px 0 8px"><span class="label">Accent</span><span class="badge">${fmt(S.coins)}c</span></div>
+    <div class="theme-grid">${THEMES.map(t => {
+      const owned = ownsTheme(t.id), on = S.profile.theme === t.id;
+      return `<button class="theme ${on ? 'on' : ''} ${owned ? '' : 'locked'}" data-theme="${t.id}">
+        <span class="sw" style="background:${t.accent}"></span><span class="tiny">${t.name}</span>
+        <span class="tiny state">${on ? 'active' : owned ? 'owned' : `${t.cost}c`}</span></button>`;
+    }).join('')}</div>`;
+}
+
+function settings() {
+  return `<div class="stack s2">
+    <button class="card tap pad-s" data-act="profile"><div class="between"><div><div class="h3">Profile and goals</div>
+      <div class="tiny">${esc(S.profile.name)} · ${S.profile.focusGoal} min a day${trackOn('cp') ? ` · ${S.tracks.cp.dailySolves} problems` : ''}</div></div><span>›</span></div></button>
+    <button class="card tap pad-s" data-act="backup"><div class="between"><div><div class="h3">Backup &amp; restore</div>
+      <div class="tiny">${S.backupAt ? `Last backup ${esc(shortDate(dayKey(new Date(S.backupAt))))}` : 'Never backed up'}</div></div><span>›</span></div></button>
+    <div class="card pad-s"><div class="between"><span class="h3">Sound</span>
+      <button class="pill ${S.settings.sound ? 'on' : ''}" data-act="sound">${S.settings.sound ? 'On' : 'Off'}</button></div></div>
+    <div class="card pad-s"><div class="between"><span class="h3">Reduce motion</span>
+      <button class="pill ${S.settings.reduceMotion ? 'on' : ''}" data-act="motion">${S.settings.reduceMotion ? 'On' : 'Off'}</button></div></div>
+    ${isInstalled() ? '' : `<button class="card tap pad-s" data-act="install"><div class="between"><div><div class="h3">Install the app</div>
+      <div class="tiny">Home screen, full screen, works offline.</div></div><span>›</span></div></button>`}
+  </div>`;
+}
+
+/* --------------------------------- sheets --------------------------------- */
+
+function openProfile(rerender) {
+  sheet('Profile and goals', `
+    <div class="field"><label for="pf-name">Name</label><input class="input" id="pf-name" maxlength="32" value="${esc(S.profile.name)}"></div>
+    <div class="field" style="margin-top:12px"><label for="pf-goal">Daily focus goal (minutes)</label>
+      <input class="input num" id="pf-goal" type="number" inputmode="numeric" min="30" max="360" step="15" value="${S.profile.focusGoal}"></div>
+    ${trackOn('cp') ? `<div class="field" style="margin-top:12px"><label for="pf-solves">Codeforces problems a day</label>
+      <input class="input num" id="pf-solves" type="number" inputmode="numeric" min="1" max="6" value="${S.tracks.cp.dailySolves}"></div>` : ''}
+    ${trackOn('robotics') ? `<div class="field" style="margin-top:12px"><label for="pf-start">Robotics plan start date</label>
+      <input class="input" id="pf-start" type="date" value="${esc(S.tracks.robotics.start)}" max="${dayKey()}"></div>
+      <div class="tiny" style="margin-top:6px">An earlier start opens months sooner. It changes the calendar, not your progress.</div>` : ''}
+    <button class="btn primary block" style="margin-top:16px" data-save>Save</button>`,
+    (el, close) => {
+      $('[data-save]', el).onclick = () => {
+        const name = $('#pf-name', el).value.trim().slice(0, 32) || S.profile.name;
+        const focusGoal = Math.max(30, Math.min(360, Math.round(+$('#pf-goal', el).value || 120)));
+        const solves = $('#pf-solves', el);
+        if (solves) setDailySolves(+solves.value || 2);
+        const start = $('#pf-start', el)?.value;
+        if (start && /^\d{4}-\d{2}-\d{2}$/.test(start)) setStart(start > dayKey() ? dayKey() : start);
+        saveProfile({ name, focusGoal });
+        close(); toast('Saved'); rerender();
+      };
     });
+}
 
-    $('[data-link]', el)?.addEventListener('click', async (e) => {
-      const status = $('#cf-status', el);
-      const handle = $('#cf-handle', el).value.trim();
-      if (!handle) { status.textContent = 'Enter a handle.'; return; }
-      e.target.disabled = true;
-      status.textContent = 'Checking…';
-      try {
-        const user = await checkHandle(handle);
-        linkCodeforces(user);
-        status.textContent = `Found ${user.handle}. Syncing…`;
-        const r = await syncAll({ force: true });
-        close();
-        toast(describeSync(r), 3600);
+function openAccount(kind, rerender) {
+  const isCf = kind === 'cf';
+  const current = isCf ? S.tracks.cp.handle : S.github.user;
+  sheet(isCf ? 'Codeforces' : 'GitHub', `
+    <p class="sub">${isCf ? 'Programming reads your accepted submissions from Codeforces\' public API. No sign-in.'
+      : 'Robotics builds are verified against public repos this account owns, and public commits earn XP. No sign-in; only names are sent.'}</p>
+    <div class="field" style="margin-top:14px"><label for="acc-v">${isCf ? 'Handle' : 'Username'}</label>
+      <input class="input" id="acc-v" value="${esc(current)}" autocapitalize="off" spellcheck="false" placeholder="${isCf ? 'tourist' : 'octocat'}"></div>
+    <button class="btn primary block" style="margin-top:16px" data-save>Save and sync</button>
+    ${current ? '<button class="btn ghost block sm" style="margin-top:8px" data-unlink>Disconnect</button>' : ''}`,
+    (el, close) => {
+      $('[data-save]', el).onclick = async e => {
+        const v = $('#acc-v', el).value.trim().replace(/^@/, '');
+        if (!v) return;
+        e.target.disabled = true; e.target.textContent = 'Checking…';
+        try {
+          if (isCf) linkCodeforces(await checkHandle(v)); else linkGithub(await checkGithub(v));
+          close();
+          const r = await syncAll({ force: true });
+          toast(esc(describeSync(r)), 3200);
+        } catch (err) { toast(esc(err.message), 4000); e.target.disabled = false; e.target.textContent = 'Save and sync'; }
         rerender();
-      } catch (err) {
-        status.textContent = err.message;
-        e.target.disabled = false;
-      }
+      };
+      $('[data-unlink]', el)?.addEventListener('click', () => {
+        if (isCf) unlinkCodeforces(); else unlinkGithub();
+        close(); toast('Disconnected. Credit already earned stays.'); rerender();
+      });
     });
-  });
-}
-
-function openGithub(rerender) {
-  const gh = S.platforms.gh;
-  sheet('GitHub', `
-    <p class="sub">Public username only. Credits the commits in your public push events —
-      GitHub keeps roughly ninety days of those, so this is a rolling window, not a
-      full history.</p>
-
-    ${gh.user ? `
-      <div class="card" style="margin-top:14px">
-        <div class="between">
-          <div><div class="h3">${esc(gh.user)}</div>
-            <div class="tiny">${(gh.pushes || []).length} pushes read</div></div>
-          <span class="badge info">linked</span>
-        </div>
-      </div>
-      <button class="btn ghost block sm" style="margin-top:12px" data-unlink>Disconnect</button>
-    ` : `
-      <div class="field" style="margin-top:16px">
-        <label>Username</label>
-        <input class="input" id="gh-user" placeholder="octocat" autocapitalize="none" spellcheck="false">
-        <div class="tiny" id="gh-status" style="min-height:18px"></div>
-      </div>
-      <button class="btn primary block" style="margin-top:12px" data-link>Connect</button>
-      <div class="tiny" style="margin-top:10px">Unauthenticated requests are limited to
-        sixty an hour per network, which is plenty for a few syncs a day.</div>
-    `}
-  `, (el, close) => {
-    $('[data-unlink]', el)?.addEventListener('click', () => { unlinkGithub(); close(); rerender(); });
-    $('[data-link]', el)?.addEventListener('click', async (e) => {
-      const status = $('#gh-status', el);
-      const user = $('#gh-user', el).value.trim();
-      if (!user) { status.textContent = 'Enter a username.'; return; }
-      e.target.disabled = true;
-      status.textContent = 'Checking…';
-      try {
-        const u = await checkGithub(user);
-        linkGithub(u);
-        const r = await syncAll({ force: true });
-        close(); toast(describeSync(r), 3400); rerender();
-      } catch (err) {
-        status.textContent = err.message;
-        e.target.disabled = false;
-      }
-    });
-  });
 }
 
 /* ----------------------------- backup & restore --------------------------- */
@@ -329,157 +228,152 @@ function downloadBackup() {
   a.href = url; a.download = backupFilename();
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  markBackup();
   toast('Backup downloaded');
 }
 
-function openBackup(rerender) {
-  const me = describeSave(JSON.parse(exportSave()));
-  const prior = priorSave();
-
+export function openBackup(rerender) {
+  const me = describeSave(JSON.parse(exportSave())), prior = priorSave();
   sheet('Backup & restore', `
-    <div class="card">
-      <div class="label">This device</div>
+    <div class="card"><div class="label">This device</div>
       <div class="h3" style="margin-top:6px">${esc(me.name)} · level ${me.level}</div>
-      <div class="tiny" style="margin-top:4px">
-        ${esc(me.handle)} · ${me.solved} solved · ${me.commits} commits · ${me.days} days
-      </div>
-    </div>
-    <div class="card sunk" style="margin-top:12px">
-      <div class="tiny">Your solved list can be pulled again from Codeforces, but levels,
-        gear and contest records live only here.</div>
-    </div>
+      <div class="tiny" style="margin-top:4px">${me.days} days · ${me.solved} solved · ${me.builds} builds · ${me.bosses} bosses</div></div>
+    <div class="card sunk" style="margin-top:12px"><div class="tiny">Everything lives in this browser's storage. Solves can be re-read
+      from Codeforces and builds re-checked on GitHub; your streak, boxes and gear cannot.</div></div>
     <button class="btn primary block" style="margin-top:16px" data-download>Download backup</button>
     <button class="btn block sm" style="margin-top:8px" data-copy>Copy as text</button>
     <hr class="rule">
+    <div class="label">Import Botify progress</div>
+    <div class="sub" style="margin-top:6px">Folds a Botify backup into this character: its robotics progress becomes the Robotics track,
+      and its XP, gear and history are added to yours. Nothing here is replaced.</div>
+    <input type="file" id="bt-file" accept="application/json,.json" class="input" style="margin-top:10px">
+    <hr class="rule">
     <div class="label">Restore</div>
-    <div class="sub" style="margin-top:6px">You confirm against a summary before anything
-      is replaced, and there is one undo afterwards.</div>
-    <input type="file" id="bk-file" accept="application/json,.json" class="input" style="margin-top:12px">
+    <div class="sub" style="margin-top:6px">Replaces everything with a Codify backup. You confirm against a summary first, and get one undo.</div>
+    <input type="file" id="bk-file" accept="application/json,.json" class="input" style="margin-top:10px">
     <textarea class="input" id="bk-text" style="margin-top:8px" placeholder="…or paste the JSON"></textarea>
     <button class="btn block" style="margin-top:8px" data-paste>Restore from text</button>
     ${prior ? `<hr class="rule"><div class="label">Undo</div>
-      <div class="sub" style="margin-top:6px">A save from before your last restore is still
-        here — ${esc(prior.name)}, level ${prior.level}.</div>
+      <div class="sub" style="margin-top:6px">The save from before your last import is still here — ${esc(prior.name)}, level ${prior.level}.</div>
       <button class="btn block sm" style="margin-top:10px" data-undo>Put that one back</button>` : ''}
   `, (el, close) => {
-    $('[data-download]', el).onclick = downloadBackup;
+    $('[data-download]', el).onclick = () => { downloadBackup(); rerender(); };
     $('[data-copy]', el).onclick = async () => {
-      try { await navigator.clipboard.writeText(exportSave()); toast('Copied'); }
+      try { await navigator.clipboard.writeText(exportSave()); markBackup(); toast('Copied'); rerender(); }
       catch { toast('Could not copy — download instead.'); }
     };
-    $('#bk-file', el).addEventListener('change', async e => {
+    $('#bt-file', el).addEventListener('change', async e => {
       const f = e.target.files?.[0];
-      if (f) confirmRestore(await f.text(), close, rerender);
+      if (!f) return;
+      const text = await f.text();
+      let incoming;
+      try { incoming = describeSave(JSON.parse(text)); } catch { toast('That file is not valid JSON.'); return; }
+      if (incoming.kind !== 'Botify') { toast('That is not a Botify backup.'); return; }
+      dialog(`<div class="h2">Import Botify progress?</div>
+        <div class="card sunk" style="margin-top:14px;text-align:left"><div class="tiny">${esc(incoming.name)} · level ${incoming.level} ·
+          ${incoming.builds} builds · ${incoming.bosses} bosses · ${incoming.days} days</div></div>
+        <p class="tiny" style="margin:12px 0 16px">Its robotics progress replaces this Robotics track; XP, credits and gear are added. One undo afterwards.</p>
+        <button class="btn primary block" data-yes>Import it</button>
+        <button class="btn ghost block sm" style="margin-top:8px" data-no>Cancel</button>`,
+        (d, closeD) => {
+          d.querySelector('[data-no]').onclick = closeD;
+          d.querySelector('[data-yes]').onclick = () => {
+            const r = importBotify(text); closeD();
+            if (!r.ok) { toast(esc(r.error)); return; }
+            close(); confetti(80); toast('Botify progress imported'); rerender();
+          };
+        });
     });
+    $('#bk-file', el).addEventListener('change', async e => { const f = e.target.files?.[0]; if (f) confirmRestore(await f.text(), close, rerender); });
     $('[data-paste]', el).onclick = () => {
       const text = $('#bk-text', el).value.trim();
       if (!text) { toast('Nothing pasted.'); return; }
       confirmRestore(text, close, rerender);
     };
-    $('[data-undo]', el)?.addEventListener('click', () => {
-      if (undoImport()) { close(); toast('Previous save restored'); rerender(); }
-    });
+    $('[data-undo]', el)?.addEventListener('click', () => { if (undoImport()) { close(); toast('Previous save restored'); rerender(); } });
   });
 }
 
 function confirmRestore(text, closeParent, rerender) {
   let incoming;
-  try { incoming = describeSave(JSON.parse(text)); }
-  catch { toast('That file is not valid JSON.'); return; }
+  try { incoming = describeSave(JSON.parse(text)); } catch { toast('That is not valid JSON.'); return; }
   const me = describeSave(JSON.parse(exportSave()));
-  const row = (k, a, b) => `<div class="between tiny" style="padding:4px 0">
-    <span>${k}</span><span><span class="num">${a}</span> → <span class="num">${b}</span></span></div>`;
-
+  const row = (k, a, b) => `<div class="between tiny" style="padding:4px 0"><span>${k}</span><span><span class="num">${a}</span> → <span class="num">${b}</span></span></div>`;
   dialog(`<div class="h2">Replace everything?</div>
     <div class="card sunk" style="margin-top:14px;text-align:left">
-      ${row('name', esc(me.name), esc(incoming.name))}
-      ${row('level', me.level, incoming.level)}
-      ${row('handle', esc(me.handle), esc(incoming.handle))}
-      ${row('solved', me.solved, incoming.solved)}
-      ${row('days', me.days, incoming.days)}
-    </div>
-    <p class="tiny" style="margin:12px 0 16px">The save being replaced is kept, so this is undoable once.</p>
+      ${row('from', 'this device', esc(incoming.kind))}${row('name', esc(me.name), esc(incoming.name))}${row('level', me.level, incoming.level)}
+      ${row('solved', me.solved, incoming.solved)}${row('builds', me.builds, incoming.builds)}</div>
+    <p class="tiny" style="margin:12px 0 16px">The save being replaced is kept, so this can be undone once.</p>
     <button class="btn primary block" data-yes>Restore it</button>
     <button class="btn ghost block sm" style="margin-top:8px" data-no>Cancel</button>`,
     (d, close) => {
       d.querySelector('[data-no]').onclick = close;
       d.querySelector('[data-yes]').onclick = () => {
-        const r = importSave(text);
-        close();
-        if (!r.ok) { toast(r.error); return; }
+        const r = importSave(text); close();
+        if (!r.ok) { toast(esc(r.error)); return; }
         closeParent?.(); toast('Restored'); rerender();
       };
     });
 }
 
-/* ---------------------------------- mount --------------------------------- */
+/* --------------------------------- render --------------------------------- */
+
+export function render() {
+  const unsaved = !saveHealthy() ? `<div class="card warn-card"><div class="h3">⚠ Saving is failing</div>
+    <div class="tiny">Storage is full or blocked, so changes are not being kept. Download a backup now.</div>
+    <button class="btn hot block sm" style="margin-top:10px" data-act="backup">Back up now</button></div>` : '';
+  return `<div class="stack s4 fade-up">
+    ${unsaved}${head()}${trackBadges()}${tiles()}${charts()}
+    <div><div class="label" style="margin-bottom:8px">Accounts</div>${accounts()}</div>
+    <div><div class="label" style="margin-bottom:8px">Tracks</div>${tracks()}</div>
+    <div>${gear()}</div>
+    <div>${achievements()}</div>
+    <div>${shop()}</div>
+    <div><div class="label" style="margin-bottom:8px">Settings</div>${settings()}</div>
+    ${trackOn('robotics') ? `<div class="card sunk credits"><div class="label">Credits</div>
+      <div class="sub" style="margin-top:6px">The robotics roadmap — every month, task, resource and price — is from
+        <a href="${esc(SOURCE.url)}" target="_blank" rel="noopener">“${esc(SOURCE.title)}” by ${esc(SOURCE.author)}</a>, summarised in shorter words.</div></div>` : ''}
+    <button class="card tap pad-s danger" data-act="reset"><div class="h3">Reset everything</div><div class="tiny">Deletes all progress on this device.</div></button>
+    <div class="tiny center">Codify ${APP_VERSION} · ${TRACK_IDS.length} tracks</div>
+  </div>`;
+}
 
 export function mount(root, rerender) {
   bind(root, {
-    edit:    () => openProfileEditor(rerender),
-    cf:      () => openCodeforces(rerender),
-    gh:      () => openGithub(rerender),
-    sync:    async (el) => {
-      el.textContent = 'Syncing…';
-      const r = await syncAll({ force: true });
-      toast(describeSync(r), 3400);
-      rerender();
-    },
+    profile: () => openProfile(rerender),
+    cf:      () => openAccount('cf', rerender),
+    gh:      () => openAccount('gh', rerender),
     backup:  () => openBackup(rerender),
+    sync:    async el => { el.textContent = 'Syncing…'; const r = await syncAll({ force: true }); toast(esc(describeSync(r)), 3200); rerender(); },
+    sound:   () => { S.settings.sound = !S.settings.sound; saveProfile({}); },
+    motion:  () => { S.settings.reduceMotion = !S.settings.reduceMotion; saveProfile({}); },
+    freeze:  () => { if (buyFreeze()) { sfx('reward'); toast('Streak freeze bought'); } },
     install: async () => {
       if (canInstall()) { await promptInstall(); return; }
-      sheet('Install Codify', `
-        <p class="sub">This browser gives no install button, so here is the manual route.</p>
-        <div class="stack s2" style="margin-top:14px">
-          <div class="card pad-s"><div class="h3">iPhone — Safari</div>
-            <div class="tiny">Share → Add to Home Screen.</div></div>
-          <div class="card pad-s"><div class="h3">Android — Chrome</div>
-            <div class="tiny">Menu → Install app.</div></div>
-          <div class="card pad-s"><div class="h3">Desktop — Chrome / Edge</div>
-            <div class="tiny">The install icon in the address bar.</div></div>
-        </div>`);
+      sheet('Install Codify', `<p class="sub">On iPhone: Share → Add to Home Screen. On Android Chrome: menu → Install app.
+        On desktop Chrome or Edge: the install icon in the address bar.</p>`);
     },
-    sound:  () => { S.settings.sound = !S.settings.sound; sfx('tick'); rerender(); },
-    motion: () => { S.settings.reduceMotion = !S.settings.reduceMotion; rerender(); },
-    freeze: () => { if (buyFreeze()) { sfx('reward'); toast('Freeze bought'); rerender(); }
-                    else toast('Not enough credits.'); },
-    reset:  () => {
-      dialog(`<div class="h2">Reset everything?</div>
-        <p class="sub" style="margin:12px 0 8px">Every level, tier, contest and record on this
-          device is deleted. Your Codeforces history is untouched and can be pulled again,
-          but everything this app built on top of it is gone.</p>
-        <p class="tiny" style="margin-bottom:20px">Export a backup first if you are unsure.</p>
-        <button class="btn hot block" data-yes>Delete everything</button>
-        <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep it</button>`,
-        (d, close) => {
-          d.querySelector('[data-no]').onclick = close;
-          d.querySelector('[data-yes]').onclick = () => { close(); resetSave(); location.reload(); };
-        });
-    },
-  });
-
-  $$('[data-loot]', root).forEach(b => b.onclick = () => {
-    const l = LOOT_BY_ID[b.dataset.loot], r = RARITY[l.rarity];
-    dialog(`<div style="font-size:38px">${l.icon}</div>
-      <div class="h2" style="margin-top:10px">${esc(l.name)}</div>
-      <div class="badge" style="margin-top:8px">${r.name} · +${pct(r.bonus * 100)} XP</div>
-      <p class="sub" style="margin-top:14px">${esc(l.flavour)}</p>
-      <button class="btn primary block" style="margin-top:18px" data-ok>Close</button>`,
-      (d, close) => { d.querySelector('[data-ok]').onclick = close; });
-  });
-
-  $$('[data-theme]', root).forEach(b => b.onclick = () => {
-    const id = b.dataset.theme, t = themeFor(id);
-    if (ownsTheme(id)) { selectTheme(id); sfx('tick'); rerender(); return; }
-    if (S.coins < t.cost) { toast(`${t.cost - S.coins} more credits needed.`); return; }
-    dialog(`<div class="h2">Buy ${esc(t.name)}?</div>
-      <div class="sw-big" style="background:${t.accent};margin:16px auto"></div>
-      <p class="sub">${t.cost} credits. You have ${fmt(S.coins)}.</p>
-      <button class="btn primary block" style="margin-top:16px" data-yes>Buy it</button>
-      <button class="btn ghost block sm" style="margin-top:8px" data-no>Not now</button>`,
+    reset: () => dialog(`<div class="h2">Reset everything?</div>
+      <p class="sub" style="margin:10px 0 18px">Every level, streak, solve record and build on this device goes. Download a backup first if you are unsure.</p>
+      <button class="btn hot block" data-yes>Delete my progress</button>
+      <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep it</button>`,
       (d, close) => {
         d.querySelector('[data-no]').onclick = close;
-        d.querySelector('[data-yes]').onclick = () => { buyTheme(id); close(); sfx('reward'); confetti(50); rerender(); };
-      });
+        d.querySelector('[data-yes]').onclick = () => { close(); resetSave(); location.reload(); };
+      }),
+  });
+  root.querySelectorAll('[data-track]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.track;
+      if (!setTrack(id, !trackOn(id))) toast('At least one track has to stay on.');
+    };
+  });
+  root.querySelectorAll('[data-theme]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.theme;
+      if (ownsTheme(id)) selectTheme(id);
+      else if (buyTheme(id)) { confetti(60); sfx('reward'); toast('New accent unlocked'); }
+      else toast('Not enough credits yet.');
+    };
   });
 }

@@ -216,9 +216,10 @@ export function rewardToast(r) {
       sfx('achieve');
     }, 400);
   }
-  for (const lvl of r.levelUps || []) {
-    setTimeout(() => levelUpDialog(lvl), 500);
-  }
+  // A boss win can jump several levels at once. One dialog for where you landed,
+  // not one per level — four "Keep going" taps in a row is a chore, not a reward.
+  const ups = r.levelUps || [];
+  if (ups.length) setTimeout(() => levelUpDialog(Math.max(...ups), ups.length), 500);
 }
 
 export function floater(text, x, y) {
@@ -233,16 +234,17 @@ export function floater(text, x, y) {
 
 /* -------------------------------- level up -------------------------------- */
 
-export function levelUpDialog(level) {
+export function levelUpDialog(level, gained = 1) {
   import('./game.js').then(({ rankFor, nextRank }) => {
     const rank = rankFor(level);
     const next = nextRank(level);
-    const isNewRank = rank.at === level;
+    // A new rank if its threshold was crossed anywhere inside this jump.
+    const isNewRank = rank.at > level - gained;
     sfx('levelup');
     confetti(isNewRank ? 140 : 70);
     dialog(`
       <div style="font-size:44px;line-height:1;color:${rank.color}">${rank.icon}</div>
-      <div class="label" style="margin-top:12px">${isNewRank ? 'New rank' : 'Level up'}</div>
+      <div class="label" style="margin-top:12px">${isNewRank ? 'New rank' : 'Level up'}${gained > 1 ? ` · +${gained} levels` : ''}</div>
       <div class="h1 num" style="margin-top:4px">LEVEL ${level}</div>
       <div class="h3" style="color:${rank.color};margin-top:6px">${esc(rank.name)}</div>
       ${next ? `<div class="sub" style="margin-top:10px">Next: ${esc(next.name)} at level ${next.at}</div>` : ''}

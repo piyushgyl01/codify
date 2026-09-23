@@ -1,7 +1,7 @@
 {
-  "name": "Codify — Engineering RPG",
+  "name": "Codify — Tech RPG",
   "short_name": "Codify",
-  "description": "Deliberate practice, spaced retests, and an honest measure of what you actually retained.",
+  "description": "One character across programming and robotics, paid only for work that can be checked.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

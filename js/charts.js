@@ -168,8 +168,10 @@ export function barRows(rows, { max = null, showValue = v => v } = {}) {
 
 /** HTML labels laid along the x-axis at bar centres. */
 function axisLabels(data, every) {
+  const last = data.length - 1;
+  // A regular tick too close to the final label would print on top of it.
   const marks = data.map((d, i) =>
-    (i % every === 0 || i === data.length - 1) && d.axis
+    (i === last || (i % every === 0 && last - i >= every / 2)) && d.axis
       ? `<span style="left:${((i + 0.5) / data.length) * 100}%">${esc(d.axis)}</span>` : '',
   ).join('');
   return marks.trim() ? `<div class="chart-axis">${marks}</div>` : '';

@@ -1,7 +1,6 @@
 /**
- * Inline SVG for functional chrome. Everything else in this app uses typographic
- * marks (◈ ⬢ ▲) rather than pictures, so this set is deliberately small — only
- * the places where a glyph would be ambiguous at 20px.
+ * Inline SVG for functional chrome — the places where an emoji would be
+ * ambiguous at 20px. Everything with personality (ranks, months, gear) is emoji.
  *
  * Returns a raw-marked object, not a string: the `h` template escapes plain
  * interpolations, so returning a string would print SVG source as text.
@@ -36,6 +35,18 @@ const P = {
   up:      '<path d="M12 20V7M6.5 12.5 12 7l5.5 5.5"/><path d="M4.5 4h15"/>',
   info:    '<circle cx="12" cy="12" r="8.6"/><path d="M12 11v5.5"/><circle cx="12" cy="7.9" r="0.9" fill="currentColor"/>',
   warn:    '<path d="M12 4 2.8 20h18.4z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.4" r="0.9" fill="currentColor"/>',
+  map:     '<path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/>',
+  wrench:  '<path d="M20 7.5a4.5 4.5 0 0 1-6 4.2L7 18.8a1.9 1.9 0 0 1-2.7-2.7l7-7.1A4.5 4.5 0 0 1 16.5 3l-2.6 2.6.9 2.6 2.6.9L20 6.5"/>',
+  heart:   '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0 1 12 7.3 4.3 4.3 0 0 1 19.5 10c0 5.4-7.5 10-7.5 10Z"/>',
+  ext:     '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+  repo:    '<circle cx="6" cy="5" r="2"/><circle cx="6" cy="19" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 7v10M18 10c0 4-6 3-6 7"/>',
+  stop:    '<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+  book:    '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5"/>',
+  back:    '<path d="m15 5-7 7 7 7"/>',
+  code:    '<path d="m8 6-5 6 5 6M16 6l5 6-5 6"/>',
+  robot:   '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V4.5M9.5 12.5v1M14.5 12.5v1M10 16h4"/>',
+  grid:    '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
+  copy:    '<rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',
 };
 
 export function icon(name, size = 20, extra = '') {

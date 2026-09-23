@@ -1,214 +1,132 @@
-/** First run: a name, a goal, and the account that makes any of this real. */
-import { S, saveProfile, linkCodeforces, THEMES, selectTheme, applyTheme } from '../state.js';
-import { GOALS } from '../game.js';
-import { TOPICS, TIERS } from '../data/skilltree.js';
-import { checkHandle } from '../platforms.js';
-import { syncAll } from '../sync.js';
-import { h, raw, esc, $, $$, sfx, haptic, confetti, toast } from '../ui.js';
+/** First run: who you are, which tracks, which accounts, and how long a day is. */
+import { S, saveProfile, linkGithub, TRACK_IDS } from '../state.js';
+import { TRACKS } from '../tracks/index.js';
+import { linkCodeforces, setDailySolves } from '../tracks/cp/actions.js';
+import { checkHandle } from '../tracks/cp/codeforces.js';
+import { checkGithub } from '../platforms.js';
+import { setStart } from '../tracks/robotics/actions.js';
+import { dayKey } from '../game.js';
+import { h, raw, esc, bind, $, confetti, sfx, toast } from '../ui.js';
 
 let step = 0;
-const draft = { name:'', goal:'levelup', theme:'cobalt' };
-let checking = false;
+const draft = { name:'', tracks:[...TRACK_IDS], handle:'', github:'', focusGoal:120, solves:2 };
+
+const GOALS = [
+  { min:60,  name:'One hour',    desc:'Alongside a demanding job.' },
+  { min:120, name:'Two hours',   desc:'Steady, serious progress.' },
+  { min:180, name:'Three hours', desc:'Pushing hard.' },
+];
+
+function splash() {
+  return `<div class="ob-splash">
+    <div class="ob-mark">CODIFY</div>
+    <div class="h2" style="margin-top:22px">Tech, as an RPG.</div>
+    <p class="sub" style="margin:12px auto 0;max-width:340px">One character that levels up across everything you learn.
+      It only pays for what it can check — a judge's verdict, a graded answer, a commit, a timed minute.</p>
+    <div class="stack s2" style="margin-top:20px;text-align:left">${TRACKS.map(t => `
+      <div class="card pad-s rail" style="--rail:${t.color}"><div class="h3">${t.icon} ${esc(t.name)}</div>
+        <div class="tiny" style="margin-top:2px">${esc(t.tagline)}</div></div>`).join('')}</div>
+    <button class="btn primary block" style="margin-top:22px" data-act="next">Start</button>
+  </div>`;
+}
+
+const nameStep = () => h`
+  <div class="label">1 of 4</div>
+  <div class="h1" style="margin-top:8px">What should we call you?</div>
+  <div class="field" style="margin-top:20px"><label for="ob-name">Name</label>
+    <input class="input" id="ob-name" maxlength="32" autocomplete="given-name" value="${draft.name}" placeholder="Your name"></div>
+  <button class="btn primary block" style="margin-top:20px" data-act="next">Next</button>`;
+
+function tracksStep() {
+  return `<div class="label">2 of 4</div>
+    <div class="h1" style="margin-top:8px">What are you levelling?</div>
+    <p class="sub" style="margin-top:10px">Pick one or both. You can switch tracks on or off any time in Hero — the character stays the same.</p>
+    <div class="stack" style="margin-top:16px">${TRACKS.map(t => `
+      <button class="card tap opt ${draft.tracks.includes(t.id) ? 'on' : ''}" data-track="${t.id}">
+        <div class="between"><div class="h3">${t.icon} ${esc(t.name)}</div><span class="badge">${draft.tracks.includes(t.id) ? '✓ on' : 'off'}</span></div>
+        <div class="tiny" style="margin-top:4px">${esc(t.tagline)}</div>
+        <div class="tiny" style="margin-top:4px">Checks: ${esc(t.checks)}.</div>
+      </button>`).join('')}</div>
+    <button class="btn primary block" style="margin-top:20px" data-act="next">Next</button>`;
+}
+
+function accountsStep() {
+  const cp = draft.tracks.includes('cp'), ro = draft.tracks.includes('robotics');
+  return h`<div class="label">3 of 4</div>
+    <div class="h1" style="margin-top:8px">Where does your work live?</div>
+    <p class="sub" style="margin-top:10px">Public accounts only, no sign-in. These are what the app reads to check your work.</p>
+    ${raw(cp ? `<div class="field" style="margin-top:18px"><label for="ob-cf">Codeforces handle</label>
+      <input class="input" id="ob-cf" autocapitalize="off" spellcheck="false" value="${esc(draft.handle)}" placeholder="tourist"></div>
+      <div class="tiny" style="margin-top:6px">Every tier and contest in Programming is read from your accepted submissions.</div>` : '')}
+    <div class="field" style="margin-top:18px"><label for="ob-gh">GitHub username${raw(ro ? '' : ' <span class="tiny">(optional)</span>')}</label>
+      <input class="input" id="ob-gh" autocapitalize="off" spellcheck="false" value="${draft.github}" placeholder="octocat"></div>
+    <div class="tiny" style="margin-top:6px">${ro ? 'Robotics builds are verified against your public repos. Public commits also earn XP.' : 'Public commits earn XP.'}</div>
+    <button class="btn primary block" style="margin-top:20px" data-act="accounts">Next</button>
+    <button class="btn ghost block sm" style="margin-top:8px" data-act="skip">Skip — add them later in Hero</button>`;
+}
+
+function goalStep() {
+  const cp = draft.tracks.includes('cp');
+  return `<div class="label">4 of 4</div>
+    <div class="h1" style="margin-top:8px">How long is a day?</div>
+    <p class="sub" style="margin-top:10px">Your focus-timer goal, shared by every track.</p>
+    <div class="stack" style="margin-top:16px">${GOALS.map(g => `
+      <button class="card tap opt ${draft.focusGoal === g.min ? 'on' : ''}" data-goal="${g.min}">
+        <div class="between"><div class="h3">${g.name}</div><div class="num h3">${g.min} min</div></div>
+        <div class="tiny" style="margin-top:4px">${g.desc}</div></button>`).join('')}</div>
+    ${cp ? `<div class="label" style="margin-top:18px">Problems a day</div>
+      <div class="seg" style="margin-top:8px">${[1, 2, 3, 4].map(n => `<button class="${draft.solves === n ? 'on' : ''}" data-solves="${n}">${n}</button>`).join('')}</div>` : ''}
+    <button class="btn primary block" style="margin-top:20px" data-act="finish">Begin</button>`;
+}
 
 export function render() {
-  return h`<div class="onboard">${raw(
-    step === 0 ? splash() :
-    step === 1 ? askName() :
-    step === 2 ? askGoal() :
-                 askHandle()
-  )}</div>`;
-}
-
-const splash = () => `
-  <div class="ob-splash">
-    <div class="ob-mark">&lt;/&gt;</div>
-    <div class="h1" style="margin-top:22px">CODIFY</div>
-    <div class="h3" style="color:var(--dim);margin-top:8px">An RPG where the XP is real.</div>
-
-    <div class="card" style="margin-top:24px;text-align:left">
-      <div class="label">How it works</div>
-      <ol class="ob-list">
-        <li>You solve problems on Codeforces, like you already would.</li>
-        <li>This reads your accepted submissions from their public API.</li>
-        <li>Levels, tiers, streaks and loot come from that — not from anything you type.</li>
-      </ol>
-    </div>
-
-    <div class="card sunk" style="margin-top:12px;text-align:left">
-      <div class="label">What it will not do</div>
-      <p class="sub" style="margin-top:8px">
-        Take your word for it. There is no "mark as done" button anywhere in this app.
-        You can still jot notes, but notes pay nothing and are labelled as such.
-      </p>
-    </div>
-
-    <div class="wrap" style="justify-content:center;margin-top:20px">
-      <span class="badge">${TOPICS.length} topics</span>
-      <span class="badge">${TOPICS.length * TIERS.length} tiers</span>
-      <span class="badge">5 contests</span>
-    </div>
-
-    <button class="btn primary block" style="margin-top:22px" data-next>Start</button>
-  </div>`;
-
-const askName = () => wrap('What should we call you?',
-  'Stored on this device and nowhere else.', `
-  <input class="input" id="ob-name" placeholder="Your name" maxlength="24"
-         value="${esc(draft.name)}" autocomplete="off">
-  <div class="section">
-    <div class="label">Accent</div>
-    <div class="pill-row" style="margin-top:8px">
-      ${THEMES.filter(t => t.cost === 0).map(t => `
-        <button class="pill ${draft.theme === t.id ? 'on' : ''}" data-theme="${t.id}">
-          <span class="dot" style="background:${t.accent}"></span>${t.name}</button>`).join('')}
-    </div>
-  </div>`);
-
-const askGoal = () => wrap('How hard are you going at this?',
-  'Sets the daily target. Both numbers are things the app can check.', `
-  <div class="stack s2">
-    ${GOALS.map(g => `
-      <button class="card tap opt ${draft.goal === g.id ? 'on' : ''}" data-goal="${g.id}">
-        <div class="between">
-          <div class="row" style="gap:10px">
-            <span class="ob-glyph">${g.icon}</span>
-            <div><div class="h3">${g.name}</div><div class="tiny">${esc(g.desc)}</div></div>
-          </div>
-          <div class="right">
-            <div class="num h3">${g.solves}/day</div>
-            <div class="tiny">${g.minutes}m</div>
-          </div>
-        </div>
-      </button>`).join('')}
-  </div>`);
-
-const askHandle = () => `
-  <div class="ob-progress">${Array.from({ length: 3 }, (_, i) => `<i class="${i < 3 ? 'on' : ''}"></i>`).join('')}</div>
-  <div class="h2" style="margin-top:20px">Connect Codeforces</div>
-  <p class="sub" style="margin-top:8px">
-    Your handle only. No password, no token — the app reads the same public API
-    anyone can. This is where every point in the game comes from.
-  </p>
-
-  <div class="field" style="margin-top:18px">
-    <label>Codeforces handle</label>
-    <input class="input" id="ob-handle" placeholder="tourist" autocapitalize="none"
-           autocorrect="off" spellcheck="false">
-    <div class="tiny" id="ob-status" style="min-height:18px"></div>
-  </div>
-
-  <button class="btn primary block" style="margin-top:14px" data-link>Connect and sync</button>
-  <button class="btn ghost block sm" style="margin-top:8px" data-skip>Skip — I will connect later</button>
-
-  <div class="card sunk" style="margin-top:18px">
-    <div class="tiny">Without an account connected the app has nothing to measure, so
-      levels and tiers will sit at zero. You can add it any time from the Hero tab.</div>
-  </div>`;
-
-function wrap(title, sub, body) {
-  return `
-    <div class="ob-progress">${Array.from({ length: 3 }, (_, i) =>
-      `<i class="${i <= step - 1 ? 'on' : ''}"></i>`).join('')}</div>
-    <div class="h2" style="margin-top:20px">${title}</div>
-    <p class="sub" style="margin-top:8px">${sub}</p>
-    <div style="margin-top:20px">${body}</div>
-    <div class="row" style="margin-top:24px">
-      ${step > 1 ? '<button class="btn ghost" data-back>Back</button>' : ''}
-      <button class="btn primary grow" data-next>Continue</button>
-    </div>`;
-}
-
-function finish(rerender) {
-  saveProfile({ ...draft, onboarded: true, created: new Date().toISOString().slice(0, 10) });
-  selectTheme(draft.theme);
-  sfx('levelup'); confetti(110);
-  rerender();
+  const pages = [splash, nameStep, tracksStep, accountsStep, goalStep];
+  const dots = step > 0 ? `<div class="ob-progress" style="margin-bottom:22px">${[1, 2, 3, 4].map(i => `<i class="${i <= step ? 'on' : ''}"></i>`).join('')}</div>` : '';
+  return `<div class="onboard fade-up">${dots}${pages[step]()}</div>`;
 }
 
 export function mount(root, rerender) {
-  const collect = () => {
-    const n = $('#ob-name', root);
-    if (n) draft.name = n.value.trim().slice(0, 24);
-  };
-
-  $('[data-next]', root)?.addEventListener('click', () => {
-    collect(); step = Math.min(3, step + 1); sfx('tick'); rerender();
+  const next = () => { step++; sfx('tick'); rerender(); };
+  bind(root, {
+    next: () => {
+      const n = $('#ob-name', root);
+      if (n) { draft.name = n.value.trim().slice(0, 32); if (!draft.name) { n.focus(); return; } }
+      if (step === 2 && !draft.tracks.length) { toast('Pick at least one track.'); return; }
+      next();
+    },
+    skip: () => { draft.handle = ''; draft.github = ''; next(); },
+    accounts: async el => {
+      draft.handle = $('#ob-cf', root)?.value.trim() || '';
+      draft.github = $('#ob-gh', root)?.value.trim().replace(/^@/, '') || '';
+      el.disabled = true; el.textContent = 'Checking…';
+      try {
+        if (draft.handle) draft.cf = await checkHandle(draft.handle);
+        if (draft.github) draft.gh = await checkGithub(draft.github);
+        next();
+      } catch (err) {
+        toast(esc(err.message), 4000);
+        el.disabled = false; el.textContent = 'Next';
+      }
+    },
+    finish: () => {
+      if (draft.cf) linkCodeforces(draft.cf);
+      if (draft.gh) linkGithub(draft.gh);
+      setDailySolves(draft.solves);
+      setStart(dayKey());
+      saveProfile({ name: draft.name, tracks: draft.tracks, focusGoal: draft.focusGoal, onboarded: true });
+      step = 0; confetti(90); sfx('levelup');
+    },
   });
-  $('[data-back]', root)?.addEventListener('click', () => {
-    collect(); step = Math.max(0, step - 1); rerender();
-  });
-
-  $$('[data-theme]', root).forEach(b => b.onclick = () => {
-    draft.theme = b.dataset.theme;
-    S.profile.theme = draft.theme; applyTheme();
-    $$('[data-theme]', root).forEach(x => x.classList.toggle('on', x === b));
-    haptic(6);
-  });
-
-  $$('[data-goal]', root).forEach(b => b.onclick = () => {
-    draft.goal = b.dataset.goal;
-    $$('[data-goal]', root).forEach(x => x.classList.toggle('on', x === b));
-    sfx('tick'); haptic(6);
-    setTimeout(() => { step = 3; rerender(); }, 140);
-  });
-
-  $('[data-skip]', root)?.addEventListener('click', () => finish(rerender));
-
-  $('[data-link]', root)?.addEventListener('click', async () => {
-    if (checking) return;
-    const input = $('#ob-handle', root);
-    const status = $('#ob-status', root);
-    const handle = input.value.trim();
-    if (!handle) { status.textContent = 'Enter your handle first.'; return; }
-
-    checking = true;
-    status.textContent = 'Checking…';
-    try {
-      const user = await checkHandle(handle);
-      linkCodeforces(user);
-      status.textContent = `Found ${user.handle}${user.rating ? ` · rating ${user.rating}` : ''}. Syncing…`;
-      finish(rerender);
-      const r = await syncAll({ force: true });
-      const n = r.cf?.fresh?.length || 0;
-      toast(n ? `Pulled ${n} solved problems` : 'Connected — no solves found yet', 3600);
+  root.querySelectorAll('[data-track]').forEach(b => {
+    b.onclick = () => {
+      const id = b.dataset.track;
+      draft.tracks = draft.tracks.includes(id) ? draft.tracks.filter(t => t !== id) : TRACK_IDS.filter(t => [...draft.tracks, id].includes(t));
       rerender();
-    } catch (err) {
-      status.textContent = err.message;
-    } finally {
-      checking = false;
-    }
+    };
   });
-}
-
-/** Re-open the goal and name questions from the Hero tab. */
-export function openProfileEditor(rerender) {
-  import('../ui.js').then(({ sheet }) => {
-    const p = S.profile;
-    sheet('Edit profile', `
-      <div class="field">
-        <label>Name</label>
-        <input class="input" id="pe-name" maxlength="24" value="${esc(p.name)}">
-      </div>
-      <div class="field" style="margin-top:16px">
-        <label>Daily goal</label>
-        <div class="stack s2">
-          ${GOALS.map(g => `<button class="card tap pad-s opt ${p.goal === g.id ? 'on' : ''}" data-goal="${g.id}">
-            <div class="between"><div><div class="h3">${g.icon} ${g.name}</div>
-            <div class="tiny">${esc(g.desc)}</div></div>
-            <div class="num h3">${g.solves}/day</div></div></button>`).join('')}
-        </div>
-      </div>
-      <button class="btn primary block" style="margin-top:20px" data-save>Save</button>
-    `, (el, close) => {
-      let goal = p.goal;
-      $$('[data-goal]', el).forEach(b => b.onclick = () => {
-        goal = b.dataset.goal;
-        $$('[data-goal]', el).forEach(x => x.classList.toggle('on', x === b));
-      });
-      $('[data-save]', el).onclick = () => {
-        saveProfile({ name: $('#pe-name', el).value.trim().slice(0, 24), goal });
-        close(); rerender();
-      };
-    });
+  root.querySelectorAll('[data-goal]').forEach(b => { b.onclick = () => { draft.focusGoal = +b.dataset.goal; rerender(); }; });
+  root.querySelectorAll('[data-solves]').forEach(b => { b.onclick = () => { draft.solves = +b.dataset.solves; rerender(); }; });
+  root.querySelector('input')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') root.querySelector('[data-act="next"],[data-act="accounts"]')?.click();
   });
 }

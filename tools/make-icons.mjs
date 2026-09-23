@@ -61,8 +61,8 @@ function encodePng(width, height, rgba) {
 
 /* --------------------------------- shapes --------------------------------- */
 
-const ACCENT = [0xb8, 0xf0, 0x2d];   // lime, the default theme
-const PLATE  = [0xff, 0xf8, 0xe8];   // paper
+const ACCENT = [0x12, 0x10, 0x0e];   // ink — the mark
+const PLATE  = [0xb8, 0xf0, 0x2d];   // lime, the default accent
 const EDGE   = [0x12, 0x10, 0x0e];   // ink — the outline everything else gets
 
 /** Inside test for a rounded rect. */
