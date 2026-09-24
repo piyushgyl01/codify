@@ -59,7 +59,7 @@ function tiles() {
     [hm(s.timerMin), 'focus time'], [s.commits, 'commits'], [s.quests, 'quests'],
   ];
   if (trackOn('cp')) t.push([s.solved, 'solved'], [s.bestRating || '—', 'hardest'], [s.contestsWon, 'contests won']);
-  if (trackOn('robotics')) t.push([s.drills, 'drills'], [acc, 'accuracy'], [s.box5, 'in box 5']);
+  if (trackOn('robotics')) t.push([s.missions, 'missions'], [acc, 'accuracy'], [s.skillScore, 'skill score']);
   return `<div class="grid3">${t.map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('')}</div>`;
 }
 
@@ -236,7 +236,7 @@ export function openBackup(rerender) {
       <div class="h3" style="margin-top:6px">${esc(me.name)} · level ${me.level}</div>
       <div class="tiny" style="margin-top:4px">${me.days} days · ${me.solved} solved · ${me.builds} builds · ${me.bosses} bosses</div></div>
     <div class="card sunk" style="margin-top:12px"><div class="tiny">Everything lives in this browser's storage. Solves can be re-read
-      from Codeforces and builds re-checked on GitHub; your streak, boxes and gear cannot.</div></div>
+      from Codeforces and builds re-checked on GitHub; your streak, skill levels and gear cannot.</div></div>
     <button class="btn primary block" style="margin-top:16px" data-download>Download backup</button>
     <button class="btn block sm" style="margin-top:8px" data-copy>Copy as text</button>
     <hr class="rule">

@@ -28,13 +28,13 @@ npm test           # 171 headless assertions
 |---|---|---|
 | A solved problem | Codeforces' public API: verdict, rating, tags, timestamp | Programming |
 | A contest | Accepted timestamps inside the window, at or above the floor | Programming |
-| A drill or boss answer | Graded in code against a number the generator just computed | Robotics |
+| A mission or boss answer | Graded in code against a number the generator just computed, on a clock | Robotics |
 | A build | Your public GitHub folder, checked against the roadmap's portfolio standard | Robotics |
 | A commit | GitHub's public events | Shared |
 | Focus time | The app's own timer — there is no field anywhere to type minutes in | Shared |
 
 A day counts for the streak when something verified happened in it: a solve, a finished
-drill, a commit, or twenty timed minutes.
+mission, a commit, or twenty timed minutes.
 
 ## Tracks
 
@@ -59,16 +59,27 @@ Built on **“How to become a Robotics Engineer in 6 months” by
 [Ronin (@DeRonin_)](https://x.com/DeRonin_)** — six months, 29 topics, 124 resources
 with prices, 28 builds and the article's milestones, summarised and credited.
 
-- **The drill:** five questions a day from 51 skills. Numeric ones draw fresh values every
-  time; answers are read the way people type them (`4.7k`, `4k7`, `2,5`). Skills sit in
-  Leitner boxes (1, 2, 4, 8, 16 days) — due reviews come first.
+- **180 missions, one a day.** The article is cut into days, 30 a month: one focus point
+  to learn (with its links), a check on the skills that go with it, and a step of that
+  part of the month's build — plan, make (the article's own task, stage by stage), test,
+  ship. The 30th day of each month is its boss. Missions follow the ones you have done,
+  not the calendar: miss a day and nothing is skipped.
+- **Skills level up.** Each of the 51 skills has a level from 1 to 10. Higher levels ask
+  more questions with less time on each (level 1: two questions, three minutes each;
+  level 10: seven, 45 seconds). A clean round moves a skill up and spaces it out; one miss
+  keeps it; two drop it a level and bring it back tomorrow. So each day's check is a bit
+  harder than the last time you passed it, and the question budget grows each month
+  (10 → 20). Numeric questions draw fresh values every time; answers are read the way
+  people type them (`4.7k`, `4k7`, `2,5`).
+- **Build steps** count when GitHub shows a push that day — nothing to tick.
 - **Builds** are verified by reading your public GitHub folder: a repo you own, a README
   with 120+ words, a photo or video, a "what broke" section, three or more commits by you,
   plus each build's own evidence (the numbers you measured, the files the task implies,
   and no ROS 1). It checks the evidence exists, not that the robot works — a convincing
   fake costs as much as the real write-up, and the real one is your portfolio.
 - **Bosses:** each month's skills as a fight — 1,000 HP, three hearts, a clock on every
-  question. Beating one opens the next month early; otherwise months open every 30 days.
+  question. Beating one opens the next month early; otherwise a month opens when your
+  missions reach it.
 
 ## Shared across tracks
 
@@ -119,14 +130,14 @@ achievements. Nothing else has to know it exists.
 js/
   main.js router.js       boot; tabs that follow the switched-on tracks
   state.js                the character: save, migrations, rewards, streak, timer, quests
-  game.js                 pure maths: levels, ranks, Leitner boxes, combos
+  game.js                 pure maths: levels, ranks, skill levels, combos
   quiz.js github.js       question grading; build verification against GitHub
   platforms.js sync.js    GitHub events; pulling every linked source
   data/                   gear, achievements, quests — shared by every track
   tracks/cp/              topics, contests, Codeforces, model, actions, hub, today
-  tracks/robotics/        roadmap, skills, bosses, model, actions, player, views
+  tracks/robotics/        roadmap, the 180 missions, skills, bosses, model, actions, player, views
   views/                  home, hero, onboarding, the focus timer
-test/smoke.test.js        171 assertions, with a fake GitHub for the verifier
+test/smoke.test.js        200 assertions, with a fake GitHub for the verifier
 ```
 
 Bump `CACHE_VERSION` in `sw.js` and `APP_VERSION` in `js/version.js` together whenever a

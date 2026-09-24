@@ -7,8 +7,8 @@ import { rankFor, nextRank, dayKey, addDays } from '../game.js';
 import { trackById } from '../tracks/index.js';
 import { openTab as cpTab } from '../tracks/cp/hub.js';
 import { openTab as roTab } from '../tracks/robotics/hub.js';
-import { openDrill } from '../tracks/robotics/player.js';
-import { drillDoneToday } from '../tracks/robotics/actions.js';
+import { openMission } from '../tracks/robotics/player.js';
+import { missionDoneToday } from '../tracks/robotics/actions.js';
 import { h, raw, esc, bind, ring, bar, hm, rewardToast, sfx, shortDate } from '../ui.js';
 import { icon } from '../icons.js';
 import { openFocus } from './focus.js';
@@ -114,7 +114,7 @@ export function mount(root, rerender) {
       if (where === 'timer') openFocus(rerender);
       else if (where === 'hero') go('hero');
       else if (where === 'cp') go('cp');
-      else if (where === 'drill') { if (drillDoneToday()) { roTab('skills'); go('robotics'); } else openDrill(rerender); }
+      else if (where === 'mission') { if (missionDoneToday()) { roTab('today'); go('robotics'); } else openMission(rerender); }
       else if (where === 'practice') { roTab('skills'); go('robotics'); }
     };
   });

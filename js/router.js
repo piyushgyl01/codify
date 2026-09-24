@@ -6,7 +6,7 @@
  * needs more than five buttons however far the app grows.
  */
 import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks } from './state.js';
-import { drillDoneToday } from './tracks/robotics/actions.js';
+import { missionDoneToday } from './tracks/robotics/actions.js';
 import { TRACKS, trackById } from './tracks/index.js';
 import { icon } from './icons.js';
 import { rankFor } from './game.js';
@@ -77,8 +77,8 @@ function topbar() {
 function nav() {
   const day = getDay();
   const claimable = quests().some(q => q.done && !day.claimed.includes(q.id));
-  const drillTodo = enabledTracks().includes('robotics') && !drillDoneToday();
-  const dots = { home: claimable || drillTodo, hero: needsBackup() };
+  const missionTodo = enabledTracks().includes('robotics') && !missionDoneToday();
+  const dots = { home: claimable || missionTodo, hero: needsBackup() };
   return Object.entries(routes()).map(([k, r]) => `
     <button class="${k === current ? 'on' : ''}" data-nav="${k}" aria-current="${k === current ? 'page' : 'false'}">
       <span class="ico">${icon(r.icon, 22).value}</span>${r.label}

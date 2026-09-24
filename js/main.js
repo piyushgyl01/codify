@@ -20,7 +20,7 @@ onSaveError(() => toast('⚠ Could not save — storage is full or blocked. Back
 /* Pull from Codeforces and GitHub on open when linked and the last pull is stale. */
 autoSync(() => rerender());
 
-/* A phone that killed the tab mid-drill comes back to the same question. */
+/* A phone that killed the tab mid-mission comes back to the same question. */
 if (S.profile.onboarded && S.active) resumeSession(rerender);
 
 /* Home-screen shortcuts arrive as ?tab=… — honour them, then tidy the URL. */

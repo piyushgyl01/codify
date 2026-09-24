@@ -42,11 +42,15 @@ export const ACHIEVEMENTS = [
   a('cp', 'contest-1',   '⚔️', 'Beat the clock', 'Win a timed contest',           300,  s => s.contestsWon >= 1),
 
   /* robotics */
-  a('robotics', 'drill1',  '🎯', 'First drill',        'Finish a daily drill',                  50,   s => s.drills >= 1),
-  a('robotics', 'clean1',  '💯', 'Clean sheet',        'Five from five in a drill',             60,   s => s.perfectDrills >= 1),
-  a('robotics', 'clean10', '🏅', 'Ten clean sheets',   'Ten perfect drills',                    250,  s => s.perfectDrills >= 10),
-  a('robotics', 'right100','✔️', 'A hundred right',    '100 correct drill answers',             150,  s => s.correct >= 100),
-  a('robotics', 'right500','✅', 'Five hundred right', '500 correct drill answers',             400,  s => s.correct >= 500),
+  a('robotics', 'drill1',  '🎯', 'First mission',      'Finish a daily mission',                50,   s => s.drills >= 1),
+  a('robotics', 'clean1',  '💯', 'No misses',          'Every answer right in a mission',       60,   s => s.perfectDrills >= 1),
+  a('robotics', 'clean10', '🏅', 'Ten without a miss', 'Ten missions with every answer right',  250,  s => s.perfectDrills >= 10),
+  a('robotics', 'up1',     '📈', 'Levelled up',        'Level up a skill',                      40,   s => (s.levelUps || 0) >= 1),
+  a('robotics', 'm30',     '📅', 'A month of missions','Thirty missions done',                  300,  s => (s.missions || 0) >= 30),
+  a('robotics', 'm90',     '🗓️', 'Halfway',            'Ninety missions done',                  700,  s => (s.missions || 0) >= 90),
+  a('robotics', 'm180',    '🎓', 'The whole roadmap',  'All 180 missions done',                 2000, s => (s.missions || 0) >= 180),
+  a('robotics', 'right100','✔️', 'A hundred right',    '100 correct robotics answers',          150,  s => s.correct >= 100),
+  a('robotics', 'right500','✅', 'Five hundred right', '500 correct robotics answers',          400,  s => s.correct >= 500),
   a('robotics', 'build1',  '🔧', 'Proof',              'Verify your first build on GitHub',     150,  s => s.builds >= 1),
   a('robotics', 'build5',  '🛠️', 'Five builds',        'Five verified builds',                  400,  s => s.builds >= 5),
   a('robotics', 'build14', '🏗️', 'Halfway there',      'Fourteen verified builds',              900,  s => s.builds >= 14),
@@ -55,7 +59,8 @@ export const ACHIEVEMENTS = [
   a('robotics', 'boss6',   '🏆', 'All six',            'Beat every boss',                       2000, s => s.bosses >= 6),
   a('robotics', 'month1',  '📜', 'Month cleared',      'Every milestone of a month, plus its boss', 500, s => s.monthsCleared >= 1),
   a('robotics', 'month6',  '🎓', 'Roboticist',         'Clear all six months',                  4000, s => s.monthsCleared >= 6),
-  a('robotics', 'box10',   '🗄️', 'Deep memory',        'Ten skills in box five',                300,  s => s.box5 >= 10),
+  a('robotics', 'box10',   '🗄️', 'Deep memory',        'Ten skills at level 5 or higher',       300,  s => (s.lvl5 || 0) >= 10),
+  a('robotics', 'lvl10',   '🧠', 'Automatic',          'A skill at level 10',                   400,  s => (s.maxSkill || 0) >= 10),
 ];
 
 /** Botify used different IDs for the achievements the two apps shared. */

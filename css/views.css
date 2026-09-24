@@ -663,3 +663,99 @@ details.explain > summary { padding: var(--s3); }
 .bar-row-k { font-size: 12.5px; font-weight: 700; }
 .bar-row-v { font-size: 12.5px; font-weight: 800; text-align: right; font-variant-numeric: tabular-nums; }
 .bar-row .bar { height: 14px; }
+
+/* -------------------------------- missions -------------------------------- */
+
+/* Today's mission: three numbered steps, each ticked only by something checked. */
+.mission-card { border-top: 8px solid var(--mc); }
+.m-steps { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.m-step {
+  display: flex; align-items: flex-start; gap: 12px;
+  width: 100%; text-align: left;
+  padding: 12px;
+  background: var(--card);
+  border: var(--line-thin) solid var(--ink);
+  border-radius: var(--radius-s);
+}
+.m-step.tap:active { background: var(--sunk); }
+.m-step > svg { flex: none; margin-top: 4px; }
+.m-step > .btn, .m-step > .badge { flex: none; align-self: center; }
+.m-step .h3 { line-height: 1.3; margin-top: 2px; }
+.m-num {
+  width: 28px; height: 28px; flex: none;
+  display: grid; place-items: center;
+  border: var(--line-thin) solid var(--ink); border-radius: 50%;
+  background: var(--sunk);
+  font-weight: 800; font-size: 13px;
+}
+.m-step.done { background: var(--sunk); }
+.m-step.done .m-num { background: var(--acid); font-size: 0; }
+.m-step.done .m-num::after { content: '✓'; font-size: 14px; }
+.m-task { margin-top: 4px; color: var(--ink); font-weight: 600; line-height: 1.45; }
+.ok-line { display: inline-block; margin-top: 8px; padding: 2px 8px; background: var(--acid); border: var(--line-thin) solid var(--ink); border-radius: 999px; color: var(--ink); font-weight: 750; }
+.m-check { margin-top: 6px; }
+.m-go { margin-top: 12px; }
+.m-next { margin-top: 12px; padding-top: 10px; border-top: var(--line-thin) dashed var(--ink); }
+.m-inner .m-steps { margin-top: 12px; }
+
+.lv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.lv-chip {
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  padding: 3px 8px;
+  font-size: 12px; font-weight: 650;
+  background: var(--card);
+  border: var(--line-thin) solid var(--ink); border-radius: 999px;
+}
+.lv-chip b { font-weight: 800; padding: 0 5px; border-radius: 999px; background: var(--yellow); border: 1.5px solid var(--ink); font-size: 11px; }
+.lv-chip.new b { background: var(--cyan); }
+.lv-mini { font-size: 11px; font-weight: 800; padding: 1px 6px; border-radius: 999px; background: var(--yellow); border: 1.5px solid var(--ink); }
+
+.lv-badge {
+  width: 34px; height: 34px; flex: none;
+  display: grid; place-items: center;
+  border: var(--line-thin) solid var(--ink); border-radius: var(--radius-s);
+  font-weight: 800; font-size: 15px;
+}
+.lv-table { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; font-size: 12.5px; font-weight: 600; }
+.lv-table b { display: inline-block; min-width: 44px; }
+
+.big-num { font-size: 36px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; font-variant-numeric: tabular-nums; }
+
+.up-row { display: flex; align-items: flex-start; gap: 12px; padding: 11px var(--s3); border-bottom: var(--line-thin) solid var(--ink); }
+.up-row:last-child { border-bottom: 0; }
+.up-row .h3 { font-size: 14px; line-height: 1.3; }
+.up-n {
+  min-width: 34px; height: 26px; flex: none;
+  display: grid; place-items: center;
+  border: var(--line-thin) solid var(--ink); border-radius: 999px;
+  background: var(--sunk); font-weight: 800; font-size: 12px;
+}
+
+/* The 180-mission map: one row a month, one square a day. */
+.mmap { display: flex; flex-direction: column; gap: 5px; margin-top: 12px; }
+.mmap-row { display: flex; align-items: center; gap: 6px; }
+.mmap-m { width: 22px; flex: none; font-size: 11px; font-weight: 800; }
+.mmap-cells { flex: 1; display: grid; grid-template-columns: repeat(30, 1fr); gap: 2px; }
+.mmap-cells i { aspect-ratio: 1; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--card); }
+.mmap-cells i.done { background: var(--mc); }
+.mmap-cells i.boss { border-radius: 50%; background: var(--sunk); }
+.mmap-cells i.boss.done { background: var(--ink); }
+.mmap-cells i.now { background: var(--accent); animation: blink 1.4s steps(1, end) infinite; }
+
+/* A skill's round, shown when its last question is answered. */
+.round-res {
+  margin: 18px 0 0; padding: 12px;
+  background: var(--sunk);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--radius-s);
+  box-shadow: var(--sh-sm);
+  animation: pop .25s var(--ease) both;
+}
+.round-res.up { background: var(--cyan); }
+.round-res.down { background: var(--orange); }
+.round-res .tiny { color: var(--ink); }
+.pl-segs i.gap { margin-left: 8px; }
+.pl-timebox { display: flex; align-items: center; gap: 10px; padding: 0 var(--gut); }
+.pl-timebox .pl-clock { flex: 1; margin-top: 10px; }
+.pl-timebox [data-left] { margin-top: 10px; min-width: 64px; text-align: right; font-weight: 750; }
+.res-row .h3 { font-size: 14px; }

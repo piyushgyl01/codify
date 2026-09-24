@@ -1,5 +1,5 @@
 /**
- * Skills: the things a drill can actually test.
+ * Skills: the things a mission can actually test.
  *
  * Each skill is a generator, not a fixed question. Numeric ones draw fresh
  * values every time, so the answer to yesterday's divider is no use today —
@@ -804,7 +804,7 @@ const career = t => t.mc([
 
 /**
  * [id, month, topic, name, generator]. Order within a month is the order new
- * skills are introduced in drills — foundations before the things built on them.
+ * skills are introduced in missions — foundations before the things built on them.
  */
 const LIST = [
   ['ohm',        1, 'm1-elec',    'Ohm\'s law',                ohm],

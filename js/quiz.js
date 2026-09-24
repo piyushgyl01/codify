@@ -2,7 +2,7 @@
  * Generating and grading questions.
  *
  * Grading happens here, in code, against a number the generator computed. That
- * is the whole reason drill XP is allowed to exist: you cannot tell this app
+ * is the whole reason mission XP is allowed to exist: you cannot tell this app
  * you got it right, you have to actually get it right.
  */
 import { skillById } from './tracks/robotics/skills.js';

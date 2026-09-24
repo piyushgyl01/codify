@@ -16,7 +16,7 @@ export const TRACKS = [
     tagline:'Codeforces problems at real rating tiers. The judge decides, not you.',
     checks:'accepted submissions on Codeforces', hub: cpHub, today: cpToday },
   { id:'robotics', name:'Robotics', nav:'Robots', icon:'🤖', navIcon:'robot', color:'var(--acid)',
-    tagline:'A six-month roadmap: graded drills, GitHub-verified builds, a boss every month.',
+    tagline:'180 daily missions: learn one thing, prove it, build a step. Skills level up as you go.',
     checks:'graded answers and builds on your GitHub', hub: roHub, today: roToday },
 ];
 

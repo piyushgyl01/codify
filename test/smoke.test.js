@@ -139,31 +139,56 @@ ok('an answer off by 1000× is flagged as a unit slip',
 ok('2% relative tolerance by default', Q.grade({ kind:'num', answer:100 }, '101.9').correct && !Q.grade({ kind:'num', answer:100 }, '103').correct);
 
 
-group('Leitner boxes');
+group('skill levels');
 {
-  let e = null;
-  e = G.review(e, true, '2026-09-01');  ok('first right answer: box 1, due tomorrow', e.box === 1 && e.due === '2026-09-02');
-  e = G.review(e, true, '2026-09-02');  ok('second: box 2, due in two days', e.box === 2 && e.due === '2026-09-04');
-  e = G.review(e, true, '2026-09-04');  ok('third: box 3, due in four', e.box === 3 && e.due === '2026-09-08');
-  e = G.review(e, false, '2026-09-08'); ok('a miss drops it to box 1, due tomorrow', e.box === 1 && e.due === '2026-09-09');
-  for (let i = 0; i < 10; i++) e = G.review(e, true, e.due);
-  ok('box 5 is the ceiling', e.box === 5);
+  let out = G.scoreRound(null, { asked:2, right:2, secs:40 }, '2026-09-01');
+  ok('a new skill played clean goes from level 1 to 2', out.at === 1 && out.to === 2 && out.move === 1);
+  ok('and comes back after its gap', out.entry.due === G.addDays('2026-09-01', G.GAPS[1]));
+  out = G.scoreRound(out.entry, { asked:3, right:2, secs:90 }, '2026-09-02');
+  ok('one wrong: same level, back tomorrow', out.to === 2 && out.move === 0 && out.entry.due === '2026-09-03');
+  out = G.scoreRound(out.entry, { asked:3, right:1, secs:90 }, '2026-09-03');
+  ok('two wrong: down a level, back tomorrow', out.to === 1 && out.move === -1 && out.entry.due === '2026-09-04');
+  out = G.scoreRound(out.entry, { asked:2, right:0 }, '2026-09-04');
+  ok('level 1 is the floor', out.to === 1);
+  ok('the best level is remembered', out.entry.best === 2);
+  let e = out.entry;
+  for (let i = 0; i < 30; i++) e = G.scoreRound(e, { asked: G.roundFor(G.levelOf(e)).n, right: G.roundFor(G.levelOf(e)).n }, e.due).entry;
+  ok('level 10 is the ceiling', G.levelOf(e) === G.MAX_LEVEL);
+  ok('only the last twelve rounds are kept', e.hist.length === 12);
+  ok('an old Leitner box reads as a level', G.levelOf({ box:3, due:'2026-09-01' }) === 3 && G.levelOf(null) === 0);
+  const ns = G.LEVELS.slice(1);
+  ok('higher levels never ask fewer questions', ns.every((l, i) => !i || l[0] >= ns[i - 1][0]));
+  ok('and never allow more time', ns.every((l, i) => !i || (l[1] < ns[i - 1][1] && l[2] < ns[i - 1][2])));
 }
 
-group('picking a drill');
+group('picking reviews');
 {
-  const pool = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
-  const state = { a:{ box:2, due:'2026-09-01' }, b:{ box:1, due:'2026-09-03' }, c:{ box:3, due:'2026-08-30' }, d:{ box:5, due:'2026-12-01' } };
-  const pick = G.pickDrill(pool, state, '2026-09-03', Q.seeded(1));
-  ok('five skills, no repeats', pick.length === 5 && new Set(pick).size === 5);
-  ok('the oldest due review comes first', pick[0] === 'c');
-  ok('due reviews before anything new', pick.slice(0, 3).every(id => ['a', 'b', 'c'].includes(id)));
-  ok('then new skills, in roadmap order', pick[3] === 'e' && pick[4] === 'f');
-  ok('a skill not yet due is left alone', !pick.includes('d'));
-  const tiny = G.pickDrill(['x', 'y'], {}, '2026-09-03');
-  ok('a pool smaller than a drill still fills five', tiny.length === 5);
+  const pool = ['a', 'b', 'c', 'd', 'e'];
+  const st = { a:{ level:2, due:'2026-09-01' }, b:{ level:1, due:'2026-09-03' }, c:{ level:3, due:'2026-08-30' }, d:{ level:5, due:'2026-12-01' } };
+  const pick = G.pickReviews(pool, st, '2026-09-03', 100);
+  ok('the most overdue comes first', pick[0] === 'c');
+  ok('only skills that are due', pick.length === 3 && !pick.includes('d') && !pick.includes('e'));
+  ok('a question budget limits how many', G.pickReviews(pool, st, '2026-09-03', 4).length === 1);
+  ok('skills already in the mission are skipped', !G.pickReviews(pool, st, '2026-09-03', 100, ['c']).includes('c'));
 }
 
+group('the 180 missions');
+{
+  const MS = await import('../js/tracks/robotics/missions.js');
+  ok('180 missions, 30 a month', MS.MISSIONS.length === 180 && R.MONTHS.every(m => MS.MISSIONS.filter(x => x.month === m.n).length === 30));
+  ok('numbered 1 to 180 in order', MS.MISSIONS.every((x, i) => x.n === i + 1));
+  const intro = MS.MISSIONS.flatMap(x => x.skills);
+  ok('every skill is introduced exactly once', intro.length === Sk.SKILLS.length && new Set(intro).size === Sk.SKILLS.length);
+  ok('a skill is introduced in its own month', MS.MISSIONS.every(x => x.skills.every(id => Sk.skillById(id).month === x.month)));
+  ok('every focus point in the article gets a day', MS.MISSIONS.filter(x => x.learn).length === R.TOPICS.reduce((n, t) => n + t.focus.length, 0));
+  ok('the last day of each month is its boss, with nothing else', MS.MISSIONS.filter(x => x.boss).every(x => x.day === 30 && !x.build && !x.skills.length));
+  ok('every other day has a build step', MS.MISSIONS.filter(x => !x.boss).every(x => x.build));
+  const runs = R.BUILDS.map(b => MS.MISSIONS.filter(x => x.build?.id === b.id));
+  ok('every build gets a run of consecutive days', runs.every(r => r.length >= 2 && r.every((x, i) => !i || x.n === r[i - 1].n + 1)));
+  ok('each run starts with planning and ends with shipping', runs.every(r => r[0].build.kind === 'plan' && r.at(-1).build.kind === 'ship'));
+  ok('and every stage of the article\'s task is on some day', R.BUILDS.every((b, i) => MS.stages(b.task).every(st => runs[i].some(x => x.build.text === st || (x.build.text || '').includes(st)))));
+  ok('the daily check grows each month', R.MONTHS.every((m, i) => !i || MS.checkBudget(m.n) > MS.checkBudget(m.n - 1)));
+}
 
 group('GitHub: reading a folder name');
 for (const [input, want] of [
@@ -371,33 +396,53 @@ reset();
 }
 
 /* ============================ robotics: sessions ========================== */
-group('robotics: the daily drill');
+group('robotics: the daily mission');
 reset();
 {
   const rng = Q.seeded(42);
-  const a = Ro.startDrill(undefined, rng);
-  ok('five questions, only from open months', a.qs.length === 5 && a.qs.every(q => Sk.skillById(q.skill).month === 1));
-  ok('starting again resumes rather than rerolling', Ro.startDrill(undefined, rng) === a);
-  while (!Ro.sessionOver()) Ro.answer(rightAnswer(Ro.currentQuestion()), rng);
+  const today = G.dayKey();
+  const m1 = Ro.mission();
+  ok('it starts at mission 1', m1.n === 1 && !m1.done && m1.skills.length >= 1);
+  const a = Ro.startMission(today, rng);
+  ok('its check starts today\'s new skills at level 1', a.groups.every(g => g.isNew && g.level === 1) && a.groups.map(g => g.skill).join() === m1.skills.join());
+  ok('level 1 asks two questions a skill, with three minutes each for a number', a.qs.length === 2 * a.groups.length && a.qs.filter(q => q.kind === 'num').every(q => q.secs === 180));
+  ok('starting again resumes rather than rerolling', Ro.startMission(today, rng) === a);
+  Ro.markShown(1000); Ro.markShown(5000);
+  ok('a question\'s clock starts once, and a reload does not restart it', a.qStartedAt === 1000);
+  a.qStartedAt = Date.now() - 1000 * (a.qs[0].secs + 30);
+  const late = Ro.answer(rightAnswer(Ro.currentQuestion()), rng);
+  ok('a right answer given after time is up counts as wrong', !late.correct);
+  while (!Ro.sessionOver()) { Ro.markShown(); Ro.answer(rightAnswer(Ro.currentQuestion()), rng); }
   const s = Ro.finishSession(rng);
-  ok('five right is a clean sheet that pays', s.perfect && s.reward.xp > 0);
-  ok('the drill counts for the shared streak', St.S.streak.current === 1 && St.dayIsActive());
-  ok('each skill moved to box 1', a.qs.every(q => Ro.skillBox(q.skill) === 1));
-  ok('a second drill the same day is refused', Ro.startDrill() === null);
+  const [g1, g2] = s.groups;
+  ok('the skill with a miss stays at level 1', g1.to === 1 && g1.move === 0);
+  ok('a clean skill goes up to level 2', !g2 || (g2.to === 2 && Ro.skillLevel(g2.skill) === 2));
+  ok('the mission is recorded as done today', Ro.missionsDone() === 1 && Ro.missionDoneToday() && St.S.tracks.robotics.missions[1] === today);
+  ok('it counts for the shared streak', St.S.streak.current === 1 && St.dayIsActive());
+  ok('the skill score is logged for the day', St.S.tracks.robotics.scores[today] === Ro.skillScore() && s.scoreTo === Ro.skillScore());
+  ok('a second mission the same day is refused', Ro.startMission(today) === null);
+  ok('today still shows mission 1, done', Ro.mission().n === 1 && Ro.mission().done);
+
+  const tomorrow = G.addDays(today, 3);  // three days later: nothing is skipped
+  const b = Ro.startMission(tomorrow, rng);
+  ok('a missed day skips nothing: the next one is mission 2', b.n === 2);
+  ok('its check brings back yesterday\'s skills as well as today\'s new ones',
+    b.groups.some(g => !g.isNew) && Ro.mission(tomorrow).skills.every(id => b.groups.some(g => g.skill === id)));
+  while (!Ro.sessionOver()) Ro.answer(wrongAnswer(Ro.currentQuestion()), rng);
+  const bad = Ro.finishSession(rng);
+  ok('a bad day still counts as done, and levels drop where they should', Ro.missionsDone() === 2 && bad.groups.every(g => g.to === Math.max(1, g.level - (g.n >= 2 ? 1 : 0))));
 }
 
 group('robotics: practice');
 {
   const rng = Q.seeded(9);
+  const before = Ro.skillLevel('ohm');
   Ro.startPractice('lipo', undefined, rng);
   while (!Ro.sessionOver()) Ro.answer(rightAnswer(Ro.currentQuestion()), rng);
   Ro.finishSession();
-  const box = Ro.skillBox('lipo');
-  Ro.startPractice('lipo', undefined, rng);
-  while (!Ro.sessionOver()) Ro.answer(rightAnswer(Ro.currentQuestion()), rng);
-  Ro.finishSession();
-  ok('practice introduces a skill but never moves it further', box === 1 && Ro.skillBox('lipo') === 1);
+  ok('practice starts a skill you had not met, at level 1', Ro.skillLevel('lipo') === 1);
   for (let k = 0; k < 8; k++) { Ro.startPractice('ohm', undefined, rng); while (!Ro.sessionOver()) Ro.answer(rightAnswer(Ro.currentQuestion()), rng); Ro.finishSession(); }
+  ok('practice never moves a level', Ro.skillLevel('ohm') === before);
   ok(`practice XP stops at ${Ro.XP.practiceCap} a day`, Ro.roboDay().practiceXp === Ro.XP.practiceCap);
   ok('practice for a locked month is refused', Ro.startPractice('fk') === null);
 }
@@ -405,6 +450,7 @@ group('robotics: practice');
 group('robotics: months opening');
 ok('day 0: month 1 only', RM.unlockedMonths('2026-09-01', '2026-09-01').join() === '1');
 ok('day 30: month 2 by date', RM.unlockedMonths('2026-09-01', '2026-10-01').join() === '1,2');
+ok('mission 31: month 2, whatever the date', RM.unlockedMonths('2026-09-01', '2026-09-02', {}, 31).join() === '1,2');
 ok('beating boss 1 opens month 2 early', RM.unlockedMonths('2026-09-01', '2026-09-05', { 1:true }).join() === '1,2');
 ok('boss 2 cannot open month 3 while month 2 is shut', RM.unlockedMonths('2026-09-01', '2026-09-05', { 2:true }).join() === '1');
 
@@ -413,7 +459,7 @@ group('robotics: bosses');
   const m1 = Sk.skillsIn(1).map(s => s.id);
   for (const id of m1) delete St.S.tracks.robotics.skills[id];
   ok('not ready until every skill has been met', !Ro.bossReady(1).ok);
-  for (const id of m1) St.S.tracks.robotics.skills[id] = { box:1, due:'2099-01-01', seen:1, right:1, wrong:0 };
+  for (const id of m1) St.S.tracks.robotics.skills[id] = { level:1, due:'2099-01-01', seen:1, right:1, wrong:0, hist:[] };
   ok('not ready without a verified build', !Ro.bossReady(1).ok && /build/.test(Ro.bossReady(1).why));
   Ro.applyVerification('b02', { owner:'t', repo:'r', path:'m' }, { ok:true, verified:true, checks:[], meta:{ mediaTop:true } });
   ok('ready once both are true', Ro.bossReady(1).ok);
@@ -429,6 +475,15 @@ group('robotics: bosses');
   ok('eight straight right answers bring it down', won.won && won.results.length <= 8);
   ok('a boss drops rare-or-better bench gear', won.drop && L.RARITY[won.drop.rarity].rank >= 1 && won.drop.set === 'bench');
   ok('and month 2 opens today', Ro.isUnlocked(2));
+
+  // Boss day: mission 30 is the fight itself when the boss is ready.
+  delete St.S.tracks.robotics.bosses[1];
+  St.S.tracks.robotics.missions = Object.fromEntries(Array.from({ length: 29 }, (_, i) => [i + 1, '2000-01-01']));
+  const f = Ro.startMission(undefined, rng);
+  ok('mission 30 is the month\'s boss fight', f.mode === 'boss' && f.mission === 30 && f.month === 1);
+  while (!Ro.sessionOver()) Ro.answer(rightAnswer(Ro.currentQuestion()), rng);
+  Ro.finishSession(rng);
+  ok('fighting it completes the mission', Ro.missionsDone() === 30 && Ro.missionDoneToday());
 }
 
 group('robotics: paying for builds');
@@ -483,7 +538,7 @@ group('shared: quests across tracks');
 {
   const ctx = (patch = {}) => ({ key:'2026-10-10', day:{ timerMin:90, timerTagged:90, claimed:[] },
     cp:{ solved:4, ratedSolved:4, bestRating:2000, tags:3 },
-    robo:{ drill:{ score:5, total:5 }, bestRun:5, answered:15, correct:15, practiceCorrect:10 },
+    robo:{ mission:{ score:9, total:9 }, ups:2, bestRun:5, answered:15, correct:15, practiceCorrect:10 },
     commits:3, rating:2000, github:true, usable:['cp', 'robotics'], ...patch });
   const c = ctx();
   ok('every quest in every pool can be finished in one day', Qs.QUESTS.every(q => q.value(c) >= q.goal), Qs.QUESTS.filter(q => q.value(c) < q.goal).map(q => q.id).join());
@@ -559,7 +614,7 @@ group('migration: folding in Botify');
   const r = St.importBotify(JSON.stringify(botify));
   ok('it is accepted as a Botify backup', r.ok && r.summary.kind === 'Botify');
   ok('its robotics progress becomes this robotics track',
-    St.S.tracks.robotics.builds.b01.verified && St.S.tracks.robotics.bosses[1].won && St.S.tracks.robotics.skills.ohm.box === 3 && St.S.tracks.robotics.direction === 'autonomy');
+    St.S.tracks.robotics.builds.b01.verified && St.S.tracks.robotics.bosses[1].won && Ro.skillLevel('ohm') === 3 && St.S.tracks.robotics.direction === 'autonomy');
   ok('its XP is added to yours, not swapped for it', St.S.xp === before.xp + 2000);
   ok('programming progress is untouched', St.S.tracks.cp.solved.length === before.solved);
   ok('gear and achievements are combined, with Botify IDs mapped', St.S.loot.meter && St.S.loot.printer && St.S.earned['streak-7'] && St.S.earned.drill1);
@@ -575,7 +630,8 @@ group('economy, one track played honestly');
 {
   const days = 180;
   const timer = 120, quests = 55 * 3;
-  const drill = 4 * Ro.XP.drillRight * 1.15 + Ro.XP.drillDone + 0.2 * Ro.XP.drillPerfect;
+  // A typical mission: about fourteen questions at 88%, a level-up or two.
+  const drill = 14 * 0.88 * (Ro.XP.right + 3) + 1.5 * Ro.XP.levelUp + Ro.XP.missionDone + 0.2 * Ro.XP.missionClean;
   const robo = ((drill + timer + quests + 20) * days + R.BUILDS.reduce((n, b) => n + R.buildXp(b), 0)
     + R.MONTHS.reduce((n, m) => n + Boss.bossXp(m.n), 0)) * 1.2;
   const cp = ((2 * CM.solveXp(1300) + timer + quests) * days + 40 * T.tierXp({ n: 2 }) + 3 * 450) * 1.2;

@@ -55,46 +55,82 @@ export const RANKS = [
 export const rankFor = level => [...RANKS].reverse().find(r => level >= r.at) || RANKS[0];
 export const nextRank = level => RANKS.find(r => r.at > level) || null;
 
-/* ------------------------------ spaced review ----------------------------- */
+/* ------------------------------ skill levels ------------------------------ */
 
 /**
- * Leitner boxes. A right answer moves a skill up a box and pushes its next
- * review out; a wrong one sends it back to box 1, due tomorrow. A long-standing,
- * well-understood method — every number in it is visible right here.
+ * Every robotics skill has a level from 1 to 10. The level sets how hard its
+ * round is: more questions and less time on each as it climbs.
+ *
+ * After a round:  every answer right  → up a level, and it comes back later
+ *                 one wrong           → same level, back tomorrow
+ *                 two or more wrong   → down a level, back tomorrow
+ *
+ * So a skill you know gets harder until it is automatic, and a skill you do
+ * not know keeps coming back until it is. Running out of time counts as wrong.
  */
-export const INTERVALS = [0, 1, 2, 4, 8, 16];
-export const MAX_BOX = 5;
+export const MAX_LEVEL = 10;
 
-export function review(entry, correct, today) {
-  const e = { box: 0, due: today, seen: 0, right: 0, wrong: 0, last: null, ...(entry || {}) };
-  e.seen += 1;
-  e.last = today;
-  if (correct) { e.right += 1; e.box = Math.min(MAX_BOX, e.box + 1); }
-  else         { e.wrong += 1; e.box = 1; }
-  e.due = addDays(today, INTERVALS[e.box]);
-  return e;
+/** [questions, seconds for a typed number, seconds for a choice], by level. */
+export const LEVELS = [
+  null,
+  [2, 180, 60], [3, 150, 50], [3, 120, 40], [4, 105, 35], [4, 90, 30],
+  [5, 80, 26],  [5, 70, 22],  [6, 60, 20],  [6, 52, 17],  [7, 45, 15],
+];
+
+/** Days until a skill comes back after a clean round at each level. */
+export const GAPS = [0, 1, 1, 2, 2, 3, 4, 5, 7, 9, 14];
+
+const clampLevel = l => Math.max(1, Math.min(MAX_LEVEL, l));
+
+/** A skill's level. 0 means not started. Older saves stored a Leitner box, which maps across. */
+export const levelOf = e => (e ? (e.level ?? e.box ?? 0) : 0);
+
+export function roundFor(level) {
+  const [n, num, mc] = LEVELS[clampLevel(level || 1)];
+  return { n, secs: { num, mc } };
 }
 
-export const isDue = (entry, today) => !!entry && entry.box >= 1 && entry.due <= today;
+/**
+ * Score one round of a skill. `asked` and `right` count answers; `secs` is the
+ * total time the answers took. Returns the new entry and which way it moved.
+ */
+export function scoreRound(entry, { asked, right, secs = 0 }, today) {
+  const at = clampLevel(levelOf(entry));
+  const miss = asked - right;
+  const move = miss === 0 ? 1 : miss === 1 ? 0 : -1;
+  const e = {
+    seen: 0, right: 0, wrong: 0, hist: [], ...(entry || {}),
+  };
+  delete e.box;
+  e.level = clampLevel(at + move);
+  e.best = Math.max(e.best || levelOf(entry), e.level);
+  e.seen += asked; e.right += right; e.wrong += miss;
+  e.last = today;
+  e.due = addDays(today, move > 0 ? GAPS[at] : 1);
+  e.hist = [...(e.hist || []), { day: today, level: at, asked, right, secs: Math.round(secs) }].slice(-12);
+  return { entry: e, from: levelOf(entry), at, to: e.level, move };
+}
+
+/** The last round played, if any. */
+export const lastRound = e => e?.hist?.length ? e.hist[e.hist.length - 1] : null;
+
+export const isDue = (entry, today) => levelOf(entry) >= 1 && !!entry.due && entry.due <= today;
 
 /**
- * Pick a drill: due reviews first, because that is where forgetting happens;
- * then up to two new skills in the order they are introduced; then the rest.
+ * Which started skills to bring back today: the most overdue first, then the
+ * weakest. Fills a question budget, so the check grows as the plan does.
  */
-export function pickDrill(pool, state, today, rng = Math.random, size = 5) {
-  const due = pool.filter(id => isDue(state[id], today))
-    .sort((a, b) => state[a].due.localeCompare(state[b].due) || state[a].box - state[b].box);
-  const fresh = pool.filter(id => !state[id] || !state[id].box);
+export function pickReviews(pool, state, today, budget, skip = []) {
+  const due = pool.filter(id => !skip.includes(id) && isDue(state[id], today))
+    .sort((a, b) => state[a].due.localeCompare(state[b].due) || levelOf(state[a]) - levelOf(state[b]));
   const out = [];
-  const take = (list, k) => { for (const id of list) { if (out.length >= size || k <= 0) break; if (!out.includes(id)) { out.push(id); k--; } } };
-  take(due, 3); take(fresh, 2); take(due, size); take(fresh, size);
-  if (out.length < size) {
-    const rest = pool.filter(id => !out.includes(id))
-      .map(id => ({ id, k: (state[id]?.box || 0) + rng() })).sort((a, b) => a.k - b.k).map(x => x.id);
-    take(rest, size);
+  let used = 0;
+  for (const id of due) {
+    const n = roundFor(levelOf(state[id])).n;
+    if (out.length && used + n > budget) continue;
+    out.push(id); used += n;
+    if (used >= budget) break;
   }
-  let i = 0;
-  while (out.length < size && pool.length) out.push(pool[i++ % pool.length]);
   return out;
 }
 

@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -50,12 +50,14 @@ const CORE = [
   './js/tracks/robotics/actions.js',
   './js/tracks/robotics/bosses.js',
   './js/tracks/robotics/hub.js',
+  './js/tracks/robotics/missions.js',
   './js/tracks/robotics/model.js',
   './js/tracks/robotics/player.js',
   './js/tracks/robotics/roadmap.js',
   './js/tracks/robotics/skills.js',
   './js/tracks/robotics/today.js',
   './js/tracks/robotics/view-builds.js',
+  './js/tracks/robotics/view-mission.js',
   './js/tracks/robotics/view-plan.js',
   './js/tracks/robotics/view-skills.js',
   './js/ui.js',

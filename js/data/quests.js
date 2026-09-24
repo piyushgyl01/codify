@@ -35,18 +35,18 @@ export const QUESTS = [
   q('cp', 'depth', 'r1600',  'Reach 1600',  'Solve something rated 1600+ today', 1600, 220, 64, 'cp', c => c.cp.bestRating, c => (c.rating || 800) + 300 >= 1600),
   q('cp', 'depth', 'r1900',  'Reach 1900',  'Solve something rated 1900+ today', 1900, 320, 92, 'cp', c => c.cp.bestRating, c => (c.rating || 800) + 300 >= 1900),
 
-  /* robotics */
-  q('robotics', 'drill',    'four',  'Four of five',     'Score 4+ in today\'s drill',          4,  50, 15, 'drill',    c => c.robo.drill?.score || 0),
-  q('robotics', 'drill',    'clean', 'Clean sheet',      'Five from five in today\'s drill',    5,  80, 25, 'drill',    c => c.robo.drill?.score || 0),
-  q('robotics', 'drill',    'run3',  'Three in a row',   'Three right answers back to back',    3,  45, 15, 'drill',    c => c.robo.bestRun),
-  q('robotics', 'drill',    'ten',   'Ten answered',     'Answer ten robotics questions',       10, 40, 12, 'practice', c => c.robo.answered),
-  q('robotics', 'practice', 'prac5', 'Extra reps',       '5 right in practice mode',            5,  50, 15, 'practice', c => c.robo.practiceCorrect),
-  q('robotics', 'practice', 'rt10',  'Ten right',        '10 correct robotics answers today',   10, 55, 18, 'practice', c => c.robo.correct),
-  q('robotics', 'practice', 'ans15', 'Fifteen answered', 'Answer fifteen robotics questions',   15, 50, 15, 'practice', c => c.robo.answered),
+  /* robotics — every number comes from answers the app marked */
+  q('robotics', 'mission',  'up1',   'Level up',         'Level up a skill in today\'s mission',  1,  50, 15, 'mission',  c => c.robo.ups),
+  q('robotics', 'mission',  'clean', 'No misses',        'Every answer right in today\'s mission', 1,  80, 25, 'mission',  c => (c.robo.mission && !c.robo.mission.boss && c.robo.mission.score === c.robo.mission.total ? 1 : 0)),
+  q('robotics', 'mission',  'run3',  'Three in a row',   'Three right answers back to back',      3,  45, 15, 'mission',  c => c.robo.bestRun),
+  q('robotics', 'mission',  'ten',   'Ten answered',     'Answer ten robotics questions',         10, 40, 12, 'practice', c => c.robo.answered),
+  q('robotics', 'practice', 'prac5', 'Extra practice',   '5 right in practice mode',              5,  50, 15, 'practice', c => c.robo.practiceCorrect),
+  q('robotics', 'practice', 'rt10',  'Ten right',        '10 correct robotics answers today',     10, 55, 18, 'practice', c => c.robo.correct),
+  q('robotics', 'practice', 'ans15', 'Fifteen answered', 'Answer fifteen robotics questions',     15, 50, 15, 'practice', c => c.robo.answered),
 ];
 
 /** The pools each track deals from, in order. */
-export const TRACK_POOLS = { cp: ['solve', 'depth'], robotics: ['drill', 'practice'] };
+export const TRACK_POOLS = { cp: ['solve', 'depth'], robotics: ['mission', 'practice'] };
 
 /** FNV-1a with a final avalanche, so consecutive dates do not deal alike. */
 export function hash(s) {

@@ -1,8 +1,8 @@
 /** The plan: six months as a path, and each month opened up in full. */
 import { S } from '../../state.js';
 import { setDirection } from './actions.js';
-import { plan, monthProgress, milestoneDone, isVerified, skillBox, bossReady, isUnlocked, toggleRead } from './actions.js';
-import { monthOpensOn } from './model.js';
+import { plan, monthProgress, milestoneDone, isVerified, skillLevel, bossReady, isUnlocked, toggleRead } from './actions.js';
+import { MISSIONS } from './missions.js';
 import { MONTHS, monthByN, topicsIn, buildsIn, MILESTONES, PLAN_DAYS, MONTH_DAYS, buildById, SOURCE, DIRECTIONS } from './roadmap.js';
 import { skillsForTopic, skillById } from './skills.js';
 import { bossFor } from './bosses.js';
@@ -14,7 +14,21 @@ import { openPractice, openBoss } from './player.js';
 let openMonth = null;          // null = the overview; a number = that month's page
 const openTopics = new Set();  // topic ids whose <details> are expanded, kept across repaints
 
-const pips = box => `<span class="pips" aria-label="box ${box} of 5">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= box ? 'on' : ''}"></i>`).join('')}</span>`;
+const lvl = l => `<b class="lv-mini">${l ? `Lv ${l}` : 'new'}</b>`;
+const opensAt = n => MONTH_DAYS * (n - 1) + 1;
+
+/** All 180 missions at a glance: done, today, still to come. A boss closes each month. */
+function missionMap() {
+  const r = S.tracks.robotics, done = r.missions || {}, next = plan().mission;
+  const rows = MONTHS.map(m => `<div class="mmap-row"><span class="mmap-m">M${m.n}</span><div class="mmap-cells">${
+    MISSIONS.filter(x => x.month === m.n).map(x => `<i class="${done[x.n] ? 'done' : x.n === next ? 'now' : ''}${x.boss ? ' boss' : ''}"
+      style="--mc:${m.color}" title="Mission ${x.n}"></i>`).join('')}</div></div>`).join('');
+  return `<div class="card">
+    <div class="between"><div class="h3">${Object.keys(done).length} of ${PLAN_DAYS} missions</div><span class="tiny">one a day</span></div>
+    <div class="mmap">${rows}</div>
+    <div class="tiny" style="margin-top:8px">Each square is a day's mission. The last square of every month is its boss.</div>
+  </div>`;
+}
 
 /* -------------------------------- overview -------------------------------- */
 
@@ -24,7 +38,7 @@ function overview() {
     const open = p.unlocked.includes(m.n), pr = monthProgress(m.n);
     const status = pr.cleared ? '<span class="badge good">★ Cleared</span>'
       : open ? '<span class="badge solid">Open</span>'
-      : `<span class="badge mute">Opens ${esc(shortDate(monthOpensOn(S.tracks.robotics.start, m.n)))}</span>`;
+      : `<span class="badge mute">From mission ${opensAt(m.n)}</span>`;
     return `<button class="card tap month-card ${open ? '' : 'locked'}" data-month="${m.n}" style="--mc:${m.color}">
       <div class="row">
         <div class="month-num">${m.icon}</div>
@@ -35,7 +49,7 @@ function overview() {
       </div>
       <div class="month-stats">
         <span>${pr.builds}/${pr.buildsTotal} builds</span>
-        <span>${pr.skills}/${pr.skillsTotal} skills held</span>
+        <span>${pr.skills}/${pr.skillsTotal} skills at Lv 3+</span>
         <span>${pr.milestones}/${pr.milestonesTotal} milestones</span>
         <span>${pr.bossWon ? 'boss ✓' : 'boss —'}</span>
       </div>
@@ -45,7 +59,8 @@ function overview() {
 
   return h`
     <div class="fade-up">
-      <div class="month-path">${raw(cards)}</div>
+      ${raw(missionMap())}
+      <div class="month-path" style="margin-top:16px">${raw(cards)}</div>
       <div class="section"><div class="section-head"><div class="h2">Your direction</div></div>
         <div class="stack s2">${raw(DIRECTIONS.map(d => `
           <button class="card tap pad-s opt ${S.tracks.robotics.direction === d.id ? 'on' : ''}" data-dir="${d.id}">
@@ -65,7 +80,7 @@ function milestones(n) {
     const done = milestoneDone(ms);
     const needs = [
       ...(ms.builds || []).map(id => `<span class="need ${isVerified(id) ? 'ok' : ''}">${esc(buildById(id).name)}</span>`),
-      ...(ms.skills || []).map(id => `<span class="need ${skillBox(id) >= 3 ? 'ok' : ''}">${esc(skillById(id).name)} ${skillBox(id)}/3</span>`),
+      ...(ms.skills || []).map(id => `<span class="need ${skillLevel(id) >= 3 ? 'ok' : ''}">${esc(skillById(id).name)} Lv ${skillLevel(id)}/3</span>`),
       ...(ms.direction ? [`<span class="need ${S.tracks.robotics.direction ? 'ok' : ''}">choose below</span>`] : []),
     ].join('');
     return `<div class="ms-row ${done ? 'done' : ''}">
@@ -116,7 +131,7 @@ function topicBlock(t, open) {
     </div>`;
   }).join('');
   const sk = skills.map(s => `<button class="skill-chip" data-practice="${s.id}" ${open ? '' : 'disabled'}>
-      <span>${esc(s.name)}</span>${pips(skillBox(s.id))}</button>`).join('');
+      <span>${esc(s.name)}</span>${lvl(skillLevel(s.id))}</button>`).join('');
 
   return `<details class="topic card flush" data-topic="${t.id}" ${openTopics.has(t.id) ? 'open' : ''}>
     <summary>
@@ -140,10 +155,10 @@ function monthPage(n) {
   return `<div class="fade-up">
     <button class="act-back" data-act="back">‹ All months</button>
     <div class="month-head" style="--mc:${m.color};margin-top:12px">
-      <div class="label">Month ${n} · days ${startDay}–${startDay + MONTH_DAYS - 1}</div>
+      <div class="label">Month ${n} · missions ${startDay}–${startDay + MONTH_DAYS - 1}</div>
       <div class="h1" style="margin-top:6px">${m.icon} ${esc(m.title)}</div>
       <div class="sub" style="margin-top:6px">${esc(m.goal)}</div>
-      ${open ? '' : `<div class="badge" style="margin-top:12px">Opens ${esc(shortDate(monthOpensOn(S.tracks.robotics.start, n)))} — read ahead freely</div>`}
+      ${open ? '' : `<div class="badge" style="margin-top:12px">Opens at mission ${opensAt(n)} — read ahead freely</div>`}
     </div>
 
     <div class="section">

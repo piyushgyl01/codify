@@ -57,7 +57,7 @@ const freshCp = () => ({
   handle:'', rating:null, rank:null, avatar:null, solved:[], syncedAt:0, error:'',
   credited:{ problems:{}, tiers:{} }, contest:null, contests:{}, dailySolves:2,
 });
-const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{} });
+const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, scores:{} });
 
 const freshSave = () => ({
   v: 3,
@@ -66,14 +66,14 @@ const freshSave = () => ({
   streak: { current:0, best:0, lastActive:null, freezes:1 },
   days: {},
   timer: null,                // { start, day, tag } — the one focus timer
-  active: null,               // an unfinished robotics drill, practice set or boss fight
+  active: null,               // an unfinished robotics mission, practice set or boss fight
   github: { user:'', avatar:null, pushes:[], syncedAt:0, error:'', credited:{} },
   tracks: { cp: freshCp(), robotics: freshRobotics() },
   earned: {}, owned: [], loot: {},
   stats: {
     xpEarned:0, quests:0, timerMin:0, sessions:0, commits:0, pushes:0,
     solved:0, ratedSolved:0, bestRating:0, tiersCleared:0, contestsWon:0, contestsRun:0,
-    drills:0, perfectDrills:0, answered:0, correct:0, bossFights:0,
+    drills:0, perfectDrills:0, answered:0, correct:0, bossFights:0, levelUps:0,   // drills = robotics missions done
   },
   settings: { sound:true, reduceMotion:false },
   notice: null,               // a one-time message after an upgrade
@@ -91,6 +91,7 @@ function mergeV3(o) {
   const base = freshSave();
   return {
     ...base, ...o,
+    active: o.active?.mode === 'drill' ? null : (o.active || null),   // the old daily drill became missions
     profile:  { ...base.profile,  ...(o.profile  || {}) },
     streak:   { ...base.streak,   ...(o.streak   || {}) },
     stats:    { ...base.stats,    ...(o.stats    || {}) },
@@ -160,7 +161,7 @@ export function fromBotify(o) {
                 focusGoal: o.profile?.goal || 120, tracks: ['robotics'],
                 onboarded: !!o.profile?.onboarded, created: o.profile?.created || dayKey() };
   Object.assign(s, { xp: o.xp || 0, coins: o.coins || 0, owned: o.owned || [], loot: o.loot || {},
-                     active: o.active || null, backupAt: o.backupAt || 0 });
+                     active: o.active?.mode === 'drill' ? null : (o.active || null), backupAt: o.backupAt || 0 });
   s.earned = Object.fromEntries(Object.entries(o.earned || {}).map(([id, d]) => [BOTIFY_IDS[id] || id, d]));
   s.streak = { ...s.streak, ...(o.streak || {}) };
   s.settings = { ...s.settings, ...(o.settings || {}) };
@@ -371,12 +372,12 @@ export const commitsOn = (key = today()) =>
 
 /**
  * A day counts when something verified happened on it, in any track: a solve the
- * judge accepted, a finished drill, a commit, or twenty timed minutes.
+ * judge accepted, a finished mission, a commit, or twenty timed minutes.
  */
 export function dayIsActive(key = today()) {
   const day = S.days[key];
   return cpModel.solvesOn(S.tracks.cp, key).length >= 1
-    || !!day?.robotics?.drill
+    || !!day?.robotics?.mission || !!day?.robotics?.drill
     || commitsOn(key) >= 1
     || (day?.timerMin || 0) >= 20;
 }
