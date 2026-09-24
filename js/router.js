@@ -62,16 +62,16 @@ function topbar() {
     ? `<button class="chip-stat live" data-timer aria-label="Focus timer running">${icon('clock', 13).value} <span data-timer-text>${hm(timerMinutes())}</span></button>` : '';
   return h`
     <div class="topbar">
-      <button class="avatar" data-nav="hero" aria-label="Profile">${rank.icon}<span class="lvl">${p.level}</span></button>
+      <button class="avatar" data-nav="hero" aria-label="Profile">${rank.icon}<span class="lvl-badge">${p.level}</span></button>
       <div class="grow">
-        <div class="h3 truncate">${S.profile.name || 'Engineer'}</div>
-        <div class="tiny truncate">${rank.name} · ${fmt(p.into)}/${fmt(p.need)} XP</div>
+        <div class="name truncate">${S.profile.name || 'Engineer'}</div>
+        <div class="rank truncate">${rank.icon} ${rank.name}</div>
       </div>
       ${raw(timer)}
-      <div class="chip-stat">${icon('coin', 13)} ${fmt(S.coins)}</div>
-      <div class="chip-stat ${S.streak.current > 0 ? 'hot' : ''}">${icon('flame', 13)} ${S.streak.current}</div>
+      <div class="chip-stat coin">${icon('coin', 14)} ${fmt(S.coins)}</div>
+      <div class="chip-stat flame">${icon('flame', 14)} ${S.streak.current}</div>
     </div>
-    <div class="topbar-xp"><i style="width:${p.pct}%"></i></div>`;
+    <div class="topbar-xp"><div class="xpbar"><i style="width:${p.pct}%"></i></div></div>`;
 }
 
 function nav() {

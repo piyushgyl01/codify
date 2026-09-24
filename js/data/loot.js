@@ -29,7 +29,7 @@ export const LOOT = [
   g('cans',       'Noise-cancelling headphones', '🎧', 'common', 'desk', 'Uninterrupted focus.'),
   g('timer',      'Kitchen timer',         '⏲️', 'common',    'desk', 'Fixed-length focus blocks.'),
   g('dotfiles',   'Dotfiles repo',         '📁', 'rare',      'desk', 'Your setup, reproducible anywhere.'),
-  g('keybinds',   'Editor keybinds',       '⌘',  'rare',      'desk', 'Editing without the mouse.'),
+  g('keybinds',   'Editor keybinds',       '🔣',  'rare',      'desk', 'Editing without the mouse.'),
   g('devenv',     'Reproducible dev env',  '📦', 'rare',      'desk', 'Builds the same on every machine.'),
   g('scratch',    'Scratch repo',          '🧪', 'rare',      'desk', 'Somewhere to try things safely.'),
   g('reading',    'Reading queue',         '📚', 'rare',      'desk', 'Papers and docs, in order.'),
@@ -39,7 +39,7 @@ export const LOOT = [
   g('harness',    'Stress-test harness',   '🧰', 'epic',      'desk', 'Brute force against your solution on random input.'),
   g('mentor',     'A mentor',              '🧭', 'legendary', 'desk', 'Someone who reviews your work.'),
   g('oss',        'Maintainership',        '🌍', 'legendary', 'desk', 'A project other people depend on.'),
-  g('taste',      'Taste',                 '◈',  'legendary', 'desk', 'Knowing which solution to write.'),
+  g('taste',      'Taste',                 '👌',  'legendary', 'desk', 'Knowing which solution to write.'),
   /* bench — robotics */
   g('jumpers',    'Jumper wires',          '🧵', 'common',    'bench', 'Breadboard wiring.'),
   g('breadboard', 'Breadboard',            '🔲', 'common',    'bench', 'Solderless prototyping.'),

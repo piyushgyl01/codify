@@ -12,7 +12,7 @@ import * as roHub from './robotics/hub.js';
 import * as roToday from './robotics/today.js';
 
 export const TRACKS = [
-  { id:'cp', name:'Programming', nav:'Code', icon:'⌨️', navIcon:'code', color:'var(--blue)',
+  { id:'cp', name:'Programming', nav:'Code', icon:'🧩', navIcon:'code', color:'var(--blue)',
     tagline:'Codeforces problems at real rating tiers. The judge decides, not you.',
     checks:'accepted submissions on Codeforces', hub: cpHub, today: cpToday },
   { id:'robotics', name:'Robotics', nav:'Robots', icon:'🤖', navIcon:'robot', color:'var(--acid)',

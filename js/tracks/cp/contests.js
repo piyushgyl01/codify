@@ -12,23 +12,23 @@
  */
 
 export const CONTESTS = [
-  { id:'warmup', name:'Warm-Up', icon:'▲', minutes:45, need:2, minRating:800, lvl:1,
+  { id:'warmup', name:'Warm-Up', icon:'🏃', minutes:45, need:2, minRating:800, lvl:1,
     xp:200, coins:60,
     blurb:'Two easy problems, forty-five minutes. Mostly about starting.' },
 
-  { id:'sprint', name:'The Sprint', icon:'⇉', minutes:60, need:3, minRating:1100, lvl:5,
+  { id:'sprint', name:'The Sprint', icon:'⚡', minutes:60, need:3, minRating:1100, lvl:5,
     xp:450, coins:130,
     blurb:'Three problems in an hour. Speed is the whole exercise.' },
 
-  { id:'ladder', name:'The Ladder', icon:'◈', minutes:120, need:3, minRating:1400, lvl:12,
+  { id:'ladder', name:'The Ladder', icon:'🪜', minutes:120, need:3, minRating:1400, lvl:12,
     xp:900, coins:260,
     blurb:'Three at 1400 or above. This is where most people stall for months.' },
 
-  { id:'gauntlet', name:'The Gauntlet', icon:'▩', minutes:150, need:4, minRating:1600, lvl:20,
+  { id:'gauntlet', name:'The Gauntlet', icon:'🛡️', minutes:150, need:4, minRating:1600, lvl:20,
     xp:1600, coins:460,
     blurb:'Four at 1600 in two and a half hours. A real contest, essentially.' },
 
-  { id:'summit', name:'The Summit', icon:'★', minutes:180, need:3, minRating:2000, lvl:32,
+  { id:'summit', name:'The Summit', icon:'🏔️', minutes:180, need:3, minRating:2000, lvl:32,
     xp:3000, coins:850,
     blurb:'Three at 2000. Very few people finish this one on the first attempt.' },
 ];

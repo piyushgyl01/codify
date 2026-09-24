@@ -178,32 +178,44 @@ textarea.input { min-height:88px; resize:vertical; line-height:1.5; }
 
 /* -------------------------------- topbar --------------------------------- */
 
-.topbar { display:flex; align-items:center; gap:var(--s3); padding:var(--s3) var(--gut); }
+.topbar { display:flex; align-items:center; gap:var(--s3); padding:var(--s3) var(--gut) var(--s2); background:var(--paper); }
+.topbar-xp { padding:0 var(--gut) var(--s3); background:var(--paper); }
 
 .avatar {
-  position:relative;
-  width:46px; height:46px; flex:none;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1px;
+  width:48px; height:48px; flex:none; position:relative;
+  display:grid; place-items:center;
   border-radius:var(--radius-s);
-  background:var(--accent); color:var(--accent-ink);
-  border:var(--line) solid var(--ink);
-  box-shadow:var(--sh-sm);
-  font-size:17px; line-height:1;
+  background:var(--lime);
+  border:var(--line) solid var(--ink); box-shadow:var(--sh-sm);
+  font-size:24px; line-height:1;
+  transition:transform var(--fast), box-shadow var(--fast);
 }
-/* The level sits under the glyph. As a corner badge a two-digit number
-   overflowed, and it covered the rank mark it was annotating. */
-.avatar .lvl { font-size:10px; font-weight:800; line-height:1; }
+.avatar:active { transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink); }
+/* A sticker on a sticker: the paper ring keeps the badge's outline from
+   merging into the avatar's own. The pill grows with two- and three-digit levels. */
+.avatar .lvl-badge {
+  position:absolute; right:-8px; bottom:-8px;
+  background:var(--ink); color:var(--paper);
+  font-size:11px; font-weight:800; line-height:1.4;
+  padding:1px 6px; border-radius:5px;
+  border:2px solid var(--paper); box-shadow:0 0 0 2px var(--ink);
+  font-variant-numeric:tabular-nums;
+}
+.topbar .name { font-size:16px; font-weight:800; letter-spacing:-.02em; }
+.topbar .rank { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--dim); }
 
 .chip-stat {
-  display:inline-flex; align-items:center; gap:5px;
-  padding:6px 10px; border-radius:var(--radius-s);
-  background:var(--card); border:var(--line-thin) solid var(--ink);
-  font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;
+  display:flex; align-items:center; gap:4px;
+  padding:6px 8px; border-radius:var(--radius-s);
+  font-size:13px; font-weight:800; font-variant-numeric:tabular-nums; color:var(--ink);
+  background:var(--card); border:var(--line-thin) solid var(--ink); box-shadow:2px 2px 0 var(--ink);
 }
-.chip-stat.live { background:var(--orange); }
+.chip-stat.coin  { background:var(--yellow); }
+.chip-stat.flame { background:var(--orange); }
+.chip-stat.live  { background:var(--cyan); }
 
-.topbar-xp { height:10px; background:var(--sunk); border-top:var(--line-thin) solid var(--ink); }
-.topbar-xp > i { display:block; height:100%; background:var(--accent); transition:width var(--med); }
+.xpbar { height:14px; border-radius:99px; background:var(--card); overflow:hidden; border:var(--line-thin) solid var(--ink); }
+.xpbar > i { display:block; height:100%; background:var(--acid); border-right:var(--line-thin) solid var(--ink); transition:width .5s var(--ease); }
 
 /* ---------------------------------- nav ---------------------------------- */
 

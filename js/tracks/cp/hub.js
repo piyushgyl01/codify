@@ -30,12 +30,10 @@ export const openTab = t => { if (TABS.some(([k]) => k === t)) tab = t; };
 function connect() {
   return `<div class="card">
     <div class="h2">Connect Codeforces</div>
-    <p class="sub" style="margin-top:8px">Every tier, contest and solve here is read from your accepted submissions.
-      Nothing to type in and nothing to claim — the judge decides.</p>
+    <p class="sub" style="margin-top:6px">Everything here is read from your accepted submissions.</p>
     <div class="field" style="margin-top:14px"><label for="cp-handle">Codeforces handle</label>
       <input class="input" id="cp-handle" autocapitalize="off" spellcheck="false" placeholder="tourist"></div>
     <button class="btn primary block" style="margin-top:12px" data-cp="link">Connect</button>
-    <div class="tiny" style="margin-top:8px">No sign-in. The handle is checked against Codeforces' public API.</div>
   </div>`;
 }
 
@@ -96,8 +94,7 @@ function openTopic(id) {
     ${st?.never ? '' : `<div class="card sunk" style="margin-top:14px"><div class="tiny">Last accepted ${st.days} days ago — ${esc(st.last.name)} (${st.last.rating ?? 'unrated'}).</div></div>`}
     <div class="label" style="margin-top:18px">Go and solve${next ? ` — ${next.min}–${next.max}` : ''}</div>
     <div id="sk-problems" style="margin-top:8px"><div class="empty">Loading problems…</div></div>
-    <a class="btn ghost block sm" style="margin-top:12px;text-decoration:none" href="${esc(leetcodeTagUrl(topic.lc))}" target="_blank" rel="noopener">Practise on LeetCode instead</a>
-    <div class="tiny" style="margin-top:8px">LeetCode blocks cross-origin reads, so nothing solved there can be verified or counted. The link is for practice only.</div>
+    <a class="btn ghost block sm" style="margin-top:12px;text-decoration:none" href="${esc(leetcodeTagUrl(topic.lc))}" target="_blank" rel="noopener">Practise on LeetCode (not counted)</a>
   `, async el => {
     const box = $('#sk-problems', el), tier = next || p.tiers.at(-1);
     try {
@@ -117,10 +114,7 @@ function openTopic(id) {
 function contests() {
   const live = activeContest();
   if (live) return liveView(live);
-  return `<div class="sub">A clock and a target. Start it, solve on Codeforces, sync — the judge's timestamps settle it.</div>
-    <div class="stack" style="margin-top:14px">${CONTESTS.map(contestCard).join('')}</div>
-    <div class="card sunk" style="margin-top:16px"><div class="tiny">A problem counts if it was accepted inside the window, is rated at or above
-      the floor, and was not already solved before you started.</div></div>`;
+  return `<div class="stack">${CONTESTS.map(contestCard).join('')}</div>`;
 }
 
 function contestCard(c) {
@@ -187,16 +181,16 @@ function solves() {
     <div class="card" style="margin-top:12px"><span class="label">By rating</span>
       <div class="stack s2" style="margin-top:10px">${bands.map(b => `<div class="bar-row"><div class="bar-row-k">${b.name}</div>
         <div class="bar"><i style="width:${(b.n / peak) * 100}%;background:${b.color}"></i></div><div class="bar-row-v">${b.n}</div></div>`).join('')}</div></div>
-    <div class="label" style="margin-top:16px">Most recent</div>
-    <div class="stack s2" style="margin-top:8px">${[...list].sort((a, b) => b.at - a.at).slice(0, 15).map(solveRow).join('')}</div>`;
+    <div class="section"><div class="section-head"><div class="h2">Most recent</div></div></div>
+    <div class="stack s2">${[...list].sort((a, b) => b.at - a.at).slice(0, 15).map(solveRow).join('')}</div>`;
 }
 
 /* ---------------------------------- view ---------------------------------- */
 
 export function render() {
   const c = S.tracks.cp;
-  const head = `<div class="between"><div><div class="label">Programming${c.handle ? ` · ${esc(c.handle)}` : ''}</div>
-      <div class="h1" style="margin-top:4px">⌨️ Codeforces</div></div>
+  const head = `<div class="between page-head"><div><div class="h1">Code</div>
+      <div class="sub">${c.handle ? `Codeforces · ${esc(c.handle)}` : 'Codeforces, checked by the judge'}</div></div>
     ${c.handle ? `<div class="stack s2" style="align-items:flex-end"><span class="badge" style="background:${colorForRating(c.rating)}">${c.rating ?? 'unrated'}${c.rank ? ` · ${esc(c.rank)}` : ''}</span>
       <button class="btn xs" data-cp="sync">${isSyncing() ? 'Syncing…' : 'Sync'}</button></div>` : ''}</div>`;
   if (!isLinked()) return `<div class="fade-up">${head}<div style="margin-top:16px">${connect()}</div></div>`;

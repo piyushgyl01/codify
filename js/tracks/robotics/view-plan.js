@@ -45,16 +45,14 @@ function overview() {
 
   return h`
     <div class="fade-up">
-      <p class="sub">A month opens every ${MONTH_DAYS} days, or early once you beat the boss before it.
-        Skills count as held at box 3; builds count once GitHub says so.</p>
-      <div class="month-path" style="margin-top:16px">${raw(cards)}</div>
-      <div class="section"><div class="label">Your direction · month six</div>
-        <div class="stack s2" style="margin-top:8px">${raw(DIRECTIONS.map(d => `
+      <div class="month-path">${raw(cards)}</div>
+      <div class="section"><div class="section-head"><div class="h2">Your direction</div></div>
+        <div class="stack s2">${raw(DIRECTIONS.map(d => `
           <button class="card tap pad-s opt ${S.tracks.robotics.direction === d.id ? 'on' : ''}" data-dir="${d.id}">
             <div class="row"><span style="font-size:22px">${d.icon}</span>
               <div class="grow"><div class="h3">${esc(d.name)}</div><div class="tiny">${esc(d.desc)}</div></div></div>
           </button>`).join(''))}</div>
-        <div class="tiny" style="margin-top:6px">A decision, not an achievement — it pays nothing, but month six's milestones need one.</div></div>
+</div>
       <p class="tiny center" style="margin-top:18px">Roadmap: “${SOURCE.title}” by
         <a href="${SOURCE.url}" target="_blank" rel="noopener">${SOURCE.author}</a>.</p>
     </div>`;
@@ -130,8 +128,7 @@ function topicBlock(t, open) {
       <p class="sub">${esc(t.why)}</p>
       <div class="label" style="margin-top:14px">Focus on</div>
       <ul class="focus">${t.focus.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
-      ${res ? `<div class="label" style="margin-top:14px">Resources</div><div class="res-list">${res}</div>
-        <div class="tiny" style="margin-top:6px">Ticking a resource keeps your place. It pays nothing — the drill is where reading pays.</div>` : ''}
+      ${res ? `<div class="label" style="margin-top:14px">Resources</div><div class="res-list">${res}</div>` : ''}
       ${sk ? `<div class="label" style="margin-top:14px">Practise</div><div class="wrap" style="margin-top:6px">${sk}</div>` : ''}
     </div>
   </details>`;
@@ -141,7 +138,7 @@ function monthPage(n) {
   const m = monthByN(n), open = isUnlocked(n), pr = monthProgress(n);
   const startDay = MONTH_DAYS * (n - 1) + 1;
   return `<div class="fade-up">
-    <button class="btn sm ghost" data-act="back">${icon('back', 14).value} All months</button>
+    <button class="act-back" data-act="back">‹ All months</button>
     <div class="month-head" style="--mc:${m.color};margin-top:12px">
       <div class="label">Month ${n} · days ${startDay}–${startDay + MONTH_DAYS - 1}</div>
       <div class="h1" style="margin-top:6px">${m.icon} ${esc(m.title)}</div>
@@ -150,21 +147,20 @@ function monthPage(n) {
     </div>
 
     <div class="section">
-      <div class="between"><span class="label">Milestones</span><span class="tiny">${pr.milestones}/${pr.milestonesTotal}</span></div>
-      <div class="card flush ms-list" style="margin-top:8px">${milestones(n)}</div>
-      <div class="tiny" style="margin-top:6px">These tick themselves: a build when GitHub verifies it, a skill when it reaches box 3.</div>
+      <div class="section-head"><div class="h2">Milestones</div><span class="tiny">${pr.milestones}/${pr.milestonesTotal}</span></div>
+      <div class="card flush ms-list">${milestones(n)}</div>
     </div>
 
     <div class="section">${bossBlock(n)}</div>
 
     <div class="section">
-      <div class="between"><span class="label">Builds</span><span class="tiny">${pr.builds}/${pr.buildsTotal} verified</span></div>
-      <div class="card flush" style="margin-top:8px">${buildRows(n)}</div>
+      <div class="section-head"><div class="h2">Builds</div><span class="tiny">${pr.builds}/${pr.buildsTotal}</span></div>
+      <div class="card flush">${buildRows(n)}</div>
     </div>
 
     <div class="section">
-      <div class="label">Topics</div>
-      <div class="stack s2" style="margin-top:8px">${topicsIn(n).map(t => topicBlock(t, open)).join('')}</div>
+      <div class="section-head"><div class="h2">Topics</div></div>
+      <div class="stack s2">${topicsIn(n).map(t => topicBlock(t, open)).join('')}</div>
     </div>
   </div>`;
 }

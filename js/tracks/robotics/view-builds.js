@@ -83,7 +83,7 @@ export function openBuild(id, rerender) {
     ${status}
     <div class="label" style="margin-top:16px">${portfolio ? 'What passes' : `What the ${b.proof?.doc || 'README'} needs`}</div>
     <div class="checklist" id="bd-checks">${checklist(b)}</div>
-    ${!portfolio ? '<div class="tiny" style="margin-top:6px">This checks the evidence exists, not that the robot works. A convincing fake costs about as much as the real write-up — and the real one is your portfolio.</div>' : ''}
+    ${!portfolio ? '<div class="tiny" style="margin-top:6px">Checks the write-up exists, not that the robot works.</div>' : ''}
     <div style="margin-top:16px">${form}</div>
   `, (el, close) => {
     $('[data-user]', el)?.addEventListener('click', () => {
@@ -180,8 +180,7 @@ export function render() {
       <div class="between"><div><div class="h2 num">${n} / ${BUILDS.length}</div><div class="tiny">verified on GitHub</div></div>
         <button class="btn sm" data-act="copy" ${n ? '' : 'disabled'}>${icon('copy', 14).value} Portfolio</button></div>
       <div style="margin-top:10px" class="bar"><i style="width:${(n / BUILDS.length) * 100}%"></i></div>
-      <div class="tiny" style="margin-top:8px">${S.github.user ? `Checking repos owned by <b>${esc(S.github.user)}</b>.` : 'No GitHub username yet — add it in Hero → Accounts.'}
-        “Portfolio” copies your verified builds as Markdown for a profile README.</div>
+      <div class="tiny" style="margin-top:8px">${S.github.user ? `Checked on github.com/${esc(S.github.user)}` : 'Add your GitHub in Hero → Accounts.'}</div>
     </div>
     <div class="pill-scroll">${pills}</div>
     <div class="stack s2">${shown.map(card).join('') || '<div class="empty">Nothing here yet.</div>'}</div>

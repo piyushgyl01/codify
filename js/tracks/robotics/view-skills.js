@@ -64,8 +64,7 @@ function monthGroup(m) {
   }
   const held = skills.filter(s => skillBox(s.id) >= 3).length;
   return `<div>
-    <div class="between" style="margin-bottom:8px"><span class="label">${m.icon} Month ${m.n} · ${esc(m.short)}</span>
-      <span class="tiny">${held}/${skills.length} held</span></div>
+    <div class="section-head"><div class="h2">${m.icon} Month ${m.n}</div><span class="tiny">${held}/${skills.length} held</span></div>
     <div class="card flush">${skills.map(skillRow).join('')}</div>
   </div>`;
 }
@@ -74,7 +73,6 @@ export function render() {
   return `<div class="stack s4 fade-up">
     ${header()}
     ${explainer()}
-    <div class="tiny">Tap any open skill to practise five fresh questions on it.</div>
     ${MONTHS.map(monthGroup).join('')}
   </div>`;
 }

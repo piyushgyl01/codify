@@ -22,15 +22,15 @@ export function render() {
     : `<button class="btn primary sm" data-robo="drill">Start drill</button>`;
 
   return `<div class="card track-card" style="--tc:var(--acid)">
-    <div class="between"><span class="label">🤖 Robotics · day ${Math.min(p.day + 1, PLAN_DAYS)} of ${PLAN_DAYS}</span>
+    <div class="path-top"><span class="path-ico">🤖</span>
+      <div class="grow"><div class="h3">Robotics</div><div class="tiny">Day ${Math.min(p.day + 1, PLAN_DAYS)} of ${PLAN_DAYS} · ${esc(m.title)}</div></div>
       <button class="btn xs" data-go="robotics">Open</button></div>
-    <div class="h3" style="margin-top:6px">${m.icon} ${esc(m.title)}</div>
     <div class="plan-bar" style="margin-top:10px">${MONTHS.map(x => `<i class="${p.unlocked.includes(x.n) ? 'open' : ''}"
       style="--f:${Math.max(0, Math.min(1, (p.day - MONTH_DAYS * (x.n - 1)) / MONTH_DAYS))}"></i>`).join('')}</div>
 
     <div class="track-row">
       <div class="grow"><div class="h3">Daily drill</div>
-        <div class="tiny">${done ? 'Done — the streak is safe.' : due ? `${due} review${due === 1 ? '' : 's'} due · five questions` : 'Five questions, about five minutes'}</div></div>
+        <div class="tiny">${done ? 'Done for today' : due ? `${due} review${due === 1 ? '' : 's'} due` : 'Five questions'}</div></div>
       ${drillBtn}
     </div>
     ${b ? `<button class="track-row tap" data-build="${b.id}">
@@ -38,7 +38,7 @@ export function render() {
       ${icon('chevron', 16).value}</button>` : ''}
     <div class="track-row">
       <div class="grow"><div class="h3">${boss.icon} ${esc(boss.name)}</div>
-        <div class="tiny">${won ? 'Defeated.' : ready.ok ? 'Ready — 14 questions, 3 hearts.' : esc(ready.why)}</div></div>
+        <div class="tiny">${won ? 'Defeated' : ready.ok ? 'Ready to fight' : esc(ready.why)}</div></div>
       ${!won && ready.ok ? `<button class="btn hot sm" data-robo="boss" data-month="${n}">Fight</button>` : ''}
     </div>
   </div>`;

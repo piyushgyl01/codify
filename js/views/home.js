@@ -34,11 +34,10 @@ function notices() {
   if (S.notice === 'merged') out += `<div class="card notice">
     <div class="between"><span class="label">What's new</span><button class="btn xs" data-act="dismiss">Got it</button></div>
     <div class="h3" style="margin-top:6px">Codify is now one tech RPG</div>
-    <div class="sub" style="margin-top:4px">Your Codeforces progress, gear and streak carried over. Robotics — the six-month roadmap — is a new track on the same character.
-      Switch tracks on or off in Hero. Used Botify? Hero → Backup → <b>Import Botify progress</b> folds it in.</div>
+    <div class="sub" style="margin-top:4px">Your progress carried over. Robotics is a new track. Botify progress: Hero → Backup → Import.</div>
   </div>`;
   if (needsBackup()) out += `<div class="card warn-card"><div class="between"><div class="grow"><div class="h3">Back up your progress</div>
-      <div class="tiny">It lives only in this browser. A cleared cache would take all of it.</div></div>
+      <div class="tiny">It only lives in this browser.</div></div>
       <button class="btn sm" data-act="backup">Back up</button></div></div>`;
   return out;
 }
@@ -49,12 +48,12 @@ function focusCard() {
   const active = dayIsActive();
   return `<div class="card focus-card">
     <div class="row">
-      ${ring({ pct: (now / goal) * 100, size: 88, stroke: 10, value: hm(now), label: `of ${hm(goal)}` })}
+      ${ring({ pct: (now / goal) * 100, size: 88, stroke: 10, value: hm(now), label: `of ${hm(goal)}`, color: 'var(--ink)', track: 'var(--card)' })}
       <div class="grow">
         <div class="label">Focus · ${esc(shortDate(dayKey()))}</div>
-        <div class="h3" style="margin-top:4px">${running ? 'Timer running' : now >= goal ? 'Goal reached' : 'Start the timer when you work'}</div>
-        <div class="tiny" style="margin-top:2px">${active ? '✓ Today counts for your streak.' : 'A solve, a drill, a commit or 20 timed minutes keeps the streak.'}</div>
-        <button class="btn ${running ? 'hot' : 'primary'} sm" style="margin-top:10px" data-act="focus">
+        <div class="h3" style="margin-top:4px">${running ? 'Timer running' : now >= goal ? 'Goal reached' : 'Start the timer'}</div>
+        <div class="tiny" style="margin-top:2px">${active ? '✓ Streak safe today' : '20 minutes keeps your streak'}</div>
+        <button class="btn ${running ? 'hot' : ''} sm" style="margin-top:10px" data-act="focus">
           ${running ? `${icon('stop', 14).value} Stop` : `${icon('play', 14).value} Timer`}</button>
       </div>
     </div>
@@ -64,8 +63,7 @@ function focusCard() {
 function questCards() {
   const list = quests();
   if (!list.length) return '';
-  return `<div><div class="between" style="margin-bottom:8px"><span class="label">Daily quests</span>
-      <span class="tiny">${list.filter(q => q.claimed).length}/${list.length} claimed</span></div>
+  return `<div><div class="section-head"><div class="h2">Daily quests</div><span class="tiny">${list.filter(q => q.claimed).length}/${list.length}</span></div>
     <div class="stack s2">${list.map(q => {
       const t = q.track === 'core' ? '' : `${trackById(q.track)?.icon || ''} `;
       const action = q.claimed ? '<span class="badge good">Claimed</span>'
@@ -81,15 +79,13 @@ function questCards() {
 function weekStrip() {
   const goal = S.profile.focusGoal || 120;
   const keys = Array.from({ length: 7 }, (_, i) => addDays(dayKey(), i - 6));
-  return `<div class="card"><div class="label" style="margin-bottom:10px">This week</div>
-    <div class="week">${keys.map(k => {
+  return `<div><div class="section-head"><div class="h2">This week</div></div><div class="card"><div class="week">${keys.map(k => {
       const min = S.days[k]?.timerMin || 0;
       return `<div class="week-col ${k === dayKey() ? 'now' : ''}">
         <div class="week-bar" style="height:56px"><i style="height:${Math.min(100, (min / goal) * 100)}%;background:var(--accent)"></i></div>
         <span class="week-dot ${dayIsActive(k) ? 'on' : ''}"></span>
         <span class="tiny">${new Date(k + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'narrow' })}</span></div>`;
-    }).join('')}</div>
-    <div class="tiny" style="margin-top:6px">Bars: timed minutes against your goal. Dots: a day that counted.</div></div>`;
+    }).join('')}</div></div></div>`;
 }
 
 export function render() {

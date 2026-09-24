@@ -56,14 +56,17 @@ details[open] > summary { border-bottom: var(--line-thin) solid var(--ink); }
 
 /* ---------------------------------- today --------------------------------- */
 
+/* Violet, as in Fitify: the one card on Today that is not the accent, so the
+   page has a colour rhythm instead of being lime from top to bottom. */
 .hero-card {
-  background: var(--accent); color: var(--accent-ink);
+  background: var(--violet); color: var(--ink);
   border: var(--line) solid var(--ink);
-  border-radius: var(--radius-l);
-  box-shadow: var(--sh);
-  padding: var(--s5) var(--s4);
+  border-radius: var(--radius);
+  box-shadow: var(--sh-lg);
+  padding: 20px;
 }
-.hero-card .sub, .hero-card .tiny, .hero-card .label { color: inherit; }
+.hero-card .sub, .hero-card .tiny, .hero-card .label { color: var(--ink); }
+.hero-card .sub { font-weight: 700; }
 
 /* The plan as six segments, each filling as its month passes. */
 .plan-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
@@ -520,9 +523,7 @@ details.explain > summary { padding: var(--s3); }
   border-radius: var(--radius-s);
   background: var(--sunk);
   border: var(--line-thin) solid var(--ink);
-  font-family: var(--mono);
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 19px;
   flex: none;
 }
 
@@ -577,7 +578,7 @@ details.explain > summary { padding: var(--s3); }
   border: var(--line-thin) solid var(--ink);
 }
 .tier-pips i.on { background: var(--good); }
-.tree-meta { display: block; font-size: 11px; margin-top: 2px; font-family: var(--mono); font-weight: 600; color: var(--dim); }
+.tree-meta { display: block; font-size: 12px; margin-top: 2px; font-weight: 600; color: var(--dim); }
 
 
 .gauntlet.won    { background: var(--acid); }
@@ -619,7 +620,23 @@ details.explain > summary { padding: var(--s3); }
 /* ------------------------------- track cards ------------------------------ */
 
 /* Each track's card on Today: a coloured rail, then rows that read like a list. */
-.track-card { border-left-width: 10px; border-left-color: var(--tc); }
+.track-card { border-left-width: 8px; border-left-color: var(--tc); }
+/* Fitify's path card header: an emoji on a tinted tile, then the name. */
+.path-top { display: flex; align-items: center; gap: 12px; }
+.path-ico {
+  font-size: 26px; width: 44px; height: 44px; flex: none;
+  display: grid; place-items: center;
+  border: var(--line) solid var(--ink); border-radius: 12px;
+  background: color-mix(in srgb, var(--tc, #fff) 35%, var(--card));
+}
+.path-stats { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px; font-size: 12.5px; color: var(--dim); font-weight: 650; }
+.path-stats b { color: var(--ink); font-size: 14px; }
+
+/* The day's main card is the accent, like Fitify's energy budget. */
+.focus-card { background: var(--accent); color: var(--accent-ink); }
+.focus-card .tiny, .focus-card .label { color: var(--accent-ink); }
+
+.act-back { background: none; border: 0; padding: 4px 0 8px; font-weight: 750; color: var(--dim); min-height: 36px; text-align: left; }
 .track-row {
   display: flex; align-items: center; gap: var(--s3);
   width: 100%; text-align: left;

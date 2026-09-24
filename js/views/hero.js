@@ -38,7 +38,7 @@ function trackBadges() {
   const cards = [];
   if (trackOn('cp')) {
     const c = S.tracks.cp;
-    cards.push(`<div class="card pad-s rail" style="--rail:var(--blue)"><div class="label">⌨️ Programming</div>
+    cards.push(`<div class="card pad-s rail" style="--rail:var(--blue)"><div class="label">🧩 Programming</div>
       <div class="h3" style="margin-top:4px">${c.handle ? `${esc(c.rank || 'unrated')} · ${c.rating ?? '—'}` : 'Not connected'}</div>
       <div class="tiny">${S.stats.solved} solved · ${S.stats.tiersCleared} tiers</div></div>`);
   }
@@ -80,9 +80,8 @@ function charts() {
   return `
     <div class="card"><div class="between"><span class="label">Focus minutes · 30 days</span><span class="tiny">green = goal met</span></div>
       <div style="margin-top:12px">${seriesChart(focus, { height: 110, target: goal, axisEvery: 7 })}</div></div>
-    <div class="card"><div class="between"><span class="label">Six months</span><span class="tiny">every day that counted</span></div>
-      <div style="margin-top:12px">${calendarGrid(grid, { cell: 11, gap: 3 })}</div>
-      <div class="tiny" style="margin-top:8px">Yellow: the day counted. Lime: plus half your focus goal. Green: the full goal.</div></div>`;
+    <div class="card"><div class="between"><span class="label">Six months</span><span class="tiny">darker = more done</span></div>
+      <div style="margin-top:12px">${calendarGrid(grid, { cell: 11, gap: 3 })}</div></div>`;
 }
 
 function accounts() {
@@ -102,7 +101,7 @@ function tracks() {
     <div class="card pad-s"><div class="between"><div class="grow"><div class="h3">${t.icon} ${esc(t.name)}</div>
       <div class="tiny">${esc(t.tagline)}</div></div>
       <button class="pill ${trackOn(t.id) ? 'on' : ''}" data-track="${t.id}">${trackOn(t.id) ? 'On' : 'Off'}</button></div></div>`).join('')}
-    <div class="tiny">Switching a track off hides it; nothing in it is deleted. At least one stays on.</div></div>`;
+</div>`;
 }
 
 function gear() {
@@ -115,16 +114,14 @@ function gear() {
         <div class="tiny">${have ? esc(l.name) : esc(RARITY[l.rarity].name)}</div>
         ${have ? `<div class="tiny num">+${(l.bonus * 100).toFixed(1).replace('.0', '')}%</div>` : ''}</div>`;
     }).join('')}</div>`;
-  return `<div class="between"><span class="label">Gear</span>
-      <span class="badge ${bonus ? 'solid' : ''}">+${bonus}% XP${bonus >= LOOT_CAP * 100 ? ' (max)' : ''}</span></div>
-    ${set('desk', 'Desk · drops from programming')}${set('bench', 'Bench · drops from robotics')}
-    <div class="tiny" style="margin-top:8px">Each piece is a permanent XP bonus on everything, capped at +${LOOT_CAP * 100}%. Duplicates become credits.</div>`;
+  return `<div class="section-head"><div class="h2">Gear</div><span class="badge ${bonus ? 'solid' : ''}">+${bonus}% XP${bonus >= LOOT_CAP * 100 ? ' (max)' : ''}</span></div>
+    ${set('desk', 'Desk')}${set('bench', 'Bench')}`;
 }
 
 function achievements() {
   const groups = [['core', 'The character'], ...TRACKS.map(t => [t.id, `${t.icon} ${t.name}`])];
   const got = ACHIEVEMENTS.filter(a => S.earned[a.id]).length;
-  return `<div class="between"><span class="label">Achievements</span><span class="tiny">${got}/${ACHIEVEMENTS.length}</span></div>
+  return `<div class="section-head"><div class="h2">Achievements</div><span class="tiny">${got}/${ACHIEVEMENTS.length}</span></div>
     ${groups.map(([id, title]) => `<div class="tiny" style="margin:12px 0 6px;font-weight:800">${esc(title)}</div>
       <div class="stack s2">${ACHIEVEMENTS.filter(a => a.track === id).map(a => {
         const on = !!S.earned[a.id];
@@ -138,7 +135,7 @@ function shop() {
   return `<div class="card"><div class="between"><div><div class="h3">Streak freeze</div>
       <div class="tiny">Covers a missed day automatically. You have ${S.streak.freezes}. One more every five levels.</div></div>
       <button class="btn sm" data-act="freeze" ${S.coins < FREEZE_COST ? 'disabled' : ''}>${FREEZE_COST}c</button></div></div>
-    <div class="between" style="margin:16px 0 8px"><span class="label">Accent</span><span class="badge">${fmt(S.coins)}c</span></div>
+    <div style="margin-top:16px"><div class="section-head"><div class="h2">Accent</div><span class="badge">${fmt(S.coins)}c</span></div></div>
     <div class="theme-grid">${THEMES.map(t => {
       const owned = ownsTheme(t.id), on = S.profile.theme === t.id;
       return `<button class="theme ${on ? 'on' : ''} ${owned ? '' : 'locked'}" data-theme="${t.id}">
@@ -324,12 +321,12 @@ export function render() {
     <button class="btn hot block sm" style="margin-top:10px" data-act="backup">Back up now</button></div>` : '';
   return `<div class="stack s4 fade-up">
     ${unsaved}${head()}${trackBadges()}${tiles()}${charts()}
-    <div><div class="label" style="margin-bottom:8px">Accounts</div>${accounts()}</div>
-    <div><div class="label" style="margin-bottom:8px">Tracks</div>${tracks()}</div>
+    <div><div class="section-head"><div class="h2">Accounts</div></div>${accounts()}</div>
+    <div><div class="section-head"><div class="h2">Tracks</div></div>${tracks()}</div>
     <div>${gear()}</div>
     <div>${achievements()}</div>
     <div>${shop()}</div>
-    <div><div class="label" style="margin-bottom:8px">Settings</div>${settings()}</div>
+    <div><div class="section-head"><div class="h2">Settings</div></div>${settings()}</div>
     ${trackOn('robotics') ? `<div class="card sunk credits"><div class="label">Credits</div>
       <div class="sub" style="margin-top:6px">The robotics roadmap — every month, task, resource and price — is from
         <a href="${esc(SOURCE.url)}" target="_blank" rel="noopener">“${esc(SOURCE.title)}” by ${esc(SOURCE.author)}</a>, summarised in shorter words.</div></div>` : ''}

@@ -150,9 +150,9 @@ button, .pill, .tile, .badge, .nav button { -webkit-user-select:none; user-selec
 
 /* -------------------------------- typography ------------------------------ */
 
-.h1 { font-size:28px; font-weight:800; letter-spacing:-.03em; line-height:1.1; }
-.h2 { font-size:21px; font-weight:800; letter-spacing:-.02em; line-height:1.2; }
-.h3 { font-size:15px; font-weight:700; letter-spacing:-.01em; }
+.h1 { font-size:30px; font-weight:800; letter-spacing:-.035em; line-height:1.05; text-transform:uppercase; }
+.h2 { font-size:20px; font-weight:800; letter-spacing:-.02em; line-height:1.2; }
+.h3 { font-size:15px; font-weight:800; letter-spacing:-.01em; }
 .sub { font-size:13.5px; color:var(--dim); font-weight:500; }
 .tiny { font-size:11.5px; color:var(--dim); font-weight:600; }
 
@@ -181,6 +181,12 @@ button, .pill, .tile, .badge, .nav button { -webkit-user-select:none; user-selec
 .grid3    { display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s2); }
 
 .section { margin-top:var(--s6); }
+
+/* A section heading, Fitify's way: a 20px uppercase title, not a small label. */
+.section-head { display:flex; align-items:center; justify-content:space-between; gap:var(--s3); margin:var(--s2) 0 var(--s2); }
+.section-head .h2 { text-transform:uppercase; letter-spacing:-.01em; }
+.page-head { margin-bottom:var(--s2); }
+.page-head .sub { margin-top:4px; }
 .section > .label { margin-bottom:var(--s2); }
 
 .hide { display:none !important; }
