@@ -1,4 +1,4 @@
-/** The plan: four months as a path, and each month opened up in full. */
+/** The plan: four parts as a path, and each part opened up in full. */
 import { S } from '../../state.js';
 import { setDirection } from './actions.js';
 import { plan, monthProgress, milestoneDone, isVerified, skillLevel, bossReady, isUnlocked, toggleRead } from './actions.js';
@@ -32,7 +32,7 @@ function overview() {
       <div class="row">
         <div class="month-num">${m.icon}</div>
         <div class="grow">
-          <div class="between"><span class="label">Month ${m.n} · ${esc(m.level)}</span>${status}</div>
+          <div class="between"><span class="label">Part ${m.n} · ${esc(m.level)}</span>${status}</div>
           <div class="h3" style="margin-top:3px">${esc(m.title)}</div>
         </div>
       </div>
@@ -142,9 +142,9 @@ function monthPage(n) {
   const m = monthByN(n), open = isUnlocked(n), pr = monthProgress(n);
   const startDay = MONTH_DAYS * (n - 1) + 1;
   return `<div class="fade-up">
-    <button class="act-back" data-act="back">‹ All months</button>
+    <button class="act-back" data-act="back">‹ All parts</button>
     <div class="month-head" style="--mc:${m.color};margin-top:12px">
-      <div class="label">Month ${n} · ${esc(m.level)} · missions ${startDay}–${startDay + MONTH_DAYS - 1}</div>
+      <div class="label">Part ${n} · ${esc(m.level)} · missions ${startDay}–${startDay + MONTH_DAYS - 1}</div>
       <div class="h1" style="margin-top:6px">${m.icon} ${esc(m.title)}</div>
       <div class="sub" style="margin-top:6px">${esc(m.goal)}</div>
       ${open ? '' : `<div class="badge" style="margin-top:12px">Opens at mission ${opensAt(n)} — read ahead freely</div>`}

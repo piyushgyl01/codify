@@ -16,6 +16,7 @@ import { showMonth } from './view-plan.js';
 import { openTab } from './hub.js';
 import { go } from '../../router.js';
 import * as Parts from '../../views/mission-parts.js';
+import * as E from '../../learn/session.js';
 
 const T = 'robotics';
 
@@ -44,12 +45,12 @@ function bossStep(m) {
   const boss = bossFor(m.month);
   if (m.done || m.check || won || !ready.ok) {
     const why = won ? 'Boss already beaten.' : ready.why;
-    return Parts.proveStep(T, m, 1, { note: m.done ? '' : `<div class="tiny">${esc(why)} Today is a review of the month.</div>` });
+    return Parts.proveStep(T, m, 1, { note: m.done ? '' : `<div class="tiny">${esc(why)} Today is a review of this part.</div>` });
   }
   const active = S.active?.mode === 'boss';
   return `<div class="m-step">
     <span class="m-num">1</span>
-    <div class="grow"><div class="label">The month's boss</div>
+    <div class="grow"><div class="label">This part's boss</div>
       <div class="h3">${boss.icon} Fight ${esc(boss.name)}</div><div class="tiny">${esc(boss.intro)}</div>
       <button class="btn hot block m-go" data-boss="${m.month}">${active ? 'Resume the fight' : 'Fight'}</button></div>
   </div>`;
@@ -74,12 +75,36 @@ function buildStep(m) {
   </button>`;
 }
 
+/** Between missions at a slower pace: keep going on the build from the last one. */
+function keepBuilding(m) {
+  const prev = m.n > 1 ? missionAt(m.n - 1) : null;
+  if (!prev?.build) return '';
+  const b = buildById(prev.build.id), commits = commitsOn();
+  const check = isVerified(b.id) ? '<div class="tiny ok-line">✓ Verified on GitHub</div>'
+    : !S.github.user ? '<div class="tiny m-check">Add your GitHub on Hero so your pushes count</div>'
+    : commits ? `<div class="tiny ok-line">✓ ${commits} commit${commits === 1 ? '' : 's'} today</div>`
+    : '<div class="tiny m-check">Push what you get done today.</div>';
+  return `<button class="m-step tap" data-build="${b.id}">
+    <span class="m-num">2</span>
+    <div class="grow"><div class="label">Keep going · ${stepName(prev.build)} ${prev.build.step}/${prev.build.of}</div>
+      <div class="h3">${esc(b.name)}</div>
+      <div class="tiny m-task">${esc(stepLine(prev.build))}</div>${check}</div>
+    ${icon('chevron', 16).value}
+  </button>`;
+}
+
 /** The mission card. `compact` is the version on Today. */
 export function missionCard({ compact = false } = {}) {
   const m = mission(), month = monthByN(m.month);
   if (m.finished && !m.done) {
     return `<div class="card mission-card"><div class="h2">All missions done</div>
       <p class="sub" style="margin-top:6px">That is the whole plan. Keep your skills sharp with practice, and ship.</p></div>`;
+  }
+  if (!m.done && !m.check && !E.paceInfo(T).missionDay) {
+    return `<div class="${compact ? 'm-inner' : 'card mission-card'}" style="--mc:${month.color}">
+      ${compact ? '' : Parts.header(T, m, month, { keepGoing: true })}
+      <div class="m-steps">${Parts.keepGoing(T, m, keepBuilding(m))}</div>
+    </div>`;
   }
   const next = m.done && m.n < TOTAL_MISSIONS ? missionAt(m.n + 1) : null;
   const steps = m.boss ? bossStep(m) : learnStep(m) + Parts.proveStep(T, m) + buildStep(m);
@@ -112,7 +137,7 @@ export function openLearn(n, rerender) {
         <div class="h3" style="margin-top:4px">${esc(skills.join(', '))}</div></div>` : ''}
       <div class="label" style="margin-top:16px">Where to learn it</div>
       <div class="res-list">${res}</div>
-      <button class="btn block" style="margin-top:16px" data-open-month>See all of month ${m.month}</button>`;
+      <button class="btn block" style="margin-top:16px" data-open-month>See all of part ${m.month}</button>`;
   };
   sheet('Learn', paint(), (el, close) => {
     const wire = () => {
@@ -147,6 +172,7 @@ const describe = x => ({
 export function render() {
   return `<div class="stack s4 fade-up">
     ${missionCard()}
+    ${Parts.paceCard(T)}
     ${Parts.progressCard(T)}
     ${Parts.comingUp(T, describe)}
     ${Parts.howItWorks(T, 'Build steps count when GitHub shows a push that day, and a build pays when its folder passes the checks. The check alone finishes the mission, because parts can take days to arrive.')}

@@ -15,16 +15,18 @@
  *   checks    { n: { day, score, … } }   the check of each mission, once done
  *   scores    { day: skill score }        for the "getting better" chart
  *   testouts  { week: { day, passed } }   one attempt per week per day
+ *   pace      4, 6, 8 or 12                  months the plan is spread over
+ *   paceSince { day, done }                  when the pace was last set, and missions done then
  */
 import { S, emit, award, grantLoot, getDay, today, touchStreak, save } from '../state.js';
 import { rollLoot } from '../data/loot.js';
-import { levelOf, roundFor, scoreRound, lastRound, pickReviews, bossCombo, MAX_LEVEL } from '../game.js';
+import { levelOf, roundFor, scoreRound, lastRound, pickReviews, bossCombo, MAX_LEVEL, addDays, daysBetween } from '../game.js';
 import { generate, grade } from '../quiz.js';
 import * as P from './plan.js';
 
 export const XP = {
   right: 5,               // + half the skill's level, for each right answer in a mission
-  levelUp: 15, missionDone: 30, missionClean: 20,
+  levelUp: 15, missionDone: 30, missionClean: 20, reviewDone: 10,
   testOutRight: 5,        // testing out pays for the answers, not for the missions it skips
   practiceRight: 4, practiceCap: 120, bossHit: 100,
 };
@@ -43,7 +45,7 @@ const slice = id => TRACKS[id].slice();
 const DAY_FIELD = { robotics: 'robotics', cp: 'code' };
 
 export const emptyCounters = () => ({
-  mission: null, drill: null, answered: 0, correct: 0, bestRun: 0, ups: 0, practiceCorrect: 0, practiceXp: 0, check: null,
+  mission: null, drill: null, answered: 0, correct: 0, bestRun: 0, ups: 0, practiceCorrect: 0, practiceXp: 0, check: null, review: null,
 });
 
 /** A day's numbers for a track, created on first use and filled in place — every caller holds the same object. */
@@ -67,6 +69,54 @@ export const missionDoneToday = (track, key = today()) => !!P.missionDoneOn(slic
 export function mission(track, key = today()) {
   const r = slice(track), m = P.todaysMission(r, TRACKS[track].plan, key);
   return { ...m, check: r.checks?.[m.n] || null };
+}
+
+/* ---------------------------------- pace ---------------------------------- */
+
+/**
+ * The same 120 missions, spread over 4, 6, 8 or 12 months. A slower pace means
+ * fewer hours a day, not less content: a new mission every 1, 1.5, 2 or 3 days,
+ * and on the days between, a short review and keep going on what is in hand.
+ *
+ * The schedule counts missions actually done since the pace was set, so
+ * changing it never loses progress, testing out moves the whole plan forward,
+ * and doing a mission early just puts you ahead.
+ */
+export const PACES = [
+  { months: 4,  hours: 3,   label: 'about 3 hours a day' },
+  { months: 6,  hours: 2,   label: 'about 2 hours a day' },
+  { months: 8,  hours: 1.5, label: 'about 1½ hours a day' },
+  { months: 12, hours: 1,   label: 'about an hour a day' },
+];
+export const paceOf = track => PACES.find(p => p.months === slice(track).pace) || PACES[0];
+export const daysPerMission = months => months / 4;
+
+export function setPace(track, months, key = today()) {
+  if (!PACES.some(p => p.months === months)) return false;
+  const r = slice(track), done = P.missionsDone(r);
+  const last = Object.values(r.missions || {}).sort().at(-1);
+  r.pace = months;
+  // Count the new pace from your last mission, so switching back and forth never hands out an extra one.
+  r.paceSince = last ? { day: last, done: done - 1 } : { day: key, done: 0 };
+  emit('profile');
+  return true;
+}
+
+/**
+ * Is today a day for a new mission, or a keep-going day between two? And when
+ * does the plan end at this pace?
+ */
+export function paceInfo(track, key = today()) {
+  const r = slice(track), pace = paceOf(track), dpm = daysPerMission(pace.months);
+  const doneToday = !!P.missionDoneOn(r, key);
+  const doneBefore = P.missionsDone(r) - (doneToday ? 1 : 0);
+  const since = r.paceSince || { day: key, done: doneBefore };
+  const due = since.done + Math.floor(Math.max(0, daysBetween(since.day, key)) / dpm) + 1;
+  const missionDay = pace.months === 4 || doneBefore < due;
+  // Missions still to do; if today's is due and not done yet, today is the first of them.
+  const left = TRACKS[track].plan.filter(m => !P.isComplete(r, m.n)).length;
+  const finish = addDays(key, Math.ceil(Math.max(0, missionDay && !doneToday ? left - 1 : left) * dpm));
+  return { ...pace, dpm, missionDay, doneToday, ahead: doneBefore >= due, finish };
 }
 
 export const testOut = (track, week) => {
@@ -137,6 +187,39 @@ export function completeMission(track, n, key, info = {}) {
   touchStreak(key);
   emit('mission', { track, n });
   return true;
+}
+
+/* --------------------------------- review --------------------------------- */
+
+/** What a keep-going day's review asks: whatever is due, else the weakest skills you have started. */
+export function reviewSkills(track, key = today()) {
+  const cfg = TRACKS[track], st = slice(track).skills || {}, pool = cfg.unlockedSkillIds(key);
+  const m = mission(track, key), budget = Math.max(4, Math.round(cfg.budget(m.month) / 2));
+  const picked = pickReviews(pool, st, key, budget);
+  if (picked.length) return picked;
+  return pool.filter(id => levelOf(st[id]) >= 1)
+    .sort((a, b) => levelOf(st[a]) - levelOf(st[b]) || (st[a].last || '').localeCompare(st[b].last || '')).slice(0, 2);
+}
+
+export const reviewDoneToday = (track, key = today()) => !!counters(track, key).review;
+
+/** A keep-going day's check: levels move exactly as in a mission, but no mission is used up. One a day. */
+export function startReview(track, key = today(), rng = Math.random) {
+  if (S.active) return S.active;
+  if (reviewDoneToday(track, key)) return null;
+  const r = slice(track), qs = [], groups = [];
+  for (const id of reviewSkills(track, key)) {
+    const e = r.skills?.[id], level = Math.max(1, levelOf(e)), round = roundFor(level);
+    groups.push({ skill: id, level, from: levelOf(e), n: round.n, start: qs.length, prev: lastRound(e), isNew: false });
+    for (let k = 0; k < round.n; k++) {
+      const q = generate(id, rng);
+      qs.push({ ...q, grp: groups.length - 1, secs: round.secs[q.kind] || round.secs.num });
+    }
+  }
+  if (!qs.length) return null;
+  S.active = { mode:'review', track, day:key, i:0, run:0, best:0, xp:0, qs, groups, results: [], shown: -1 };
+  emit('session');
+  return S.active;
 }
 
 /* --------------------------------- test out ------------------------------- */
@@ -216,7 +299,7 @@ export function answer(input, rng = Math.random) {
   if (res.correct) { day.correct += 1; S.stats.correct += 1; }
 
   let xp = 0, dmg = 0, round = null;
-  if (a.mode === 'mission') {
+  if (a.mode === 'mission' || a.mode === 'review') {
     const g = a.groups[q.grp];
     if (res.correct) xp = XP.right + Math.ceil(g.level / 2);
     const mine = [...a.results.filter(x => x.grp === q.grp), { correct: res.correct, secs }];
@@ -294,6 +377,12 @@ export function finishSession(rng = Math.random) {
     touchStreak(a.day);
     const completed = cfg.onCheck(a.n, a.day, info);
     extra = { ...info, perfect, n: a.n, groups: a.groups, scoreFrom, scoreTo: skillScore(a.track), completed };
+  } else if (a.mode === 'review') {
+    const total = a.qs.length, ups = a.groups.filter(g => g.move > 0).length;
+    counters(a.track, a.day).review = { score: right, total, ups };
+    reward = award(a.xp + XP.reviewDone, 2 + right, 'Review');
+    touchStreak(a.day);
+    extra = { score: right, total, ups, groups: a.groups, perfect: right === total };
   } else if (a.mode === 'testout') {
     const t = P.testOutFor(r, cfg.plan, a.week), passed = right >= TEST_OUT.pass;
     r.testouts = { ...(r.testouts || {}), [a.week]: { day: a.day, right, total: a.qs.length, passed } };

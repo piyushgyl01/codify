@@ -10,7 +10,9 @@ import { TRACKS, trackById } from '../tracks/index.js';
 import { linkCodeforces, unlinkCodeforces, setDailySolves } from '../tracks/cp/actions.js';
 import { checkHandle } from '../tracks/cp/codeforces.js';
 import { colorForRating } from '../tracks/cp/model.js';
-import { currentMonth, verifiedCount, setStart } from '../tracks/robotics/actions.js';
+import { verifiedCount, setStart, mission as roboMission } from '../tracks/robotics/actions.js';
+import { mission as codeMission } from '../tracks/cp/actions.js';
+import { BOSSES } from '../tracks/robotics/bosses.js';
 import { SOURCE, BUILDS } from '../tracks/robotics/roadmap.js';
 import { checkGithub } from '../platforms.js';
 import { syncAll, describeSync } from '../sync.js';
@@ -40,12 +42,12 @@ function trackBadges() {
     const c = S.tracks.cp;
     cards.push(`<div class="card pad-s rail" style="--rail:var(--blue)"><div class="label">🧩 Programming</div>
       <div class="h3" style="margin-top:4px">${c.handle ? `${esc(c.rank || 'unrated')} · ${c.rating ?? '—'}` : 'Not connected'}</div>
-      <div class="tiny">${S.stats.solved} solved · ${S.stats.tiersCleared} tiers</div></div>`);
+      <div class="tiny">Mission ${codeMission().n} · ${S.stats.solved} solved · ${S.stats.tiersCleared} tiers</div></div>`);
   }
   if (trackOn('robotics')) {
     const won = Object.values(S.tracks.robotics.bosses).filter(b => b.won).length;
     cards.push(`<div class="card pad-s rail" style="--rail:var(--acid)"><div class="label">🤖 Robotics</div>
-      <div class="h3" style="margin-top:4px">Month ${currentMonth()} · ${won}/6 bosses</div>
+      <div class="h3" style="margin-top:4px">Mission ${roboMission().n} · ${won}/${BOSSES.length} bosses</div>
       <div class="tiny">${verifiedCount()}/${BUILDS.length} builds verified</div></div>`);
   }
   return `<div class="grid2">${cards.join('')}</div>`;
@@ -170,7 +172,7 @@ function openProfile(rerender) {
       <input class="input num" id="pf-solves" type="number" inputmode="numeric" min="1" max="6" value="${S.tracks.cp.dailySolves}"></div>` : ''}
     ${trackOn('robotics') ? `<div class="field" style="margin-top:12px"><label for="pf-start">Robotics plan start date</label>
       <input class="input" id="pf-start" type="date" value="${esc(S.tracks.robotics.start)}" max="${dayKey()}"></div>
-      <div class="tiny" style="margin-top:6px">An earlier start opens months sooner. It changes the calendar, not your progress.</div>` : ''}
+      <div class="tiny" style="margin-top:6px">An earlier start opens parts sooner. It changes the calendar, not your progress.</div>` : ''}
     <button class="btn primary block" style="margin-top:16px" data-save>Save</button>`,
     (el, close) => {
       $('[data-save]', el).onclick = () => {

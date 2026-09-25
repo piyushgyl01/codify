@@ -12,7 +12,7 @@ export function render() {
   return `<div class="card track-card" style="--tc:var(--blue)">
     <div class="path-top"><span class="path-ico">🧩</span>
       <div class="grow"><div class="h3">Mission ${m.n} of ${TOTAL_MISSIONS}</div>
-        <div class="tiny truncate">Code · ${isLinked() ? esc(S.tracks.cp.handle) : 'connect Codeforces to count solves'} · month ${month.n}</div></div>
+        <div class="tiny truncate">Code · ${isLinked() ? esc(S.tracks.cp.handle) : 'connect Codeforces to count solves'} · part ${month.n}</div></div>
       <button class="btn xs" data-go="cp">Open</button></div>
     <div class="plan-bar" style="margin-top:10px;--cols:${MONTHS.length}">${MONTHS.map(x => {
       const f = Math.max(0, Math.min(1, (done - MONTH_DAYS * (x.n - 1)) / MONTH_DAYS));

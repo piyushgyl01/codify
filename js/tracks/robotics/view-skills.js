@@ -64,12 +64,12 @@ function monthGroup(m) {
   const skills = skillsIn(m.n), open = isUnlocked(m.n);
   if (!open) {
     return `<div class="card sunk pad-s locked-group">
-      <div class="between"><span class="h3">${m.icon} Month ${m.n} · ${esc(m.short)}</span><span class="badge mute">${skills.length} skills · locked</span></div>
+      <div class="between"><span class="h3">${m.icon} Part ${m.n} · ${esc(m.short)}</span><span class="badge mute">${skills.length} skills · locked</span></div>
     </div>`;
   }
   const held = skills.filter(s => skillLevel(s.id) >= 3).length;
   return `<div>
-    <div class="section-head"><div class="h2">${m.icon} Month ${m.n}</div><span class="tiny">${held}/${skills.length} at level 3+</span></div>
+    <div class="section-head"><div class="h2">${m.icon} Part ${m.n}</div><span class="tiny">${held}/${skills.length} at level 3+</span></div>
     <div class="card flush">${skills.map(skillRow).join('')}</div>
   </div>`;
 }

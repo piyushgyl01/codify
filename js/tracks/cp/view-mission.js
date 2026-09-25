@@ -15,6 +15,7 @@ import { syncAll, describeSync } from '../../sync.js';
 import { esc, sheet, dialog, toast, sfx, haptic, $ } from '../../ui.js';
 import { icon } from '../../icons.js';
 import * as Parts from '../../views/mission-parts.js';
+import * as E from '../../learn/session.js';
 
 const T = 'cp';
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -63,10 +64,26 @@ function contestStep(m) {
     : `<button class="btn hot block m-go" data-cp-contest="${c.id}">Start the clock</button>`;
   return `<div class="m-step ${m.done ? 'done' : ''}">
     <span class="m-num">1</span>
-    <div class="grow"><div class="label">The month's contest</div>
+    <div class="grow"><div class="label">This part's contest</div>
       <div class="h3">${c.icon} ${esc(c.name)}</div>
       <div class="tiny">${c.need} problems rated ${c.minRating}+ in ${c.minutes} minutes. Won or lost, finishing it completes the mission.</div>
       ${body}</div>
+  </div>`;
+}
+
+/** Between missions at a slower pace: keep solving in the last mission's tag. Counted, never required. */
+function keepSolving(m) {
+  const prev = m.n > 1 ? missionAt(m.n - 1) : null;
+  if (!prev || prev.boss) return '';
+  const st = solveStatus({ ...prev, count: 1 });
+  return `<div class="m-step ${st.met ? 'done' : ''}">
+    <span class="m-num">2</span>
+    <div class="grow"><div class="label">Keep going · ${tagName(prev.tag)}</div>
+      <div class="h3">One more problem ${prev.tag ? `tagged ${tagName(prev.tag)}` : 'with any tag'}, rated ${st.target}+</div>
+      ${!isLinked() ? '<div class="tiny m-check">Connect Codeforces above so it counts.</div>'
+        : st.met ? '<div class="tiny ok-line">✓ Solved one today</div>'
+        : `<div class="tiny m-check">Optional — it pays like any solve, and keeps the topic warm.</div>
+           <div class="row m-go" style="gap:8px"><button class="btn sm grow" data-cp-find-prev>Find problems</button><button class="btn sm" data-cp-sync>Sync</button></div>`}</div>
   </div>`;
 }
 
@@ -76,6 +93,12 @@ export function missionCard({ compact = false } = {}) {
   if (m.finished && !m.done) {
     return `<div class="card mission-card"><div class="h2">All missions done</div>
       <p class="sub" style="margin-top:6px">That is the whole plan. Keep entering contests.</p></div>`;
+  }
+  if (!m.done && !m.check && !E.paceInfo(T).missionDay) {
+    return `<div class="${compact ? 'm-inner' : 'card mission-card'}" style="--mc:${month.color}">
+      ${compact ? '' : Parts.header(T, m, month, { keepGoing: true })}
+      <div class="m-steps">${Parts.keepGoing(T, m, keepSolving(m))}</div>
+    </div>`;
   }
   const next = m.done && m.n < TOTAL_MISSIONS ? missionAt(m.n + 1) : null;
   const steps = m.boss ? contestStep(m) : learnStep(m) + Parts.proveStep(T, m) + solveStep(m);
@@ -128,6 +151,7 @@ export function mountMission(root, rerender) {
   Parts.mountParts(root, T, rerender);
   root.querySelectorAll('[data-cp-learn]').forEach(el => { el.onclick = () => openLearn(mission()); });
   root.querySelectorAll('[data-cp-find]').forEach(el => { el.onclick = () => openFind(mission()); });
+  root.querySelectorAll('[data-cp-find-prev]').forEach(el => { el.onclick = () => { const m = mission(); openFind({ ...missionAt(m.n - 1), count: 1 }); }; });
   root.querySelectorAll('[data-cp-lower]').forEach(el => {
     el.onclick = () => { const m = mission(); lowerTarget(m.tag); toast(`Your level for ${esc(tagName(m.tag))} is now ${solveStatus(mission()).target}.`); rerender(); };
   });
@@ -168,6 +192,7 @@ const describe = x => ({
 export function render() {
   return `<div class="stack s4">
     ${missionCard()}
+    ${Parts.paceCard(T)}
     ${Parts.progressCard(T)}
     ${Parts.missionMap(T, MONTHS, 'contest')}
     ${Parts.comingUp(T, describe)}

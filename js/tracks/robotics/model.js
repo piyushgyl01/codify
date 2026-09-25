@@ -63,10 +63,10 @@ export function monthProgress(r, n) {
 export function bossReady(r, n, key) {
   const b = r.bosses?.[n] || {};
   if (b.won) return { ok:false, why:'Defeated.' };
-  if (!isUnlocked(r, n, key)) return { ok:false, why:'This month is not open yet.' };
+  if (!isUnlocked(r, n, key)) return { ok:false, why:'This part is not open yet.' };
   const p = monthProgress(r, n);
-  if (p.seen < p.skillsTotal) return { ok:false, why:`Start every skill of the month first — ${p.seen} of ${p.skillsTotal}.` };
-  if (p.builds < 1) return { ok:false, why:'Verify at least one of this month\'s builds first.' };
+  if (p.seen < p.skillsTotal) return { ok:false, why:`Start every skill of this part first — ${p.seen} of ${p.skillsTotal}.` };
+  if (p.builds < 1) return { ok:false, why:'Verify at least one of this part\'s builds first.' };
   if (b.lastTry === key) return { ok:false, why:'You fought it today. Come back tomorrow.' };
   return { ok:true, why:'' };
 }

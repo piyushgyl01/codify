@@ -10,7 +10,7 @@ export function render() {
   return `<div class="card track-card" style="--tc:var(--acid)">
     <div class="path-top"><span class="path-ico">🤖</span>
       <div class="grow"><div class="h3">Mission ${m.n} of ${TOTAL_MISSIONS}</div>
-        <div class="tiny truncate">Robotics · month ${month.n} · ${esc(month.title)}</div></div>
+        <div class="tiny truncate">Robotics · part ${month.n} · ${esc(month.title)}</div></div>
       <button class="btn xs" data-go="robotics">Open</button></div>
     <div class="plan-bar" style="margin-top:10px;--cols:${MONTHS.length}">${MONTHS.map(x => {
       const f = Math.max(0, Math.min(1, (done - MONTH_DAYS * (x.n - 1)) / MONTH_DAYS));

@@ -20,12 +20,20 @@ the check gets harder exactly where you are getting better. Already know a week?
 out**: six questions at level 4, five right skips the rest of that week — the first time,
 that is your placement test.
 
+**Pick your pace, per track: 4, 6, 8 or 12 months.** It is the same 120 missions either way —
+a slower pace means fewer hours a day (about 3, 2, 1½ or 1), not less content. A new
+mission comes every 1, 1½, 2 or 3 days; the days between are **keep-going days**: a short
+review of the skills due back, and keep going on the build or the topic in hand. You can
+always start the next mission early, and changing pace keeps every mission you have done.
+The plan's four stages are called parts, since at a slower pace a part lasts longer than a
+month.
+
 No build step, no backend, no account. Installable as a PWA; works offline apart from
 the syncs and GitHub checks.
 
 ```bash
 npm start          # http://localhost:5179
-npm test           # 247 headless assertions
+npm test           # 263 headless assertions
 ```
 
 ## The one rule
@@ -178,7 +186,7 @@ js/
   tracks/cp/              the 120-day DSA plan, 42 skills, topics, contests, Codeforces, views
   tracks/robotics/        roadmap, the 120-day plan, 51 skills, bosses, builds, views
   views/                  home, hero, onboarding, the focus timer, the shared player and mission card
-test/smoke.test.js        247 assertions, with a fake GitHub for the verifier
+test/smoke.test.js        263 assertions, with a fake GitHub for the verifier
 ```
 
 Bump `CACHE_VERSION` in `sw.js` and `APP_VERSION` in `js/version.js` together whenever a

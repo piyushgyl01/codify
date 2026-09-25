@@ -710,6 +710,44 @@ reset();
   ok('a week with fewer than two new skills cannot be tested out of', !Ro.testOut(5).ok);
 }
 
+group('pace: the same plan over 4, 6, 8 or 12 months');
+reset();
+{
+  const d0 = G.dayKey(), at = n => G.addDays(d0, n), rng = Q.seeded(41);
+  const doMission = key => { E.startMission('robotics', key, rng); while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng); return E.finishSession(rng); };
+  ok('four months by default: every day is a mission day', E.paceOf('robotics').months === 4 && E.paceInfo('robotics').missionDay);
+  const f4 = E.paceInfo('robotics').finish;
+  ok('only 4, 6, 8 and 12 are paces', !E.setPace('robotics', 5) && E.setPace('robotics', 12, d0));
+  const f12 = E.paceInfo('robotics', d0).finish;
+  ok('twelve months ends about three times later', G.daysBetween(d0, f12) >= 3 * G.daysBetween(d0, f4) - 3);
+  ok('day 1 at twelve months is a mission day', E.paceInfo('robotics', d0).missionDay);
+  doMission(d0);
+  ok('the next two days are keep-going days', !E.paceInfo('robotics', at(1)).missionDay && !E.paceInfo('robotics', at(2)).missionDay);
+  ok('and the third brings the next mission', E.paceInfo('robotics', at(3)).missionDay);
+
+  const r = E.startReview('robotics', at(1), rng);
+  ok('a keep-going day has a review of what is due', r && r.mode === 'review' && r.groups.every(g => g.from >= 1));
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng);
+  const rev = E.finishSession(rng);
+  ok('it moves levels like a mission, but uses up no mission', rev.groups.some(g => g.move > 0) && E.missionsDone('robotics') === 1);
+  ok('it keeps the streak going', St.dayIsActive(at(1)));
+  ok('one review a day', E.startReview('robotics', at(1)) === null);
+
+  const early = doMission(at(2));
+  ok('you can still do the next mission early', early.completed && E.missionsDone('robotics') === 2);
+  ok('which puts you ahead: the next mission day moves later', !E.paceInfo('robotics', at(3)).missionDay && E.paceInfo('robotics', at(6)).missionDay);
+
+  const done = E.missionsDone('robotics');
+  E.setPace('robotics', 4, at(3));
+  ok('changing pace keeps every mission done', E.missionsDone('robotics') === done && E.paceInfo('robotics', at(3)).missionDay);
+  E.setPace('robotics', 6, at(3));
+  ok('a new pace counts from your last mission: a day and a half after it at six months',
+    !E.paceInfo('robotics', at(3)).missionDay && E.paceInfo('robotics', at(4)).missionDay);
+  E.setPace('robotics', 12, at(3)); E.setPace('robotics', 6, at(3)); E.setPace('robotics', 12, at(3));
+  ok('so switching back and forth never hands out an extra mission', !E.paceInfo('robotics', at(3)).missionDay);
+  ok('each track has its own pace', E.paceOf('cp').months === 4 && E.paceOf('robotics').months === 12);
+}
+
 /* ============================== shared: timer ============================= */
 group('shared: the focus timer');
 reset();

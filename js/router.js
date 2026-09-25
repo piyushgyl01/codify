@@ -6,7 +6,7 @@
  * needs more than five buttons however far the app grows.
  */
 import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks } from './state.js';
-import { missionDoneToday } from './learn/session.js';
+import { missionDoneToday, reviewDoneToday, paceInfo } from './learn/session.js';
 import { TRACKS, trackById } from './tracks/index.js';
 import { icon } from './icons.js';
 import { rankFor } from './game.js';
@@ -77,7 +77,8 @@ function topbar() {
 function nav() {
   const day = getDay();
   const claimable = quests().some(q => q.done && !day.claimed.includes(q.id));
-  const missionTodo = enabledTracks().some(t => !missionDoneToday(t));
+  // Something left today: the mission on a mission day, the review on a keep-going day.
+  const missionTodo = enabledTracks().some(t => (paceInfo(t).missionDay ? !missionDoneToday(t) : !reviewDoneToday(t)));
   const dots = { home: claimable || missionTodo, hero: needsBackup() };
   return Object.entries(routes()).map(([k, r]) => `
     <button class="${k === current ? 'on' : ''}" data-nav="${k}" aria-current="${k === current ? 'page' : 'false'}">

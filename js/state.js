@@ -56,9 +56,9 @@ export const emptyDay = () => ({ timer: [], timerMin: 0, timerTagged: 0, timerXp
 const freshCp = () => ({
   handle:'', rating:null, rank:null, avatar:null, solved:[], syncedAt:0, error:'',
   credited:{ problems:{}, tiers:{} }, contest:null, contests:{}, dailySolves:2,
-  start: dayKey(), skills:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, targets:{},
+  start: dayKey(), skills:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, targets:{}, pace: 4,
 });
-const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, plan: 2 });
+const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, pace: 4, plan: 2 });
 
 const freshSave = () => ({
   v: 3,
@@ -395,7 +395,8 @@ export const commitsOn = (key = today()) =>
 export function dayIsActive(key = today()) {
   const day = S.days[key];
   return cpModel.solvesOn(S.tracks.cp, key).length >= 1
-    || !!day?.robotics?.check || !!day?.robotics?.mission || !!day?.robotics?.drill || !!day?.code?.check
+    || !!day?.robotics?.check || !!day?.robotics?.mission || !!day?.robotics?.drill || !!day?.robotics?.review
+    || !!day?.code?.check || !!day?.code?.review
     || commitsOn(key) >= 1
     || (day?.timerMin || 0) >= 20;
 }

@@ -28,6 +28,13 @@ export function openMission(track, rerender) {
   sfx('start'); run(rerender);
 }
 
+export function openReview(track, rerender) {
+  const a = S.active;
+  if (a && !(a.track === track && a.mode === 'review')) return busy(rerender);
+  if (!E.startReview(track)) { toast(E.reviewDoneToday(track) ? 'Today\'s review is done.' : 'Nothing to review yet — start the next mission.'); return; }
+  sfx('start'); run(rerender);
+}
+
 export function openTestOut(track, week, rerender) {
   const a = S.active;
   if (a && !(a.track === track && a.mode === 'testout' && a.week === week)) return busy(rerender);
@@ -107,12 +114,14 @@ function run(rerender) {
 
   function top(a) {
     const title = a.mode === 'mission' ? `Mission ${a.n}`
+      : a.mode === 'review' ? 'Review'
       : a.mode === 'testout' ? `Test out of week ${a.week}`
       : a.mode === 'practice' ? skillById(a.skill)?.name || 'Practice'
       : bossFor(a.month).name;
     const label = a.mode === 'mission' ? 'Prove it'
+      : a.mode === 'review' ? 'Keep-going day'
       : a.mode === 'testout' ? `${E.TEST_OUT.pass} of ${a.qs.length} right skips the week`
-      : a.mode === 'practice' ? 'Practice · no clock, no levels' : a.mission ? `Mission ${a.mission} · month ${a.month} boss` : `Month ${a.month} boss`;
+      : a.mode === 'practice' ? 'Practice · no clock, no levels' : a.mission ? `Mission ${a.mission} · part ${a.month} boss` : `Part ${a.month} boss`;
     const count = a.mode === 'boss' ? `${a.asked + (phase === 'ask' ? 1 : 0)}/${a.questions}`
       : `${Math.min(a.i + (phase === 'ask' ? 1 : 0), a.qs.length)}/${a.qs.length}`;
     return `<div class="pl-top">
@@ -129,10 +138,10 @@ function run(rerender) {
       const segs = a.qs.map((q, i) => {
         const r = a.results[i];
         const cls = r ? (r.correct ? 'ok' : 'miss') : i === a.i && phase === 'ask' ? 'now' : '';
-        const gap = a.mode === 'mission' && i && q.grp !== a.qs[i - 1].grp ? ' gap' : '';
+        const gap = (a.mode === 'mission' || a.mode === 'review') && i && q.grp !== a.qs[i - 1].grp ? ' gap' : '';
         return `<i class="${cls}${gap}"></i>`;
       }).join('');
-      const timed = a.mode === 'mission' || a.mode === 'testout';
+      const timed = a.mode === 'mission' || a.mode === 'review' || a.mode === 'testout';
       const clockBar = timed && phase === 'ask'
         ? `<div class="pl-timebox"><div class="pl-clock"><i data-clock></i></div><div class="tiny num" data-left></div></div>` : '';
       return `<div class="pl-segs">${segs}</div>${timed ? clockBar : combo}`;
@@ -157,10 +166,10 @@ function run(rerender) {
 
   function questionHead(a, q) {
     const skill = skillById(q.skill), month = monthOf(a.track, skill.month);
-    const g = a.mode === 'mission' ? a.groups[q.grp] : null;
+    const g = a.mode === 'mission' || a.mode === 'review' ? a.groups[q.grp] : null;
     const lvl = g ? `<span class="badge solid">${g.isNew ? 'New' : `Level ${g.level}`}</span>` : '';
     return `<div class="row" style="gap:8px;flex-wrap:wrap">
-        <span class="badge" style="background:${month.color}">M${month.n}</span>
+        <span class="badge" style="background:${month.color}">P${month.n}</span>
         <span class="tiny">${esc(skill.name)}</span>${lvl}
       </div>
       <div class="pl-question">${esc(q.q)}</div>`;
@@ -261,7 +270,7 @@ function run(rerender) {
   function wire(a) {
     el.querySelector('[data-x]').onclick = () => {
       if (a.mode === 'practice') { clearInterval(tick); close(); rerender(); toast('Paused — pick it up from Today.'); return; }
-      if (a.mode === 'mission' || a.mode === 'testout') {
+      if (a.mode === 'mission' || a.mode === 'review' || a.mode === 'testout') {
         dialog(`<div class="h2">Pause?</div>
           <p class="sub" style="margin:10px 0 18px">This question's clock keeps running while you are away.</p>
           <button class="btn primary block" data-no>Keep going</button>
@@ -316,7 +325,7 @@ function run(rerender) {
 
   function celebrate(s) {
     if (!s) return;
-    const big = (s.mode === 'mission' && (s.perfect || s.groups.some(g => g.move > 0))) || (s.mode === 'boss' && s.won) || (s.mode === 'testout' && s.passed);
+    const big = ((s.mode === 'mission' || s.mode === 'review') && (s.perfect || s.groups.some(g => g.move > 0))) || (s.mode === 'boss' && s.won) || (s.mode === 'testout' && s.passed);
     if (big) { confetti(s.mode === 'boss' ? 160 : 100); sfx('reward'); }
     rewardToast(s.reward);
   }
@@ -336,6 +345,10 @@ function run(rerender) {
       title = s.completed ? `Mission ${s.n} done` : 'Check done';
       line = `${s.score}/${s.total} right · ${ups ? `${ups} skill${ups === 1 ? '' : 's'} levelled up` : 'no level-ups today — they come back tomorrow'}`
         + (s.completed ? '' : '. Now the Solve step: the mission finishes when Codeforces accepts them.');
+    } else if (s.mode === 'review') {
+      glyph = s.perfect ? '💯' : s.ups ? '📈' : '✓';
+      title = 'Review done';
+      line = `${s.score}/${s.total} right${s.ups ? ` · ${s.ups} skill${s.ups === 1 ? '' : 's'} levelled up` : ''}. The next mission comes at your pace.`;
     } else if (s.mode === 'testout') {
       glyph = s.passed ? '⏭️' : '✕'; cls = s.passed ? '' : 'lost';
       title = s.passed ? `Week ${s.week} skipped` : `${s.score} / ${s.total}`;
@@ -351,7 +364,7 @@ function run(rerender) {
         <div class="grow"><div class="label">${esc(RARITY[s.drop.rarity].name)} drop</div>
           <div class="h3">${esc(s.drop.name)}</div>
           <div class="tiny">${s.drop.dupe ? `Already owned — converted to ${s.drop.credit} credits` : `+${Math.round(s.drop.bonus * 100)}% XP, permanently`}</div></div></div></div>` : '';
-    const rows = s.mode === 'mission' ? s.groups.map(g => `<div class="res-row">
+    const rows = s.mode === 'mission' || s.mode === 'review' ? s.groups.map(g => `<div class="res-row">
         <div class="between"><span class="h3 truncate">${esc(skillById(g.skill).name)}</span>
           <span class="badge ${g.move > 0 ? 'good' : g.move < 0 ? 'warn' : ''}">${g.move > 0 ? `▲ ${g.to}` : g.move < 0 ? `▼ ${g.to}` : `= ${g.to}`}</span></div>
         <div class="tiny">${g.right}/${g.n} in ${clock(g.secs)} · ${esc(versus(g))}</div></div>`).join('')

@@ -10,7 +10,7 @@ import { roundFor, levelOf, addDays } from '../game.js';
 import { esc, bar, shortDate } from '../ui.js';
 import { lineChart } from '../charts.js';
 import { icon } from '../icons.js';
-import { openMission, openTestOut, resumeSession } from './player.js';
+import { openMission, openTestOut, openReview, resumeSession } from './player.js';
 
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
@@ -19,15 +19,56 @@ export const levelChip = (track, id) => {
   return `<span class="lv-chip ${l ? '' : 'new'}">${esc(skillById(id).name)} <b>${l ? `Lv ${l}` : 'new'}</b></span>`;
 };
 
-/** The top of the full card: which mission, how far through, and when you finish at one a day. */
-export function header(track, m, month) {
+/** The top of the full card: which mission, how far through, and when you finish at your pace. */
+export function header(track, m, month, { keepGoing = false } = {}) {
   const total = E.trackCfg(track).plan.length, done = E.missionsDone(track) + E.missionsSkipped(track);
-  const left = total - done - (m.done ? 0 : 1);
-  return `<div class="between"><span class="label">${m.done ? 'Done today' : 'Today'} · ${esc(month.level)}</span>
+  const pace = E.paceInfo(track);
+  const when = m.done ? 'Done today' : keepGoing ? 'Keep-going day' : 'Today';
+  return `<div class="between"><span class="label">${when} · ${esc(month.level)}</span>
       <span class="badge" style="background:${month.color}">${month.icon} ${esc(month.short)}</span></div>
-    <div class="h2" style="margin-top:6px">Mission ${m.n} of ${total}</div>
+    <div class="h2" style="margin-top:6px">${keepGoing ? `Next: mission ${m.n} of ${total}` : `Mission ${m.n} of ${total}`}</div>
     <div style="margin-top:10px">${bar((done / total) * 100, { color: 'var(--ink)' })}</div>
-    <div class="tiny" style="margin-top:4px">${done} of ${total} done · at one a day, finished ${esc(shortDate(addDays(today(), Math.max(0, left))))}</div>`;
+    <div class="tiny" style="margin-top:4px">${done} of ${total} done · ${pace.months}-month pace, finished ${esc(shortDate(pace.finish))}</div>`;
+}
+
+/**
+ * A day between missions at a slower pace: a short review, keep going on what
+ * is in hand, and the next mission if you have the time for it.
+ */
+export function keepGoing(track, m, third = '') {
+  const active = S.active, rev = E.counters(track).review;
+  const ids = rev ? [] : E.reviewSkills(track);
+  const qs = ids.reduce((k, id) => k + roundFor(levelOf(S.tracks[track].skills?.[id])).n, 0);
+  const review = rev
+    ? `<div class="h3">${rev.score}/${rev.total} right${rev.ups ? ` · ${plural(rev.ups, 'level-up')}` : ''}</div>`
+    : ids.length ? `<div class="h3">${plural(ids.length, 'skill')} due back · ${qs} questions, timed</div>
+        <div class="lv-chips">${ids.map(id => levelChip(track, id)).join('')}</div>
+        ${active && active.track === track && active.mode === 'review'
+          ? '<button class="btn primary block m-go" data-review="resume">Resume</button>'
+          : '<button class="btn primary block m-go" data-review="start">Start review</button>'}`
+    : '<div class="h3">Nothing due back yet</div><div class="tiny">Start the next mission instead.</div>';
+  return `<div class="m-step ${rev ? 'done' : ''}">
+      <span class="m-num">1</span>
+      <div class="grow"><div class="label">Review</div>${review}</div>
+      ${rev ? '<span class="badge good">✓ Done</span>' : ''}
+    </div>
+    ${third}
+    <div class="m-early">
+      <div class="grow"><div class="h3">Got more time today?</div>
+        <div class="tiny">Start mission ${m.n} now: ${esc(m.learn)}</div></div>
+      <button class="btn sm" data-mission="start">Start early</button>
+    </div>`;
+}
+
+/** Pick how many months the plan is spread over. Progress is kept; only the schedule moves. */
+export function paceCard(track) {
+  const p = E.paceInfo(track);
+  return `<div class="card">
+    <div class="between"><div class="h3">Your pace</div><span class="tiny">finished ${esc(shortDate(p.finish))}</span></div>
+    <div class="seg" style="margin-top:10px">${E.PACES.map(x => `<button class="${x.months === p.months ? 'on' : ''}" data-pace="${x.months}">${x.months} mo</button>`).join('')}</div>
+    <div class="tiny" style="margin-top:8px">Same 120 missions, ${esc(p.label)}. ${p.months === 4 ? 'A new mission every day.'
+      : `A new mission every ${p.dpm === 1.5 ? '1–2' : p.dpm} days; the days between are a short review and keep going.`} Change it any time — nothing is lost.</div>
+  </div>`;
 }
 
 /** Step 2: today's timed check — or its result once it is done. */
@@ -50,7 +91,7 @@ export function proveStep(track, m, num = 2, { note = '' } = {}) {
   }
   return `<div class="m-step ${m.check ? 'done' : ''}">
     <span class="m-num">${num}</span>
-    <div class="grow"><div class="label">${m.boss ? 'Prove the month' : 'Prove it'}</div>${body}</div>
+    <div class="grow"><div class="label">${m.boss ? 'Prove this part' : 'Prove it'}</div>${body}</div>
     ${action}
   </div>`;
 }
@@ -95,21 +136,23 @@ export function progressCard(track, extra = '') {
 export function missionMap(track, months, bossWord = 'boss') {
   const cfg = E.trackCfg(track), r = S.tracks[track], done = r.missions || {}, skipped = r.skipped || {};
   const next = E.mission(track).n;
-  const rows = months.map(m => `<div class="mmap-row"><span class="mmap-m">M${m.n}</span><div class="mmap-cells">${
+  const rows = months.map(m => `<div class="mmap-row"><span class="mmap-m">P${m.n}</span><div class="mmap-cells">${
     cfg.plan.filter(x => x.month === m.n).map(x => `<i class="${done[x.n] ? 'done' : skipped[x.n] ? 'skip' : x.n === next ? 'now' : ''}${x.boss ? ' boss' : ''}"
       style="--mc:${m.color}" title="Mission ${x.n}"></i>`).join('')}</div></div>`).join('');
   const n = Object.keys(done).length + Object.keys(skipped).length;
   return `<div class="card">
-    <div class="between"><div class="h3">${n} of ${cfg.plan.length} missions</div><span class="tiny">one a day</span></div>
+    <div class="between"><div class="h3">${n} of ${cfg.plan.length} missions</div><span class="tiny">${E.paceInfo(track).months}-month pace</span></div>
     <div class="mmap">${rows}</div>
-    <div class="tiny" style="margin-top:8px">Each square is a day's mission; striped ones you tested out of. The last square of every month is its ${bossWord}.</div>
+    <div class="tiny" style="margin-top:8px">Each square is a mission; striped ones you tested out of. The last square of every part is its ${bossWord}.</div>
   </div>`;
 }
 
 /** The next five missions, described by the track. */
 export function comingUp(track, describe) {
   const cfg = E.trackCfg(track), m = E.mission(track);
-  const rows = Array.from({ length: 5 }, (_, i) => m.n + 1 + i).filter(n => n <= cfg.plan.length).map(n => {
+  // On a keep-going day the next mission has not started yet, so it is the first thing coming up.
+  const first = m.done || m.check || E.paceInfo(track).missionDay ? m.n + 1 : m.n;
+  const rows = Array.from({ length: 5 }, (_, i) => first + i).filter(n => n <= cfg.plan.length).map(n => {
     const x = cfg.plan[n - 1], d = describe(x);
     return `<div class="up-row"><span class="up-n">${n}</span>
       <div class="grow"><div class="h3">${esc(d.title)}</div>${d.sub ? `<div class="tiny">${esc(d.sub)}</div>` : ''}</div></div>`;
@@ -123,7 +166,7 @@ export function howItWorks(track, third) {
   return `<details class="card sunk flush explain">
     <summary><span class="h3 grow">How missions work</span><span class="chev">${icon('chevron', 16).value}</span></summary>
     <div class="topic-bd">
-      <p class="sub">${total} missions, one a day, four months. Each one builds on the days before it. Miss a day and the next mission waits — nothing is skipped unless you test out of it.</p>
+      <p class="sub">${total} missions, each building on the ones before it, spread over the pace you choose — four months at about three hours a day, up to twelve at about one. Miss a day and the next mission waits; nothing is skipped unless you test out of it.</p>
       <p class="sub" style="margin-top:8px">Every skill has a level from 1 to 10. Higher levels ask more questions with less time on each.
         Get a skill's round fully right and it levels up and comes back later. Miss one and it stays. Miss two and it drops a level and comes back tomorrow.</p>
       <p class="sub" style="margin-top:8px">${third}</p>
@@ -138,5 +181,9 @@ export function mountParts(root, track, rerender) {
     if (a === 'start') el.onclick = () => openMission(track, rerender);
     else if (a === 'resume') el.onclick = () => resumeSession(rerender);
   });
+  root.querySelectorAll('[data-review]').forEach(el => {
+    el.onclick = () => (el.dataset.review === 'resume' ? resumeSession(rerender) : openReview(track, rerender));
+  });
+  root.querySelectorAll('[data-pace]').forEach(el => { el.onclick = () => { E.setPace(track, +el.dataset.pace); rerender(); }; });
   root.querySelectorAll('[data-testout]').forEach(el => { el.onclick = () => openTestOut(track, +el.dataset.testout, rerender); });
 }

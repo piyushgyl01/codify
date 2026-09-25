@@ -60,7 +60,7 @@ export function openBuild(id, rerender) {
 
   const form = !open
     ? `<div class="card sunk"><div class="h3">Opens at mission ${30 * (b.month - 1) + 1}</div>
-        <div class="tiny" style="margin-top:4px">Or beat month ${b.month - 1}'s boss to open it now. Start building whenever you like — it can be checked once the month opens.</div></div>`
+        <div class="tiny" style="margin-top:4px">Or beat part ${b.month - 1}'s boss to open it now. Start building whenever you like — it can be checked once that part opens.</div></div>`
     : portfolio
     ? `<button class="btn primary block" data-check>${st?.checks ? 'Check again' : 'Check my builds'}</button>`
     : !user
@@ -76,7 +76,7 @@ export function openBuild(id, rerender) {
       <button class="btn primary block" style="margin-top:12px" data-check>${st?.checks ? 'Check again' : 'Check on GitHub'}</button>`;
 
   sheet(b.name, `
-    <div class="wrap"><span class="badge" style="background:${m.color}">Month ${b.month}</span>
+    <div class="wrap"><span class="badge" style="background:${m.color}">Part ${b.month}</span>
       <span class="badge">${esc(topic.name)}</span><span class="badge price">${esc(b.cost)}</span></div>
     <p class="build-task">${esc(b.task)}</p>
     ${status}
@@ -158,7 +158,7 @@ function card(b) {
     : st?.checks ? `<span class="badge warn">${st.checks.filter(c => c.pass).length}/${st.checks.length}</span>`
     : '<span class="badge">to do</span>';
   return `<button class="card tap rail build-card ${open ? '' : 'locked'} ${st?.verified ? 'verified' : ''}" style="--rail:${m.color}" data-build="${b.id}">
-    <div class="between"><span class="label">M${b.month} · ${esc(topicById(b.topic).name)}</span>${badge}</div>
+    <div class="between"><span class="label">Part ${b.month} · ${esc(topicById(b.topic).name)}</span>${badge}</div>
     <div class="h3" style="margin-top:4px">${esc(b.name)}</div>
     <div class="tiny" style="margin-top:2px">${esc(b.cost)} · +${buildXp(b)} XP</div>
   </button>`;
@@ -171,7 +171,7 @@ export function render() {
     : filter === 'done' ? isVerified(b.id)
     : filter === 'todo' ? !isVerified(b.id) && isUnlocked(b.month)
     : b.month === +filter);
-  const pills = [['all', 'All'], ['todo', 'To do'], ['done', 'Verified'], ...MONTHS.map(m => [String(m.n), `M${m.n}`])]
+  const pills = [['all', 'All'], ['todo', 'To do'], ['done', 'Verified'], ...MONTHS.map(m => [String(m.n), `Part ${m.n}`])]
     .map(([k, l]) => `<button class="pill ${filter === k ? 'on' : ''}" data-filter="${k}">${l}</button>`).join('');
 
   return `<div class="stack s4 fade-up">
