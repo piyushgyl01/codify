@@ -13,16 +13,10 @@ export const BOSSES = [
   { month:2, id:'oscillator',  name:'The Oscillator',      icon:'〰️',
     intro:'Overshoot. Undershoot. Overshoot.',
     half:'You added D. It is working.', lost:'Unstable. Retune it and come back tomorrow.', won:'Critically damped.' },
-  { month:3, id:'backlash',    name:'Backlash',            icon:'⚙️',
-    intro:'I live in the play between the teeth.',
-    half:'Something just engaged.', lost:'Slipped a tooth. Tomorrow.', won:'Preloaded. No play left.' },
-  { month:4, id:'tftree',      name:'The Broken TF Tree',  icon:'🌳',
+  { month:3, id:'tftree',      name:'The Broken TF Tree',  icon:'🌳',
     intro:'Could not transform base_link to laser.',
     half:'A frame just connected.', lost:'Lookup failed. Come back tomorrow.', won:'The tree is whole.' },
-  { month:5, id:'singularity', name:'The Singularity',     icon:'🌀',
-    intro:'Fully stretched. Now try moving sideways.',
-    half:'The determinant is rising.', lost:'Locked. Tomorrow.', won:'Full rank.' },
-  { month:6, id:'third',       name:'The Third Question',  icon:'❓',
+  { month:4, id:'third',       name:'The Third Question',  icon:'❓',
     intro:'Why that gain? Why that sensor? What happens when the battery sags?',
     half:'Two levels deep. One to go.', lost:'"I would have to check." Tomorrow.', won:'You would hire you.' },
 ];
@@ -37,4 +31,4 @@ export const BOSS_SECS = { num: 90, mc: 30 };
 
 export const bossXp = month => 600 + month * 400;
 export const bossCoins = month => 150 + month * 50;
-export const bossMinRarity = month => (month <= 3 ? 'rare' : 'epic');
+export const bossMinRarity = month => (month <= 2 ? 'rare' : 'epic');

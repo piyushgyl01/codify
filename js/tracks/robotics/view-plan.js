@@ -1,8 +1,10 @@
-/** The plan: six months as a path, and each month opened up in full. */
+/** The plan: four months as a path, and each month opened up in full. */
 import { S } from '../../state.js';
 import { setDirection } from './actions.js';
 import { plan, monthProgress, milestoneDone, isVerified, skillLevel, bossReady, isUnlocked, toggleRead } from './actions.js';
-import { MISSIONS } from './missions.js';
+import { missionMap } from '../../views/mission-parts.js';
+
+const T = 'robotics';
 import { MONTHS, monthByN, topicsIn, buildsIn, MILESTONES, PLAN_DAYS, MONTH_DAYS, buildById, SOURCE, DIRECTIONS } from './roadmap.js';
 import { skillsForTopic, skillById } from './skills.js';
 import { bossFor } from './bosses.js';
@@ -17,19 +19,6 @@ const openTopics = new Set();  // topic ids whose <details> are expanded, kept a
 const lvl = l => `<b class="lv-mini">${l ? `Lv ${l}` : 'new'}</b>`;
 const opensAt = n => MONTH_DAYS * (n - 1) + 1;
 
-/** All 180 missions at a glance: done, today, still to come. A boss closes each month. */
-function missionMap() {
-  const r = S.tracks.robotics, done = r.missions || {}, next = plan().mission;
-  const rows = MONTHS.map(m => `<div class="mmap-row"><span class="mmap-m">M${m.n}</span><div class="mmap-cells">${
-    MISSIONS.filter(x => x.month === m.n).map(x => `<i class="${done[x.n] ? 'done' : x.n === next ? 'now' : ''}${x.boss ? ' boss' : ''}"
-      style="--mc:${m.color}" title="Mission ${x.n}"></i>`).join('')}</div></div>`).join('');
-  return `<div class="card">
-    <div class="between"><div class="h3">${Object.keys(done).length} of ${PLAN_DAYS} missions</div><span class="tiny">one a day</span></div>
-    <div class="mmap">${rows}</div>
-    <div class="tiny" style="margin-top:8px">Each square is a day's mission. The last square of every month is its boss.</div>
-  </div>`;
-}
-
 /* -------------------------------- overview -------------------------------- */
 
 function overview() {
@@ -43,7 +32,7 @@ function overview() {
       <div class="row">
         <div class="month-num">${m.icon}</div>
         <div class="grow">
-          <div class="between"><span class="label">Month ${m.n}</span>${status}</div>
+          <div class="between"><span class="label">Month ${m.n} · ${esc(m.level)}</span>${status}</div>
           <div class="h3" style="margin-top:3px">${esc(m.title)}</div>
         </div>
       </div>
@@ -59,7 +48,7 @@ function overview() {
 
   return h`
     <div class="fade-up">
-      ${raw(missionMap())}
+      ${raw(missionMap(T, MONTHS))}
       <div class="month-path" style="margin-top:16px">${raw(cards)}</div>
       <div class="section"><div class="section-head"><div class="h2">Your direction</div></div>
         <div class="stack s2">${raw(DIRECTIONS.map(d => `
@@ -155,7 +144,7 @@ function monthPage(n) {
   return `<div class="fade-up">
     <button class="act-back" data-act="back">‹ All months</button>
     <div class="month-head" style="--mc:${m.color};margin-top:12px">
-      <div class="label">Month ${n} · missions ${startDay}–${startDay + MONTH_DAYS - 1}</div>
+      <div class="label">Month ${n} · ${esc(m.level)} · missions ${startDay}–${startDay + MONTH_DAYS - 1}</div>
       <div class="h1" style="margin-top:6px">${m.icon} ${esc(m.title)}</div>
       <div class="sub" style="margin-top:6px">${esc(m.goal)}</div>
       ${open ? '' : `<div class="badge" style="margin-top:12px">Opens at mission ${opensAt(n)} — read ahead freely</div>`}

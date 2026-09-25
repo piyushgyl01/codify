@@ -803,69 +803,72 @@ const career = t => t.mc([
 /* ================================ registry ================================ */
 
 /**
- * [id, month, topic, name, generator]. Order within a month is the order new
- * skills are introduced in missions — foundations before the things built on them.
+ * [id, month, topic, name, generator], in the order the four-month plan
+ * introduces them — each one after the things it is built on. `topic` points at
+ * the roadmap topic whose resources teach it.
  */
 const LIST = [
+  // Month 1 — circuits to a robot that moves
   ['ohm',        1, 'm1-elec',    'Ohm\'s law',                ohm],
   ['divider',    1, 'm1-elec',    'Voltage dividers',          divider],
   ['led',        1, 'm1-elec',    'LED resistors and power',   led],
+  ['stall',      1, 'm1-elec',    'Current draw and brownouts', stall],
   ['symbols',    1, 'm1-elec',    'Reading a schematic',       symbols],
   ['pullup',     1, 'm1-elec',    'Pull-ups and pull-downs',   pullup],
-  ['stall',      1, 'm1-elec',    'Current draw and brownouts', stall],
   ['decouple',   1, 'm1-elec',    'Decoupling capacitors',     decouple],
   ['lipo',       1, 'm1-elec',    'LiPo batteries',            lipo],
+  ['cli',        1, 'm1-python',  'Terminal and Git',          cli],
   ['bands',      1, 'm1-bench',   'Resistor colour codes',     bands],
   ['meter',      1, 'm1-bench',   'Using a multimeter',        meter],
   ['solder',     1, 'm1-solder',  'Soldering',                 solder],
-  ['cli',        1, 'm1-python',  'Terminal and Git',          cli],
+  ['mcu',        1, 'm2-esp32',   'Choosing a board',          mcu],
+  ['pwm',        1, 'm2-arduino', 'PWM and duty cycle',        pwm],
+  ['timing',     1, 'm2-arduino', 'Timing and interrupts',     timing],
+  ['buses',      1, 'm2-arduino', 'I2C, SPI and UART',         buses],
+  ['actuators',  1, 'm2-motors',  'Choosing an actuator',      actuators],
+  ['drivers',    1, 'm2-motors',  'Motor drivers',             drivers],
+  ['encoder',    1, 'm2-motors',  'Encoders and odometry',     encoder],
+  ['gears',      1, 'm3-transmission', 'Gear ratios',          gears],
+  ['pid',        1, 'm2-robots',  'PID by behaviour',          pid],
+  ['sensors',    1, 'm2-sensors', 'Range sensors and IMUs',    sensors],
+  ['compfilter', 1, 'm2-sensors', 'The complementary filter',  compfilter],
 
-  ['pwm',        2, 'm2-arduino', 'PWM and duty cycle',        pwm],
-  ['timing',     2, 'm2-arduino', 'Timing and interrupts',     timing],
-  ['buses',      2, 'm2-arduino', 'I2C, SPI and UART',         buses],
-  ['mcu',        2, 'm2-esp32',   'Choosing a board',          mcu],
-  ['drivers',    2, 'm2-motors',  'Motor drivers',             drivers],
-  ['actuators',  2, 'm2-motors',  'Choosing an actuator',      actuators],
-  ['encoder',    2, 'm2-motors',  'Encoders and odometry',     encoder],
-  ['sensors',    2, 'm2-sensors', 'Range sensors and IMUs',    sensors],
-  ['compfilter', 2, 'm2-sensors', 'The complementary filter',  compfilter],
-  ['pid',        2, 'm2-robots',  'PID by behaviour',          pid],
+  // Month 2 — control, balance and making parts
+  ['pidmath',    2, 'm5-pid',     'PID arithmetic',            pidmath],
+  ['cad',        2, 'm3-cad',     'Parametric CAD',            cad],
+  ['materials',  2, 'm3-print',   'Choosing a filament',       materials],
+  ['orient',     2, 'm3-print',   'Designing for FDM',         orient],
+  ['tolerance',  2, 'm3-print',   'Clearances and cost',       tolerance],
+  ['backlash',   2, 'm3-transmission', 'Backlash and drives',  backlash],
+  ['torque',     2, 'm3-arm',     'Holding torque',            torque],
 
-  ['cad',        3, 'm3-cad',     'Parametric CAD',            cad],
-  ['materials',  3, 'm3-print',   'Choosing a filament',       materials],
-  ['orient',     3, 'm3-print',   'Designing for FDM',         orient],
-  ['tolerance',  3, 'm3-print',   'Clearances and cost',       tolerance],
-  ['gears',      3, 'm3-transmission', 'Gear ratios',          gears],
-  ['backlash',   3, 'm3-transmission', 'Backlash and drives',  backlash],
-  ['torque',     3, 'm3-arm',     'Holding torque',            torque],
+  // Month 3 — arms, frames and ROS 2
+  ['rot',        3, 'm5-kin',     'Rotations and frames',      rot],
+  ['fk',         3, 'm5-kin',     'Forward kinematics',        fk],
+  ['jacobian',   3, 'm5-kin',     'Jacobians and singularities', jacobian],
+  ['ros1',       3, 'm4-distro',  'Spotting ROS 1',            ros1],
+  ['distro',     3, 'm4-distro',  'Distros and Gazebo pairs',  distro],
+  ['comms',      3, 'm4-core',    'Topics, services, actions', comms],
+  ['graph',      3, 'm4-core',    'ROS 2 tooling',             graph],
+  ['tf',         3, 'm4-urdf',    'URDF and TF',               tf],
+  ['simchoice',  3, 'm4-sim',     'Choosing a simulator',      simchoice],
+  ['diffdrive',  3, 'm4-control', 'Diff-drive kinematics',     diffdrive],
+  ['nav',        3, 'm4-nav',     'SLAM and Nav2',             nav],
 
-  ['ros1',       4, 'm4-distro',  'Spotting ROS 1',            ros1],
-  ['distro',     4, 'm4-distro',  'Distros and Gazebo pairs',  distro],
-  ['comms',      4, 'm4-core',    'Topics, services, actions', comms],
-  ['graph',      4, 'm4-core',    'ROS 2 tooling',             graph],
-  ['tf',         4, 'm4-urdf',    'URDF and TF',               tf],
-  ['simchoice',  4, 'm4-sim',     'Choosing a simulator',      simchoice],
-  ['diffdrive',  4, 'm4-control', 'Diff-drive kinematics',     diffdrive],
-  ['nav',        4, 'm4-nav',     'SLAM and Nav2',             nav],
-
-  ['pidmath',    5, 'm5-pid',     'PID arithmetic',            pidmath],
-  ['control',    5, 'm5-lqr',     'LQR, MPC, feedforward',     control],
-  ['rot',        5, 'm5-kin',     'Rotations and frames',      rot],
-  ['fk',         5, 'm5-kin',     'Forward kinematics',        fk],
-  ['jacobian',   5, 'm5-kin',     'Jacobians and singularities', jacobian],
-  ['pinhole',    5, 'm5-vision',  'Pinhole projection',        pinhole],
-  ['stereo',     5, 'm5-vision',  'Depth from stereo',         stereo],
-  ['cloud',      5, 'm5-vision',  'Point clouds and calibration', cloud],
-  ['moveit',     5, 'm5-moveit',  'Planning with MoveIt',      moveit],
-
-  ['lerobot',    6, 'm6-lerobot', 'Imitation learning',        lerobot],
-  ['rate',       6, 'm6-lerobot', 'Measuring a policy',        rate],
-  ['vla',        6, 'm6-vla',     'VLA models',                vla],
-  ['rl',         6, 'm6-rl',      'Reinforcement learning',    rl],
-  ['career',     6, 'm6-portfolio', 'Directions and portfolios', career],
+  // Month 4 — see, grasp, learn, get hired
+  ['pinhole',    4, 'm5-vision',  'Pinhole projection',        pinhole],
+  ['stereo',     4, 'm5-vision',  'Depth from stereo',         stereo],
+  ['cloud',      4, 'm5-vision',  'Point clouds and calibration', cloud],
+  ['moveit',     4, 'm5-moveit',  'Planning with MoveIt',      moveit],
+  ['control',    4, 'm5-lqr',     'LQR, MPC, feedforward',     control],
+  ['lerobot',    4, 'm6-lerobot', 'Imitation learning',        lerobot],
+  ['rate',       4, 'm6-lerobot', 'Measuring a policy',        rate],
+  ['vla',        4, 'm6-vla',     'VLA models',                vla],
+  ['rl',         4, 'm6-rl',      'Reinforcement learning',    rl],
+  ['career',     4, 'm6-portfolio', 'Directions and portfolios', career],
 ];
 
-export const SKILLS = LIST.map(([id, month, topic, name, gen], order) => ({ id, month, topic, name, gen, order }));
+export const SKILLS = LIST.map(([id, month, topic, name, gen], order) => ({ id, month, topic, name, gen, order, track: 'robotics' }));
 export const skillById = id => SKILLS.find(s => s.id === id);
 export const skillsIn = m => SKILLS.filter(s => s.month === m);
 export const skillsForTopic = topic => SKILLS.filter(s => s.topic === topic);

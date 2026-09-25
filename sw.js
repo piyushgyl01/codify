@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v7';
+const CACHE_VERSION = 'v8';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -32,11 +32,14 @@ const CORE = [
   './js/game.js',
   './js/github.js',
   './js/icons.js',
+  './js/learn/plan.js',
+  './js/learn/session.js',
   './js/main.js',
   './js/platforms.js',
   './js/pwa.js',
   './js/quiz.js',
   './js/router.js',
+  './js/skillbook.js',
   './js/state.js',
   './js/sync.js',
   './js/tracks/cp/actions.js',
@@ -44,14 +47,17 @@ const CORE = [
   './js/tracks/cp/contests.js',
   './js/tracks/cp/hub.js',
   './js/tracks/cp/model.js',
+  './js/tracks/cp/plan.js',
+  './js/tracks/cp/skills.js',
   './js/tracks/cp/today.js',
   './js/tracks/cp/topics.js',
+  './js/tracks/cp/view-mission.js',
   './js/tracks/index.js',
   './js/tracks/robotics/actions.js',
   './js/tracks/robotics/bosses.js',
   './js/tracks/robotics/hub.js',
-  './js/tracks/robotics/missions.js',
   './js/tracks/robotics/model.js',
+  './js/tracks/robotics/plan.js',
   './js/tracks/robotics/player.js',
   './js/tracks/robotics/roadmap.js',
   './js/tracks/robotics/skills.js',
@@ -65,7 +71,9 @@ const CORE = [
   './js/views/focus.js',
   './js/views/hero.js',
   './js/views/home.js',
+  './js/views/mission-parts.js',
   './js/views/onboarding.js',
+  './js/views/player.js',
   './js/views/tracks.js',
 ];
 

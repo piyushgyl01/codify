@@ -1,4 +1,4 @@
-/** The robotics track: today's mission, the skills and their levels, the six-month plan, the builds. */
+/** The robotics track: today's mission, the skills and their levels, the four-month plan, the builds. */
 import { mission, skillScore } from './actions.js';
 import { monthByN } from './roadmap.js';
 import * as missionView from './view-mission.js';

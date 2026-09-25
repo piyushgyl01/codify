@@ -1,46 +1,28 @@
-/** The programming card on Today: what the judge accepted today, and what to do next. */
+/** The programming card on Today: today's mission, in the same card as the Code tab. */
 import { S } from '../../state.js';
-import { isLinked, dayTotals, solvesOn, activeContest } from './actions.js';
+import { mission, plan, isLinked } from './actions.js';
+import { MONTHS, monthByN, TOTAL_MISSIONS } from './plan.js';
 import { TOPICS } from './topics.js';
-import { colorForRating } from './model.js';
-import { problemUrl } from './codeforces.js';
-import { syncAll, describeSync, isSyncing } from '../../sync.js';
-import { esc, bar, toast } from '../../ui.js';
+import { esc } from '../../ui.js';
+import { missionCard, mountMission } from './view-mission.js';
+import { MONTH_DAYS } from '../../learn/plan.js';
 
 export function render() {
-  if (!isLinked()) {
-    return `<button class="card tap track-card" style="--tc:var(--blue)" data-go="cp">
-      <div class="path-top"><span class="path-ico">🧩</span>
-        <div class="grow"><div class="h3">Programming</div><div class="tiny">Connect Codeforces to start</div></div></div>
-    </button>`;
-  }
-  const t = dayTotals(), goal = S.tracks.cp.dailySolves, live = activeContest();
-  const recent = solvesOn().slice(-3);
+  const m = mission(), month = monthByN(m.month), p = plan(), done = p.done + p.skipped;
   return `<div class="card track-card" style="--tc:var(--blue)">
     <div class="path-top"><span class="path-ico">🧩</span>
-      <div class="grow"><div class="h3">Programming</div><div class="tiny">${esc(S.tracks.cp.handle)}</div></div>
-      <button class="btn xs" data-cpsync>${isSyncing() ? 'Syncing…' : 'Sync'}</button></div>
-    ${live ? `<button class="track-row tap live" data-go="cp" data-cptab="contests">
-      <div class="grow"><div class="h3">${esc(live.contest.name)} is running</div>
-        <div class="tiny">${live.solved}/${live.need} counted · ${Math.floor(live.secondsLeft / 60)} min left</div></div>
-      <span class="badge ${live.won ? 'good' : 'warn'}">${live.won ? 'won' : 'live'}</span></button>` : ''}
-    <div class="row" style="margin-top:10px;align-items:flex-end">
-      <div class="grow"><div class="today-big num">${t.solved}<span style="font-size:17px;color:var(--dim)">/${goal}</span></div>
-        <div class="tiny">accepted today</div></div>
-      <div class="right"><div class="h2 num">${t.bestRating || '—'}</div><div class="tiny">hardest today</div></div>
-    </div>
-    <div style="margin-top:8px">${bar(Math.min(100, (t.solved / goal) * 100), { tall: true, color: t.solved >= goal ? 'var(--good)' : 'var(--accent)' })}</div>
-    ${recent.length ? `<div class="stack s2" style="margin-top:10px">${recent.map(s => `<a class="mini-solve" href="${esc(problemUrl(s))}" target="_blank" rel="noopener">
-      <span class="truncate">${esc(s.name)}</span><span class="badge" style="background:${colorForRating(s.rating)}">${s.rating ?? '—'}</span></a>`).join('')}</div>`
-      : ''}
-    <button class="btn primary block sm" style="margin-top:12px" data-go="cp">Find a problem</button>
+      <div class="grow"><div class="h3">Mission ${m.n} of ${TOTAL_MISSIONS}</div>
+        <div class="tiny truncate">Code · ${isLinked() ? esc(S.tracks.cp.handle) : 'connect Codeforces to count solves'} · month ${month.n}</div></div>
+      <button class="btn xs" data-go="cp">Open</button></div>
+    <div class="plan-bar" style="margin-top:10px;--cols:${MONTHS.length}">${MONTHS.map(x => {
+      const f = Math.max(0, Math.min(1, (done - MONTH_DAYS * (x.n - 1)) / MONTH_DAYS));
+      return `<i class="${x.n <= month.n ? 'open' : ''}" style="--f:${f}"></i>`;
+    }).join('')}</div>
+    ${missionCard({ compact: true })}
   </div>`;
 }
 
-export function mount(root, rerender) {
-  const s = root.querySelector('[data-cpsync]');
-  if (s) s.onclick = async () => { s.textContent = 'Syncing…'; const r = await syncAll({ force: true }); toast(esc(describeSync(r)), 3200); rerender(); };
-}
+export const mount = mountMission;
 
 /** Things the focus timer can be tagged with: the topics. */
 export const timerTags = () => TOPICS.map(t => ({ value: `cp:${t.id}`, label: `Programming · ${t.name}` }));

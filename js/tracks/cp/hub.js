@@ -17,11 +17,12 @@ import { colorForRating, BANDS } from './model.js';
 import { suggestProblems, problemUrl, leetcodeTagUrl, checkHandle } from './codeforces.js';
 import { syncAll, describeSync, isSyncing } from '../../sync.js';
 import { seriesChart } from '../../charts.js';
+import * as missionView from './view-mission.js';
 import { h, raw, esc, $, $$, bind, bar, pct, sheet, dialog, toast, sfx, haptic, confetti, rewardToast, fmt, shortDate } from '../../ui.js';
 import { dayKey, addDays } from '../../game.js';
 
-const TABS = [['topics', 'Topics'], ['contests', 'Contests'], ['solves', 'Solves']];
-let tab = 'topics', filter = 'all', ticker = null;
+const TABS = [['today', 'Today'], ['topics', 'Topics'], ['contests', 'Contests'], ['solves', 'Solves']];
+let tab = 'today', filter = 'all', ticker = null;
 
 export const openTab = t => { if (TABS.some(([k]) => k === t)) tab = t; };
 
@@ -193,8 +194,9 @@ export function render() {
       <div class="sub">${c.handle ? `Codeforces · ${esc(c.handle)}` : 'Codeforces, checked by the judge'}</div></div>
     ${c.handle ? `<div class="stack s2" style="align-items:flex-end"><span class="badge" style="background:${colorForRating(c.rating)}">${c.rating ?? 'unrated'}${c.rank ? ` · ${esc(c.rank)}` : ''}</span>
       <button class="btn xs" data-cp="sync">${isSyncing() ? 'Syncing…' : 'Sync'}</button></div>` : ''}</div>`;
-  if (!isLinked()) return `<div class="fade-up">${head}<div style="margin-top:16px">${connect()}</div></div>`;
-  const body = tab === 'topics' ? topics() : tab === 'contests' ? contests() : solves();
+  const body = tab === 'today' ? `${isLinked() ? '' : `<div style="margin-bottom:16px">${connect()}</div>`}${missionView.render()}`
+    : !isLinked() ? connect()
+    : tab === 'topics' ? topics() : tab === 'contests' ? contests() : solves();
   return `<div class="fade-up">${head}
     <div class="seg" style="margin-top:14px">${TABS.map(([k, l]) => `<button class="${k === tab ? 'on' : ''}" data-sub="${k}">${l}${k === 'contests' && activeContest() ? ' ●' : ''}</button>`).join('')}</div>
     <div style="margin-top:16px">${body}</div></div>`;
@@ -202,6 +204,8 @@ export function render() {
 
 export function mount(root, rerender) {
   clearInterval(ticker);
+  if (tab === 'today') missionView.mount(root, rerender);
+  $$('[data-cptab]', root).forEach(b => b.onclick = () => { tab = b.dataset.cptab; rerender(); });
   $$('[data-sub]', root).forEach(b => b.onclick = () => { tab = b.dataset.sub; rerender(); document.getElementById('view').scrollTop = 0; });
   $$('[data-filter]', root).forEach(b => b.onclick = () => { filter = b.dataset.filter; sfx('tick'); rerender(); });
   $$('[data-topic]', root).forEach(b => b.onclick = () => openTopic(b.dataset.topic));

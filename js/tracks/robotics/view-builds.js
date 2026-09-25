@@ -1,7 +1,6 @@
 /** Builds: all 28, what each one's README has to contain, and the GitHub check. */
 import { S, linkGithub } from '../../state.js';
 import { isUnlocked, isVerified, verifiedCount, applyVerification, claimedTargets } from './actions.js';
-import { monthOpensOn } from './model.js';
 import { BUILDS, buildById, MONTHS, monthByN, topicById, buildXp } from './roadmap.js';
 import { parseRepo, verifyBuild, verifyPortfolio, targetUrl } from '../../github.js';
 import { esc, bind, sheet, toast, rewardToast, confetti, sfx, shortDate, $ } from '../../ui.js';
@@ -60,7 +59,7 @@ export function openBuild(id, rerender) {
     : '';
 
   const form = !open
-    ? `<div class="card sunk"><div class="h3">Opens ${esc(shortDate(monthOpensOn(S.tracks.robotics.start, b.month)))}</div>
+    ? `<div class="card sunk"><div class="h3">Opens at mission ${30 * (b.month - 1) + 1}</div>
         <div class="tiny" style="margin-top:4px">Or beat month ${b.month - 1}'s boss to open it now. Start building whenever you like — it can be checked once the month opens.</div></div>`
     : portfolio
     ? `<button class="btn primary block" data-check>${st?.checks ? 'Check again' : 'Check my builds'}</button>`

@@ -51,13 +51,14 @@ export function applyTheme() {
 
 /* ------------------------------- save shape ------------------------------- */
 
-export const emptyDay = () => ({ timer: [], timerMin: 0, timerTagged: 0, timerXp: 0, claimed: [], robotics: null });
+export const emptyDay = () => ({ timer: [], timerMin: 0, timerTagged: 0, timerXp: 0, claimed: [], robotics: null, code: null });
 
 const freshCp = () => ({
   handle:'', rating:null, rank:null, avatar:null, solved:[], syncedAt:0, error:'',
   credited:{ problems:{}, tiers:{} }, contest:null, contests:{}, dailySolves:2,
+  start: dayKey(), skills:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, targets:{},
 });
-const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, scores:{} });
+const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, plan: 2 });
 
 const freshSave = () => ({
   v: 3,
@@ -87,11 +88,28 @@ const isV3 = o => o && o.v === 3 && o.tracks;
 const isCodify = o => o && o.platforms && o.credited;                    // Codify, Codeforces era
 const isBotify = o => o && o.skills && o.builds && o.profile?.start;     // Botify
 
+/**
+ * The robotics plan was six months of 180 missions; it is now four months of
+ * 120, in a different order. Mission numbers no longer mean the same days, so
+ * mission progress starts again — skill levels, builds, reading and bosses are
+ * kept, and the bosses that still exist move to their new months.
+ */
+function toFourMonths(ro) {
+  if (!ro || ro.plan === 2) return ro;
+  const old = ro.bosses || {};
+  const bosses = {};
+  if (old[1]) bosses[1] = old[1];
+  if (old[2]) bosses[2] = old[2];
+  if (old[4]) bosses[3] = old[4];   // The Broken TF Tree
+  if (old[6]) bosses[4] = old[6];   // The Third Question
+  return { ...ro, missions:{}, skipped:{}, checks:{}, testouts:{}, bosses, plan: 2 };
+}
+
 function mergeV3(o) {
   const base = freshSave();
   return {
     ...base, ...o,
-    active: o.active?.mode === 'drill' ? null : (o.active || null),   // the old daily drill became missions
+    active: o.active?.track ? o.active : null,   // sessions from before both tracks shared one engine are dropped
     profile:  { ...base.profile,  ...(o.profile  || {}) },
     streak:   { ...base.streak,   ...(o.streak   || {}) },
     stats:    { ...base.stats,    ...(o.stats    || {}) },
@@ -99,7 +117,7 @@ function mergeV3(o) {
     github:   { ...base.github,   ...(o.github   || {}) },
     tracks: {
       cp:       { ...base.tracks.cp,       ...(o.tracks?.cp       || {}) },
-      robotics: { ...base.tracks.robotics, ...(o.tracks?.robotics || {}) },
+      robotics: toFourMonths({ ...base.tracks.robotics, ...(o.tracks?.robotics || {}), plan: o.tracks?.robotics?.plan }),
     },
   };
 }
@@ -161,13 +179,13 @@ export function fromBotify(o) {
                 focusGoal: o.profile?.goal || 120, tracks: ['robotics'],
                 onboarded: !!o.profile?.onboarded, created: o.profile?.created || dayKey() };
   Object.assign(s, { xp: o.xp || 0, coins: o.coins || 0, owned: o.owned || [], loot: o.loot || {},
-                     active: o.active?.mode === 'drill' ? null : (o.active || null), backupAt: o.backupAt || 0 });
+                     active: null, backupAt: o.backupAt || 0 });
   s.earned = Object.fromEntries(Object.entries(o.earned || {}).map(([id, d]) => [BOTIFY_IDS[id] || id, d]));
   s.streak = { ...s.streak, ...(o.streak || {}) };
   s.settings = { ...s.settings, ...(o.settings || {}) };
   s.github.user = o.profile?.github || '';
-  s.tracks.robotics = { ...freshRobotics(), start: o.profile?.start || dayKey(), direction: o.profile?.direction || null,
-    skills: o.skills || {}, builds: o.builds || {}, bosses: o.bosses || {}, read: o.read || {} };
+  s.tracks.robotics = toFourMonths({ ...freshRobotics(), plan: undefined, start: o.profile?.start || dayKey(), direction: o.profile?.direction || null,
+    skills: o.skills || {}, builds: o.builds || {}, bosses: o.bosses || {}, read: o.read || {} });
   const st = o.stats || {};
   Object.assign(s.stats, {
     xpEarned: st.xpEarned || 0, quests: st.quests || 0, timerMin: st.benchMin || 0, sessions: st.sessions || 0,
@@ -377,7 +395,7 @@ export const commitsOn = (key = today()) =>
 export function dayIsActive(key = today()) {
   const day = S.days[key];
   return cpModel.solvesOn(S.tracks.cp, key).length >= 1
-    || !!day?.robotics?.mission || !!day?.robotics?.drill
+    || !!day?.robotics?.check || !!day?.robotics?.mission || !!day?.robotics?.drill || !!day?.code?.check
     || commitsOn(key) >= 1
     || (day?.timerMin || 0) >= 20;
 }

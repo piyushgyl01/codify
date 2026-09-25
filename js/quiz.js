@@ -5,7 +5,7 @@
  * is the whole reason mission XP is allowed to exist: you cannot tell this app
  * you got it right, you have to actually get it right.
  */
-import { skillById } from './tracks/robotics/skills.js';
+import { skillById } from './skillbook.js';
 
 /** Deterministic PRNG for tests; the app passes Math.random. */
 export function seeded(seed = 1) {

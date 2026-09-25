@@ -13,10 +13,10 @@ import * as roToday from './robotics/today.js';
 
 export const TRACKS = [
   { id:'cp', name:'Programming', nav:'Code', icon:'🧩', navIcon:'code', color:'var(--blue)',
-    tagline:'Codeforces problems at real rating tiers. The judge decides, not you.',
+    tagline:'120 daily missions over four months: learn a DSA idea, prove it, solve at your level. The judge decides.',
     checks:'accepted submissions on Codeforces', hub: cpHub, today: cpToday },
   { id:'robotics', name:'Robotics', nav:'Robots', icon:'🤖', navIcon:'robot', color:'var(--acid)',
-    tagline:'180 daily missions: learn one thing, prove it, build a step. Skills level up as you go.',
+    tagline:'120 daily missions over four months: learn one thing, prove it, build a step. Skills level up as you go.',
     checks:'graded answers and builds on your GitHub', hub: roHub, today: roToday },
 ];
 

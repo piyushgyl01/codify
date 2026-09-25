@@ -7,9 +7,12 @@
  */
 import { S, emit, award, grantLoot, today, touchStreak } from '../../state.js';
 import { rollLoot } from '../../data/loot.js';
+import * as E from '../../learn/session.js';
 import * as M from './model.js';
 import { tierXp, tierCoins, topicById, topicProgress } from './topics.js';
 import { contestById, settle, contestReward } from './contests.js';
+import { SKILLS, skillById } from './skills.js';
+import { MISSIONS, MONTHS, checkBudget } from './plan.js';
 
 const cp = () => S.tracks.cp;
 
@@ -26,6 +29,70 @@ export function topicStatus(id) {
   const t = topicById(id);
   return t ? topicProgress(t, solvedList()) : null;
 }
+
+/* -------------------------------- missions -------------------------------- */
+
+/*
+ * A programming mission is done when both halves are: the check, graded here,
+ * and the solves, accepted by Codeforces on the same day at your level for the
+ * day's tag. Clearing it moves that level up 100, so tomorrow's problems in that
+ * tag are harder than today's.
+ */
+const T = 'cp';
+export const plan = (key = today()) => M.plan(cp(), key);
+export const isUnlocked = n => plan().unlocked.includes(n);
+export const currentMonth = () => Math.max(...plan().unlocked);
+export const mission = (key = today()) => E.mission(T, key);
+export const missionsDone = () => E.missionsDone(T);
+export const missionDoneToday = (key = today()) => E.missionDoneToday(T, key);
+export const missionSkills = (m, key = today()) => E.missionSkills(T, m, key);
+export const skillLevel = id => M.skillLevel(cp(), id);
+export const skillEntry = id => cp().skills?.[id] || null;
+export const skillScore = () => M.skillScore(cp());
+export const unlockedSkillIds = () => M.unlockedSkillIds(cp(), today());
+export const testOut = week => E.testOut(T, week);
+export const codeDay = (key = today()) => E.counters(T, key);
+export const targetFor = (tag, key = today()) => M.targetFor(cp(), tag, key);
+export const solveStatus = (m = mission(), key = today()) => M.solveStatus(cp(), m, key);
+export const contestFor = m => contestById(MONTHS[m.month - 1].contest);
+
+export const startMission = (key = today(), rng = Math.random) => E.startMission(T, key, rng);
+export const startTestOut = (week, key = today(), rng = Math.random) => E.startTestOut(T, week, key, rng);
+export const startPractice = (skillId, key = today(), rng = Math.random) => E.startPractice(T, skillId, key, rng);
+
+/** Keep the day's starting level fixed once you start, so a sync mid-day cannot move the goalposts. */
+function fixTarget(tag, key = today()) {
+  const k = M.targetKey(tag);
+  if (cp().targets?.[k] == null) cp().targets = { ...(cp().targets || {}), [k]: M.startingTarget(cp(), tag, key) };
+}
+
+/** Finish today's mission if both halves are done. Called after a check and after a sync. */
+export function settleMission(key = today()) {
+  const m = mission(key);
+  if (m.done || m.boss || !m.check) return false;
+  fixTarget(m.tag, key);
+  const st = M.solveStatus(cp(), m, key);
+  if (!st.met) return false;
+  const k = M.targetKey(m.tag);
+  cp().targets = { ...cp().targets, [k]: M.nextTarget(st.target) };
+  return E.completeMission(T, m.n, key, { ...m.check, solved: st.counted.length, target: st.target });
+}
+
+/** Too hard today? Drop this tag's level by 100. It only ever makes the mission easier, so there is nothing to check. */
+export function lowerTarget(tag) {
+  const k = M.targetKey(tag), now = M.targetFor(cp(), tag, today());
+  cp().targets = { ...(cp().targets || {}), [k]: M.lowerTarget(now) };
+  emit('profile');
+  settleMission();
+}
+
+E.registerTrack({
+  id: T, slice: cp, plan: MISSIONS, months: MONTHS, skills: SKILLS, skillById, lootSet: 'desk',
+  unlockedSkillIds: key => M.unlockedSkillIds(cp(), key),
+  budget: checkBudget,
+  onCheck: (n, key) => { fixTarget(MISSIONS[n - 1].tag, key); return settleMission(key); },
+  bossIsNotACheck: true,   // a programming month ends with a contest, settled by the judge
+});
 
 /* ---------------------------------- sync ---------------------------------- */
 
@@ -64,8 +131,9 @@ export function applySolves(solved) {
   const drop = fresh.length ? grantLoot(rollLoot({ chance: Math.min(0.7, 0.18 * fresh.length), set: 'desk' })) : null;
   const reward = (xp || coins) ? award(xp, coins, 'Codeforces') : null;
   touchStreak();
-  emit('sync', { source:'cf', fresh, newTiers, reward, drop });
-  return { fresh, newTiers, reward, drop };
+  const settled = settleMission();
+  emit('sync', { source:'cf', fresh, newTiers, reward, drop, settled });
+  return { fresh, newTiers, reward, drop, settled };
 }
 
 export function linkCodeforces({ handle, rating = null, rank = null, avatar = null }) {
@@ -116,6 +184,9 @@ export function finishContest() {
   const reward = (xp || coins) ? award(xp, coins, contest.name) : null;
   cp().contest = null;
   touchStreak();
+  // On a contest day, the month's contest is the mission — won or lost.
+  const m = mission();
+  if (m.boss && !m.done && contestFor(m).id === contest.id) E.completeMission(T, m.n, today(), { boss: true, won: live.won, score: live.solved, total: contest.need });
   emit('contest', { finished: contest, result: live, reward, drop });
   return { contest, result: live, reward, drop };
 }

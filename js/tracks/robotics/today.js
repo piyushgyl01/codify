@@ -1,20 +1,20 @@
-/** The robotics card on Today: today's mission, and the boss when it is due. */
-import { S } from '../../state.js';
-import { mission, currentMonth, isVerified, missionsDone } from './actions.js';
-import { monthByN, BUILDS, PLAN_DAYS } from './roadmap.js';
+/** The robotics card on Today: today's mission, in the same card as the Robots tab. */
+import { mission, isVerified, currentMonth, plan } from './actions.js';
+import { monthByN, MONTHS, BUILDS, MONTH_DAYS } from './roadmap.js';
+import { TOTAL_MISSIONS } from './plan.js';
 import { esc } from '../../ui.js';
 import { missionCard, mountMission } from './view-mission.js';
 
 export function render() {
-  const m = mission(), month = monthByN(m.month), done = missionsDone();
+  const m = mission(), month = monthByN(m.month), p = plan(), done = p.done + p.skipped;
   return `<div class="card track-card" style="--tc:var(--acid)">
     <div class="path-top"><span class="path-ico">🤖</span>
-      <div class="grow"><div class="h3">Mission ${m.n} of ${PLAN_DAYS}</div>
-        <div class="tiny truncate">Month ${month.n} · ${esc(month.title)}</div></div>
+      <div class="grow"><div class="h3">Mission ${m.n} of ${TOTAL_MISSIONS}</div>
+        <div class="tiny truncate">Robotics · month ${month.n} · ${esc(month.title)}</div></div>
       <button class="btn xs" data-go="robotics">Open</button></div>
-    <div class="plan-bar" style="margin-top:10px">${[1, 2, 3, 4, 5, 6].map(n => {
-      const f = Math.max(0, Math.min(1, (done - 30 * (n - 1)) / 30));
-      return `<i class="${n <= month.n ? 'open' : ''}" style="--f:${f}"></i>`;
+    <div class="plan-bar" style="margin-top:10px;--cols:${MONTHS.length}">${MONTHS.map(x => {
+      const f = Math.max(0, Math.min(1, (done - MONTH_DAYS * (x.n - 1)) / MONTH_DAYS));
+      return `<i class="${x.n <= month.n ? 'open' : ''}" style="--f:${f}"></i>`;
     }).join('')}</div>
     ${missionCard({ compact: true })}
   </div>`;

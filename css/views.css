@@ -69,7 +69,7 @@ details[open] > summary { border-bottom: var(--line-thin) solid var(--ink); }
 .hero-card .sub { font-weight: 700; }
 
 /* The plan as six segments, each filling as its month passes. */
-.plan-bar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+.plan-bar { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: 4px; }
 .plan-bar i {
   position: relative; height: 14px;
   border: var(--line-thin) dashed var(--ink);
@@ -741,6 +741,18 @@ details.explain > summary { padding: var(--s3); }
 .mmap-cells i.boss { border-radius: 50%; background: var(--sunk); }
 .mmap-cells i.boss.done { background: var(--ink); }
 .mmap-cells i.now { background: var(--accent); animation: blink 1.4s steps(1, end) infinite; }
+.mmap-cells i.skip { background: repeating-linear-gradient(135deg, var(--mc) 0 2px, var(--card) 2px 4px); }
+.m-order { margin-top: 6px; color: var(--ink); font-weight: 650; }
+.m-test {
+  display: flex; align-items: center; gap: 12px;
+  margin-top: 10px; padding: 12px;
+  background: var(--yellow);
+  border: var(--line-thin) solid var(--ink);
+  border-radius: var(--radius-s);
+}
+.m-test .tiny { color: var(--ink); }
+.m-test .btn { flex: none; }
+.linkish { display: block; background: none; border: 0; padding: 8px 0 0; font-size: 12.5px; font-weight: 750; text-decoration: underline; color: var(--ink); text-align: left; min-height: 32px; }
 
 /* A skill's round, shown when its last question is answered. */
 .round-res {

@@ -1,5 +1,5 @@
 /**
- * The roadmap: six months, their topics, resources and builds.
+ * The roadmap: the article's topics, resources and builds, arranged into four months.
  *
  * Source: "How to become a Robotics Engineer in 6 months" by Ronin (@DeRonin_).
  * Tasks, resources and prices are summarised from that article in shorter words
@@ -22,25 +22,21 @@ export const SOURCE = {
 /* --------------------------------- months --------------------------------- */
 
 export const MONTHS = [
-  { n:1, title:'Electronics and the bench', short:'Bench', icon:'⚡', color:'var(--yellow)',
-    goal:'Read a schematic, build the circuit, and find the fault when it does not work.' },
-  { n:2, title:'Microcontrollers, motors and sensors', short:'Motion', icon:'🤖', color:'var(--acid)',
-    goal:'Build a robot that moves, senses what is around it, and corrects itself.' },
-  { n:3, title:'Mechanical design and making parts', short:'Parts', icon:'⚙️', color:'var(--orange)',
-    goal:'Design a part in CAD, manufacture it, and have it fit.' },
-  { n:4, title:'ROS 2 and simulation', short:'ROS 2', icon:'🧭', color:'var(--cyan)',
-    goal:'Build a robot in ROS 2, simulate it, map a room and navigate it on its own.' },
-  { n:5, title:'The maths underneath', short:'Maths', icon:'📐', color:'var(--violet)',
-    goal:'Understand and implement the control and perception under everything you built.' },
-  { n:6, title:'Robot learning and getting hired', short:'Hired', icon:'🧠', color:'var(--pink)',
-    goal:'Pick a direction, build a portfolio piece in it, and start applying.' },
+  { n:1, title:'Circuits to a robot that moves', short:'Move', level:'Beginner', icon:'⚡', color:'var(--yellow)',
+    goal:'From Ohm\'s law to a line follower you tuned yourself.' },
+  { n:2, title:'Control, balance and making parts', short:'Balance', level:'Beginner+', icon:'⚖️', color:'var(--acid)',
+    goal:'A robot that balances on two wheels, the logged data that explains it, and parts you designed that fit.' },
+  { n:3, title:'Arms, frames and ROS 2', short:'ROS 2', level:'Intermediate', icon:'🧭', color:'var(--cyan)',
+    goal:'An arm that goes where you tell it, and your own robot mapping a room and navigating it in simulation.' },
+  { n:4, title:'See, grasp, learn, get hired', short:'Hired', level:'Advanced', icon:'🧠', color:'var(--pink)',
+    goal:'Pick things up with a camera and a policy you trained, and a portfolio that survives the third question.' },
 ];
 
 export const monthByN = n => MONTHS.find(m => m.n === n);
 
-/** Days per roadmap month. Month n opens on day 30·(n−1) unless you beat its boss first. */
+/** Days per plan month. Month n opens at mission 30·(n−1)+1, or early once you beat its boss. */
 export const MONTH_DAYS = 30;
-export const PLAN_DAYS = MONTH_DAYS * 6;
+export const PLAN_DAYS = MONTH_DAYS * MONTHS.length;
 
 /* --------------------------------- topics --------------------------------- */
 
@@ -104,7 +100,7 @@ export const TOPICS = [
     ] },
 
   { id:'m1-python', month:1, name:'Python, the terminal and Git',
-    why:'You will use all three every week until month six, so get them out of the way now.',
+    why:'You will use all three every week from here on, so get them out of the way now.',
     focus:[
       'Python: functions, classes, file I/O, JSON, virtual environments, pip',
       'Terminal: cd, ls, grep, running scripts, environment variables, ssh',
@@ -118,7 +114,7 @@ export const TOPICS = [
     ] },
 
   /* ------------------------------ month 2 ------------------------------ */
-  { id:'m2-arduino', month:2, name:'Arduino',
+  { id:'m2-arduino', month:1, name:'Arduino',
     why:'Start here rather than on the ESP32: every tutorial in existence targets it, and nothing you learn is wasted.',
     focus:[
       'digitalWrite/Read, analogRead/Write, and what PWM actually is',
@@ -134,7 +130,7 @@ export const TOPICS = [
       r('Arduino Project Hub', 'free', 'https://projecthub.arduino.cc/', 'Where to go when the tutorials run out.'),
     ] },
 
-  { id:'m2-esp32', month:2, name:'ESP32',
+  { id:'m2-esp32', month:1, name:'ESP32',
     why:'Wi-Fi, Bluetooth, two cores and more speed, for less than an Uno.',
     focus:[
       'Arduino framework: fastest route to a working robot',
@@ -152,7 +148,7 @@ export const TOPICS = [
       r('Seeed XIAO ESP32-C3', '$4.99', 'https://www.seeedstudio.com/Seeed-XIAO-ESP32C3-p-5431.html', 'When you need something tiny.'),
     ] },
 
-  { id:'m2-motors', month:2, name:'Motors, drivers and actuation',
+  { id:'m2-motors', month:1, name:'Motors, drivers and actuation',
     why:'Motors draw real current and behave badly. This is where electronics stops being abstract.',
     focus:[
       'Brushed DC gearmotor: cheap, needs an H-bridge, no position feedback without an encoder',
@@ -173,7 +169,7 @@ export const TOPICS = [
       r('FeeTech STS3215 smart servo', '$31.71', 'https://www.robotshop.com/products/feetech-12v-30kgcm-magnetic-encoding-servo-sts3215', 'The servo in the SO-101 arm.'),
     ] },
 
-  { id:'m2-sensors', month:2, name:'Sensors and reading the world',
+  { id:'m2-sensors', month:1, name:'Sensors and reading the world',
     why:'Drift, noise and fusion — the smallest possible version of state estimation.',
     focus:[
       'Ultrasonic vs time-of-flight: cone width and soft surfaces',
@@ -192,7 +188,7 @@ export const TOPICS = [
       r('RPLIDAR C1', '$69.00', null, '360° lidar, from DFRobot.'),
     ] },
 
-  { id:'m2-robots', month:2, name:'Your first two robots',
+  { id:'m2-robots', month:1, name:'Your first two robots',
     why:'A line follower is a closed loop with a tuning problem — a humanoid, only smaller and cheaper to break.',
     focus:[
       'Line follower: tune with P, add D, watch the oscillation go',
@@ -207,7 +203,7 @@ export const TOPICS = [
     ] },
 
   /* ------------------------------ month 3 ------------------------------ */
-  { id:'m3-cad', month:3, name:'CAD',
+  { id:'m3-cad', month:2, name:'CAD',
     why:'Pick one tool and go deep. Onshape if designing in public is fine; Fusion Personal for CAM later; FreeCAD if you want no licence at all.',
     focus:[
       'Fully constrained sketches — an under-constrained one moves when you edit it',
@@ -223,7 +219,7 @@ export const TOPICS = [
       r('Design for 3D printing (Protolabs)', 'free', 'https://www.hubs.com/knowledge-base/design-for-3d-printing/', 'Walls, orientation, tolerances, snap-fits.'),
     ] },
 
-  { id:'m3-print', month:3, name:'3D printing',
+  { id:'m3-print', month:2, name:'3D printing',
     why:'A printer pays for itself on iteration, not on one build: the tenth gripper finger costs cents at home.',
     focus:[
       'PLA/PLA+ for prototypes and the SO-101 itself',
@@ -249,7 +245,7 @@ export const TOPICS = [
       r('JLC3DP', 'from $1/part', 'https://jlc3dp.com/', 'MJF nylon and FDM, three-day builds.'),
     ] },
 
-  { id:'m3-transmission', month:3, name:'Actuators and transmissions',
+  { id:'m3-transmission', month:2, name:'Actuators and transmissions',
     why:'Reduction, backlash and torque density separate a robot that works once on video from one that works every time.',
     focus:[
       'Gear ratios: speed traded for torque',
@@ -262,8 +258,8 @@ export const TOPICS = [
       r('OpenCycloid actuator', 'free', 'https://www.instructables.com/OpenCycloid-3D-printed-Open-Source-Robotic-Actuato/', 'A starting geometry for your reducer.'),
     ] },
 
-  { id:'m3-arm', month:3, name:'Build a real robot arm',
-    why:'The SO-101 is built as a leader and follower pair, so you can hand-guide one and record demonstrations — which month six depends on.',
+  { id:'m3-arm', month:2, name:'Build a real robot arm',
+    why:'The SO-101 is built as a leader and follower pair, so you can hand-guide one and record demonstrations — which the last month depends on.',
     focus:[
       'SO-101: open-source 5-DOF arm plus gripper',
       'Leader/follower teleoperation is what makes demonstrations possible',
@@ -280,7 +276,7 @@ export const TOPICS = [
     ] },
 
   /* ------------------------------ month 4 ------------------------------ */
-  { id:'m4-distro', month:4, name:'Which ROS 2 — and the ROS 1 trap',
+  { id:'m4-distro', month:3, name:'Which ROS 2 — and the ROS 1 trap',
     why:'Most highly-ranked tutorial content is ROS 1, which reached end of life in May 2025. Learn to recognise it instantly.',
     focus:[
       'Start on Jazzy (supported to May 2029); move to Lyrical once tutorials catch up',
@@ -292,7 +288,7 @@ export const TOPICS = [
       r('Official ROS 2 tutorials (Jazzy)', 'free', 'https://docs.ros.org/en/jazzy/Tutorials.html', 'The canonical reference.'),
     ] },
 
-  { id:'m4-core', month:4, name:'ROS 2 core concepts',
+  { id:'m4-core', month:3, name:'ROS 2 core concepts',
     why:'The single most requested skill in robotics job listings — and all of it works on a laptop with no GPU.',
     focus:[
       'Nodes, topics, services and actions — and which one a problem needs',
@@ -311,7 +307,7 @@ export const TOPICS = [
       r('Automatic Addison', 'free', 'https://automaticaddison.com/tutorials/', 'Recipes by distro, already covering Lyrical.'),
     ] },
 
-  { id:'m4-urdf', month:4, name:'URDF, TF and describing a robot',
+  { id:'m4-urdf', month:3, name:'URDF, TF and describing a robot',
     why:'Frames and transforms are the concept that blocks most people\'s understanding of URDF.',
     focus:[
       'joint_state_publisher invents joint positions; robot_state_publisher turns them into transforms',
@@ -325,7 +321,7 @@ export const TOPICS = [
       r('URDF with robot_state_publisher', 'free', 'https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Using-URDF-with-Robot-State-Publisher-cpp.html', 'The official walkthrough.'),
     ] },
 
-  { id:'m4-sim', month:4, name:'Simulation',
+  { id:'m4-sim', month:3, name:'Simulation',
     why:'Gazebo was renamed twice; the version you install has to match your ROS 2 distro or you will fight build errors.',
     focus:[
       'Gazebo Classic ended in January 2025; every ign command became gz',
@@ -339,7 +335,7 @@ export const TOPICS = [
       r('Isaac Sim requirements', 'free', 'https://docs.isaacsim.omniverse.nvidia.com/6.0.0/installation/requirements.html', 'Read this before getting excited: RTX 4080 minimum.'),
     ] },
 
-  { id:'m4-control', month:4, name:'ros2_control',
+  { id:'m4-control', month:3, name:'ros2_control',
     why:'The topic most self-taught candidates have never touched — the fastest way to stand out.',
     focus:[
       '<ros2_control> tags in your xacro',
@@ -351,7 +347,7 @@ export const TOPICS = [
       r('ros2_control on real hardware', 'free', 'https://articulatedrobotics.xyz/tutorials/mobile-robot/applications/ros2_control-real/', 'The sim-to-hardware step, done properly.'),
     ] },
 
-  { id:'m4-nav', month:4, name:'SLAM and navigation',
+  { id:'m4-nav', month:3, name:'SLAM and navigation',
     why:'A robot navigating a map it built itself is the most compelling thing a self-taught roboticist can show.',
     focus:[
       'Mapping vs localizing, and when to switch SLAM Toolbox modes',
@@ -369,7 +365,7 @@ export const TOPICS = [
     ] },
 
   /* ------------------------------ month 5 ------------------------------ */
-  { id:'m5-pid', month:5, name:'Control theory, starting with PID',
+  { id:'m5-pid', month:2, name:'Control theory, starting with PID',
     why:'You tuned PID by feel in month two. Now learn why it worked.',
     focus:[
       'What P, I and D each physically do, and how each one fails',
@@ -386,7 +382,7 @@ export const TOPICS = [
       r('Feedback Systems (Åström & Murray)', 'free PDF', 'https://fbswiki.org/wiki/index.php/Feedback_Systems:_An_Introduction_for_Scientists_and_Engineers', 'The rigorous textbook.'),
     ] },
 
-  { id:'m5-lqr', month:5, name:'State space, LQR and MPC',
+  { id:'m5-lqr', month:4, name:'State space, LQR and MPC',
     why:'This is where control theory becomes robotics: pendulums, walking, humanoids.',
     focus:[
       'State, input and output instead of a transfer function',
@@ -399,7 +395,7 @@ export const TOPICS = [
       r('Underactuated Robotics (MIT)', 'free', 'https://underactuated.csail.mit.edu/index.html', 'Tedrake\'s notes, PDF and lectures.'),
     ] },
 
-  { id:'m5-kin', month:5, name:'Kinematics and dynamics',
+  { id:'m5-kin', month:3, name:'Kinematics and dynamics',
     why:'Enough kinematics to reason about an arm — and to feel it lose a degree of freedom.',
     focus:[
       'Homogeneous transforms and composing them',
@@ -415,7 +411,7 @@ export const TOPICS = [
       r('QUT Robot Academy', 'free', 'https://robotacademy.net.au', 'Two hundred short lessons.'),
     ] },
 
-  { id:'m5-vision', month:5, name:'Perception and computer vision',
+  { id:'m5-vision', month:4, name:'Perception and computer vision',
     why:'Enough vision to turn a camera into 3D information — and to know why it breaks.',
     focus:[
       'Intrinsics and distortion; a real calibration with a printed chessboard',
@@ -431,7 +427,7 @@ export const TOPICS = [
       r('Open3D point clouds', 'free', 'https://www.open3d.org/docs/release/tutorial/geometry/pointcloud.html', 'ICP, planes and clusters in Python.'),
     ] },
 
-  { id:'m5-moveit', month:5, name:'Manipulation and MoveIt 2',
+  { id:'m5-moveit', month:4, name:'Manipulation and MoveIt 2',
     why:'Understanding why a planner fails teaches more than watching it succeed.',
     focus:[
       'Planning scenes and collision objects',
@@ -446,7 +442,7 @@ export const TOPICS = [
     ] },
 
   /* ------------------------------ month 6 ------------------------------ */
-  { id:'m6-lerobot', month:6, name:'LeRobot: record, train, deploy',
+  { id:'m6-lerobot', month:4, name:'LeRobot: record, train, deploy',
     why:'Teleoperate, record, train, deploy — the loop the whole low-cost robot-learning world has converged on.',
     focus:[
       'The record–train–deploy loop, end to end, on your own arm',
@@ -461,7 +457,7 @@ export const TOPICS = [
       r('SO-101 setup guide', 'free', 'https://huggingface.co/docs/lerobot/so101', 'Ports, motors, calibration, recording.'),
     ] },
 
-  { id:'m6-vla', month:6, name:'Vision-language-action models',
+  { id:'m6-vla', month:4, name:'Vision-language-action models',
     why:'The foundation models of robotics — and which ones you can actually run.',
     focus:[
       'π₀ family: open weights, but transfer to your robot is not guaranteed',
@@ -477,7 +473,7 @@ export const TOPICS = [
       r('SmolVLA', 'free', 'https://huggingface.co/lerobot/smolvla_base', 'Compact, affordable hardware.'),
     ] },
 
-  { id:'m6-rl', month:6, name:'Reinforcement learning',
+  { id:'m6-rl', month:4, name:'Reinforcement learning',
     why:'No hardware and no GPU beyond what Colab gives you.',
     focus:[
       'Start with MuJoCo Playground and its Colab tutorials',
@@ -490,7 +486,7 @@ export const TOPICS = [
       r('CS 285: Deep RL (Berkeley)', 'free', 'https://rail.eecs.berkeley.edu/deeprlcourse', 'Robotics-native framing throughout.'),
     ] },
 
-  { id:'m6-portfolio', month:6, name:'Pick a direction, build the portfolio',
+  { id:'m6-portfolio', month:4, name:'Pick a direction, build the portfolio',
     why:'Pick one direction and keep the other two at literacy level.',
     focus:[
       'Robot learning: the highest ceiling, and the most competitive',
@@ -501,7 +497,7 @@ export const TOPICS = [
     ],
     resources:[] },
 
-  { id:'m6-interview', month:6, name:'Interviews',
+  { id:'m6-interview', month:4, name:'Interviews',
     why:'Robotics interviews are not software interviews; LeetCode predicts much less here.',
     focus:[
       'Inverse kinematics, PID, sensor fusion, SLAM, RRT, C++ vs Python',
@@ -572,7 +568,7 @@ export const BUILDS = [
       files:[{ label:'A Python file', re:/\.py$/i }] } },
 
   /* ------------------------------ month 2 ------------------------------ */
-  { id:'b05', month:2, topic:'m2-arduino', name:'Reaction timer', cost:'~$20–43 — an Arduino kit',
+  { id:'b05', month:1, topic:'m2-arduino', name:'Reaction timer', cost:'~$20–43 — an Arduino kit',
     task:'An LED fires after a random delay, a button stops the clock, and the time prints to serial in milliseconds. Use an interrupt, debounce the button, and time it with millis() — no delay(). It has a score, so it demos in fifteen seconds of video.',
     proof:{ video:1,
       readme:[
@@ -591,7 +587,7 @@ export const BUILDS = [
       ],
       files:[{ label:'Firmware or project source', re:/\.(?:ino|cpp|c|h|py)$|platformio\.ini$/i }] } },
 
-  { id:'b07', month:2, topic:'m2-motors', name:'Exactly one revolution', cost:'~$35 — driver and encoder gearmotor',
+  { id:'b07', month:1, topic:'m2-motors', name:'Exactly one revolution', cost:'~$35 — driver and encoder gearmotor',
     task:'Drive a DC motor forwards and backwards at five PWM speeds. Then add an encoder and write a function that turns the wheel exactly one revolution whatever the battery voltage. That second half is your first real closed loop, and it is much harder than it sounds.',
     proof:{ readme:[
         { label:'PWM', re:/\bPWM\b/i },
@@ -600,14 +596,14 @@ export const BUILDS = [
       ],
       files:[FIRMWARE] } },
 
-  { id:'b08', month:2, topic:'m2-sensors', name:'Watch the drift disappear', cost:'~$13 — an MPU-6050',
+  { id:'b08', month:1, topic:'m2-sensors', name:'Watch the drift disappear', cost:'~$13 — an MPU-6050',
     task:'Mount an IMU, print the pitch angle, hold it perfectly still and watch the number drift anyway. Add a complementary filter and watch the drift go. The most important lesson in state estimation, in twenty minutes.',
     proof:{ readme:[
         { label:'The drift, in degrees', re:DEG },
         { label:'The complementary filter', re:/complementary/i },
       ] } },
 
-  { id:'b09', month:2, topic:'m2-robots', name:'Line follower: P, then PD', cost:'~$38 budget, ~$105 quality',
+  { id:'b09', month:1, topic:'m2-robots', name:'Line follower: P, then PD', cost:'~$38 budget, ~$105 quality',
     task:'Build the line follower. Tune it with P alone, then add D and watch the oscillation disappear. Film both — the badly tuned robot next to the same robot tuned properly proves you understand the loop rather than having copied a gain.',
     proof:{ video:2, readme:[
         { label:'Your proportional gain (Kp)', re:/\bKp\b/ },
@@ -622,21 +618,21 @@ export const BUILDS = [
       ] } },
 
   /* ------------------------------ month 3 ------------------------------ */
-  { id:'b11', month:3, topic:'m3-cad', name:'A bracket from the datasheet', cost:'$0 CAD, plus printing',
+  { id:'b11', month:2, topic:'m3-cad', name:'A bracket from the datasheet', cost:'$0 CAD, plus printing',
     task:'Model a bracket that holds the exact servo you own, with screw holes and shaft clearance taken from the manufacturer\'s drawing rather than by eye. Print it and see if it fits. It probably will not the first time; that is the lesson.',
     proof:{ readme:[
         { label:'Dimensions in mm', re:MM, min:2 },
         { label:'The datasheet', re:/datasheet/i },
       ], files:[CADFILE] } },
 
-  { id:'b12', month:3, topic:'m3-print', name:'Know your printer', cost:'A printer or a print service',
+  { id:'b12', month:2, topic:'m3-print', name:'Know your printer', cost:'A printer or a print service',
     task:'Print the tolerance gauge and write down your machine\'s real clearances. Then design a two-part snap-fit case for your ESP32 that closes without glue, and iterate until it clicks.',
     proof:{ readme:[
         { label:'Your measured clearance (e.g. 0.2 mm)', re:/\b0?\.\d+\s*mm\b/ },
         { label:'The snap-fit', re:/snap/i },
       ], files:[CADFILE] } },
 
-  { id:'b13', month:3, topic:'m3-transmission', name:'Backlash, measured', cost:'Printer plus a NEMA17 or hobby motor',
+  { id:'b13', month:2, topic:'m3-transmission', name:'Backlash, measured', cost:'Printer plus a NEMA17 or hobby motor',
     task:'Design and print a planetary or cycloidal reducer, and accept that the first one will be bad. Measure its backlash by holding the output and rocking it, then redesign to reduce it.',
     proof:{ readme:[
         { label:'Backlash in degrees or arcminutes', re:DEG },
@@ -652,7 +648,7 @@ export const BUILDS = [
       ], files:[CADFILE] } },
 
   /* ------------------------------ month 4 ------------------------------ */
-  { id:'b15', month:4, topic:'m4-core', name:'A ROS 2 graph with no robot', cost:'$0',
+  { id:'b15', month:3, topic:'m4-core', name:'A ROS 2 graph with no robot', cost:'$0',
     task:'A sensor publisher, a processing node, a service-based config node and a parameterised aggregator — with your own .msg and .srv — wired together in a Python launch file that takes arguments. Record it with ros2 bag and replay it. Proves you understand the graph, not that you can run turtlesim.',
     proof:{ readme:[{ label:'ros2 bag', re:/ros2\s+bag/i }],
       files:[
@@ -663,14 +659,14 @@ export const BUILDS = [
       ],
       forbid:[NO_ROS1] } },
 
-  { id:'b16', month:4, topic:'m4-urdf', name:'Your own robot, in xacro', cost:'$0',
+  { id:'b16', month:3, topic:'m4-urdf', name:'Your own robot, in xacro', cost:'$0',
     task:'Not TurtleBot — your design. A differential-drive base, a sensor mast and a two-axis pan-tilt head, with correct inertias and separate collision and visual geometry. Drive the joints with joint_state_publisher_gui and view the whole TF tree in RViz.',
     proof:{ readme:[
         { label:'RViz', re:/rviz/i },
         { label:'Inertias', re:/inertia/i },
       ], files:[{ label:'A .xacro file', re:/\.xacro$/i }], forbid:[NO_ROS1] } },
 
-  { id:'b17', month:4, topic:'m4-sim', name:'Sensors in a world you built', cost:'$0',
+  { id:'b17', month:3, topic:'m4-sim', name:'Sensors in a world you built', cost:'$0',
     task:'Put your xacro robot in Gazebo with lidar and camera plugins, inside a custom SDF world with obstacles. Confirm the sensor data appears on ROS 2 topics and renders in RViz.',
     proof:{ readme:[
         { label:'Gazebo', re:/gazebo/i },
@@ -680,7 +676,7 @@ export const BUILDS = [
       files:[{ label:'A world file (.sdf or .world)', re:/\.(?:sdf|world)$/i }],
       forbid:[{ label:'No Gazebo Classic commands (ign gazebo, gazebo_ros)', re:/\bign gazebo\b|roslaunch gazebo_ros/ }, NO_ROS1] } },
 
-  { id:'b18', month:4, topic:'m4-control', name:'Drive through a controller', cost:'$0',
+  { id:'b18', month:3, topic:'m4-control', name:'Drive through a controller', cost:'$0',
     task:'Add <ros2_control> tags, configure diff_drive_controller and joint_state_broadcaster in YAML, and drive the robot in Gazebo with keyboard teleop. Then write an action server that drives a commanded distance and reports progress, with feedback and cancellation.',
     proof:{ readme:[
         { label:'diff_drive_controller', re:/diff_drive_controller/ },
@@ -688,7 +684,7 @@ export const BUILDS = [
         { label:'Cancellation', re:/cancel/i },
       ], files:[{ label:'Controller config (.yaml)', re:/\.ya?ml$/i }], forbid:[NO_ROS1] } },
 
-  { id:'b19', month:4, topic:'m4-nav', name:'Map it, then navigate it', cost:'$0 in Gazebo; $250–535 on hardware',
+  { id:'b19', month:3, topic:'m4-nav', name:'Map it, then navigate it', cost:'$0 in Gazebo; $250–535 on hardware',
     task:'Run SLAM Toolbox in your world, teleop around it and save the map. Switch to localization mode, send Nav2 goals from RViz, and tune the costmaps until it stops clipping corners. Record the screen.',
     proof:{ video:1, readme:[
         { label:'SLAM Toolbox', re:/slam[_ ]toolbox/i },
@@ -697,21 +693,21 @@ export const BUILDS = [
       ], files:[{ label:'A saved map (.pgm, .posegraph or map .yaml)', re:/\.(?:pgm|posegraph)$|map[^/]*\.ya?ml$/i }] } },
 
   /* ------------------------------ month 5 ------------------------------ */
-  { id:'b20', month:5, topic:'m5-pid', name:'Three controllers, one robot', cost:'Your balancer from month two',
+  { id:'b20', month:2, topic:'m5-pid', name:'Three controllers, one robot', cost:'Your balancer from month two',
     task:'On the balancer, implement P only, then PD, then PID with feedforward. Log each step response to CSV, plot all three together, and write up which you would ship and why. That plot is worth more in an interview than any certificate.',
     proof:{ readme:[
         { label:'Feedforward', re:/feed-?forward/i },
         { label:'Overshoot or settling time', re:/overshoot|settling/i },
       ], files:[{ label:'Step-response data (.csv)', re:/\.csv$/i }] } },
 
-  { id:'b21', month:5, topic:'m5-lqr', name:'LQR against PID', cost:'$0',
+  { id:'b21', month:4, topic:'m5-lqr', name:'LQR against PID', cost:'$0',
     task:'Implement LQR for a simulated cart-pole in Python, then a hand-tuned PID for the same plant, and compare how each handles the same disturbance. Tedrake\'s notes give you the model — you are implementing, not deriving.',
     proof:{ readme:[
         { label:'LQR', re:/\bLQR\b/ },
         { label:'The disturbance', re:/disturbance/i },
       ], files:[PYFILE] } },
 
-  { id:'b22', month:5, topic:'m5-kin', name:'FK by hand, IK in code', cost:'$0 with the Robotics Toolbox',
+  { id:'b22', month:3, topic:'m5-kin', name:'FK by hand, IK in code', cost:'$0 with the Robotics Toolbox',
     task:'Compute your SO-101\'s forward kinematics by hand from its link lengths and check it against the Robotics Toolbox. Then write a numerical IK solver that moves the end effector to a commanded XYZ, and watch what it does near a singularity.',
     proof:{ readme:[
         { label:'Link lengths or positions (mm or m)', re:/\d+(?:\.\d+)?\s*(?:mm|m)\b/g, min:2 },
@@ -719,14 +715,14 @@ export const BUILDS = [
         { label:'The singularity', re:/singular/i },
       ], files:[PYFILE] } },
 
-  { id:'b23', month:5, topic:'m5-vision', name:'Pixel to position', cost:'Any webcam and a printed chessboard',
+  { id:'b23', month:4, topic:'m5-vision', name:'Pixel to position', cost:'Any webcam and a printed chessboard',
     task:'Calibrate a real camera with a printed chessboard and save the intrinsics. Detect a coloured object and estimate its 3D position relative to the camera. Then change the lighting, watch it fail, and fix it.',
     proof:{ readme:[
         { label:'Reprojection error in pixels', re:/\d+(?:\.\d+)?\s*(?:px|pixels?)\b/i },
         { label:'The lighting failure', re:/light/i },
       ], files:[{ label:'Saved intrinsics (.yaml, .json or .npz)', re:/\.(?:ya?ml|json|npz)$/i }] } },
 
-  { id:'b24', month:5, topic:'m5-moveit', name:'Pick, place, then block it', cost:'$0',
+  { id:'b24', month:4, topic:'m5-moveit', name:'Pick, place, then block it', cost:'$0',
     task:'Plan and execute a pick and place in MoveIt 2 with collision objects in the planning scene. Then put an obstacle in the only viable path and record how the planner behaves.',
     proof:{ video:1, readme:[
         { label:'MoveIt', re:/moveit/i },
@@ -734,7 +730,7 @@ export const BUILDS = [
       ] } },
 
   /* ------------------------------ month 6 ------------------------------ */
-  { id:'b25', month:6, topic:'m6-lerobot', name:'Fifty demos, then fifty more', cost:'Your SO-101 pair',
+  { id:'b25', month:4, topic:'m6-lerobot', name:'Fifty demos, then fifty more', cost:'Your SO-101 pair',
     task:'Record 50 demonstrations of one simple task — a cube into a bin — train an ACT policy and deploy it. It will work about half the time. Record 50 more covering the failures and retrain. The success rate before and after, and the fact you measured it, is the portfolio piece.',
     proof:{ video:1, readme:[
         { label:'Success rate before and after (two percentages)', re:/\d+(?:\.\d+)?\s*%/g, min:2 },
@@ -742,17 +738,17 @@ export const BUILDS = [
         { label:'Your dataset on the Hugging Face Hub', re:/(?:huggingface\.co|hf\.co)\/datasets\//i },
       ] } },
 
-  { id:'b26', month:6, topic:'m6-rl', name:'Change the reward, change the gait', cost:'$0 on Colab',
+  { id:'b26', month:4, topic:'m6-rl', name:'Change the reward, change the gait', cost:'$0 on Colab',
     task:'Train a quadruped locomotion policy in MuJoCo Playground from one of its Colab tutorials. Then change the reward function and show how the gait changes.',
     proof:{ video:2, readme:[{ label:'The reward change', re:/reward/i }], files:[PYFILE] } },
 
-  { id:'b27', month:6, topic:'m6-portfolio', name:'Three READMEs, rewritten', cost:'$0',
+  { id:'b27', month:4, topic:'m6-portfolio', name:'Three READMEs, rewritten', cost:'$0',
     task:'Take your three best projects and rewrite their READMEs: a video at the top, a wiring or architecture diagram, the numbers you measured, and a section on what broke and how you fixed it. That last section is the part that cannot be faked from a tutorial.',
     /* Checked across your other builds rather than one folder: passes once three
        verified builds have a photo or video within the first lines of their README. */
     proof:{ meta:'portfolio', count:3 } },
 
-  { id:'b28', month:6, topic:'m6-interview', name:'Survive the third question', cost:'$0 and a friend',
+  { id:'b28', month:4, topic:'m6-interview', name:'Survive the third question', cost:'$0 and a friend',
     task:'Have someone interrogate you about your own repo for twenty minutes — your code, not concepts. Why that gain, why that sensor, what happens when the battery sags. Write every question and your answer into INTERVIEW.md, three levels deep.',
     proof:{ doc:'INTERVIEW.md', universal:false, questions:9, words:300 } },
 ];
@@ -769,7 +765,7 @@ export const buildCoins = b => 40 + b.month * 20;
 /**
  * Each month's milestone list, from the article, mapped to things the app can
  * check. A milestone is met when every build it names is verified and every
- * skill it names is in box 3 or higher — so nobody ticks these by hand.
+ * skill it names is at level 3 or higher — so nobody ticks these by hand.
  */
 export const MILESTONES = {
   1: [
@@ -777,52 +773,40 @@ export const MILESTONES = {
     { text:'Check a resistor value before you plug it in', skills:['ohm', 'led', 'bands'] },
     { text:'Find a short, a break or a dead part with a multimeter', builds:['b02'], skills:['meter'] },
     { text:'Solder a clean through-hole joint and check it electrically', builds:['b03'] },
-    { text:'Write a Python script, run it, and push it to GitHub', builds:['b04'] },
-    { text:'Explain why a stalling motor can reset your microcontroller', skills:['stall'] },
+    { text:'Turn a motor exactly one revolution, whatever the battery', builds:['b07'], skills:['pwm', 'encoder'] },
+    { text:'Fuse accelerometer and gyro into a stable angle', builds:['b08'], skills:['compfilter'] },
+    { text:'A line follower, tuned with P and then PD, on video', builds:['b09'], skills:['pid'] },
   ],
   2: [
-    { text:'Drive a motor at a controlled speed; know PWM duty from RPM', builds:['b07'], skills:['pwm'] },
-    { text:'Read an encoder and close a position loop around it', builds:['b07'], skills:['encoder'] },
-    { text:'Wire and read an I2C sensor from its datasheet', builds:['b08'], skills:['buses'] },
-    { text:'Fuse accelerometer and gyro into a stable angle', builds:['b08'], skills:['compfilter'] },
-    { text:'Explain P, I and D from what your robot did', builds:['b09'], skills:['pid'] },
-    { text:'Two working robots on GitHub, with what broke', builds:['b09', 'b10'] },
-  ],
-  3: [
+    { text:'A robot that balances on two wheels', builds:['b10'] },
+    { text:'Tune PID from logged step responses and explain every term', builds:['b20'], skills:['pidmath'] },
+    { text:'Control a robot from your phone over Wi-Fi', builds:['b06'] },
     { text:'Model a part from a datasheet with fully constrained sketches', builds:['b11'], skills:['cad'] },
     { text:'State your printer\'s real clearances from measurement', builds:['b12'], skills:['tolerance'] },
-    { text:'Design specifically for FDM: orientation, overhangs, adhesion', builds:['b12'], skills:['orient'] },
-    { text:'Choose PLA, PETG, ABS or TPU for a part and justify it', skills:['materials'] },
+    { text:'Choose a filament and design the part for FDM', skills:['materials', 'orient'] },
     { text:'Explain backlash and show it on something you built', builds:['b13'], skills:['backlash'] },
+  ],
+  3: [
     { text:'A robot arm you assembled, calibrated and modified', builds:['b14'] },
-  ],
-  4: [
-    { text:'ROS 2 nodes using topics, services and actions', builds:['b15'], skills:['comms'] },
-    { text:'Your own robot in xacro with frames, inertias and collisions', builds:['b16'], skills:['tf'] },
-    { text:'That robot in Gazebo with working lidar and camera', builds:['b17'], skills:['simchoice'] },
-    { text:'Drive it through ros2_control, not raw commands', builds:['b18'], skills:['diffdrive'] },
-    { text:'Map with SLAM Toolbox and navigate with Nav2', builds:['b19'], skills:['nav'] },
-    { text:'Diagnose a broken TF tree', skills:['tf', 'graph'] },
-  ],
-  5: [
-    { text:'Implement and tune PID, and explain every term from data', builds:['b20'], skills:['pidmath'] },
-    { text:'Describe a system in state space; run LQR on a simulated plant', builds:['b21'], skills:['control'] },
     { text:'Forward kinematics by hand, inverse kinematics numerically', builds:['b22'], skills:['fk', 'rot'] },
     { text:'Explain a singularity by pointing at a robot doing it', builds:['b22'], skills:['jacobian'] },
+    { text:'ROS 2 nodes using topics, services and actions', builds:['b15'], skills:['comms'] },
+    { text:'Your own robot in xacro, in Gazebo, with lidar and camera', builds:['b16', 'b17'], skills:['tf', 'simchoice'] },
+    { text:'Drive it through ros2_control, not raw commands', builds:['b18'], skills:['diffdrive'] },
+    { text:'Map with SLAM Toolbox and navigate with Nav2', builds:['b19'], skills:['nav'] },
+  ],
+  4: [
     { text:'Calibrate a camera and turn a pixel into a 3D position', builds:['b23'], skills:['pinhole', 'stereo'] },
     { text:'Plan and execute a collision-free pick and place', builds:['b24'], skills:['moveit'] },
-  ],
-  6: [
-    { text:'Record a dataset and train a policy that runs on your hardware', builds:['b25'] },
-    { text:'Explain behaviour cloning vs ACT vs diffusion policy', skills:['lerobot'] },
-    { text:'Name which VLA models have open weights', skills:['vla'] },
+    { text:'Run LQR and PID on the same plant and compare them', builds:['b21'], skills:['control'] },
+    { text:'Record a dataset and train a policy that runs on your hardware', builds:['b25'], skills:['lerobot'] },
     { text:'State your direction, and why', direction:true },
     { text:'Three portfolio projects with video, metrics and failure analysis', builds:['b27'] },
     { text:'Answer three levels of follow-up on your own code', builds:['b28'], skills:['career'] },
   ],
 };
 
-/** The three directions from month six. Chosen, not earned — it is a decision. */
+/** The three directions from the last month. Chosen, not earned — it is a decision. */
 export const DIRECTIONS = [
   { id:'learning', name:'Robot learning & embodied AI', icon:'🧠',
     desc:'LeRobot, VLA fine-tuning, imitation learning, RL. Highest ceiling, most competitive.' },

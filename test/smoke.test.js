@@ -40,9 +40,16 @@ const T    = await import('../js/tracks/cp/topics.js');
 const Con  = await import('../js/tracks/cp/contests.js');
 const CM   = await import('../js/tracks/cp/model.js');
 const Ca   = await import('../js/tracks/cp/actions.js');
+const E    = await import('../js/learn/session.js');
+const LP   = await import('../js/learn/plan.js');
+const RP   = await import('../js/tracks/robotics/plan.js');
+const CP   = await import('../js/tracks/cp/plan.js');
+const CS   = await import('../js/tracks/cp/skills.js');
+const SB   = await import('../js/skillbook.js');
 
 const rightAnswer = q => (q.kind === 'mc' ? q.correct : String(q.answer));
-const wrongAnswer = q => (q.kind === 'mc' ? (q.correct + 1) % q.options.length : String(q.answer * 1.5 + 7));
+// Far enough from any answer that no tolerance could accept it.
+const wrongAnswer = q => (q.kind === 'mc' ? (q.correct + 1) % q.options.length : String(q.answer + Math.max(10, Math.abs(q.answer)) * 0.5 + 7));
 const day = n => G.addDays(G.dayKey(), -n);
 const now = () => Math.floor(Date.now() / 1000);
 const solve = (key, rating, tags, agoDays = 0, at = null) => ({
@@ -68,14 +75,16 @@ ok('ranks are ordered', G.RANKS.every((r, i) => i === 0 || r.at > G.RANKS[i - 1]
 
 /* ============================== robotics content ========================== */
 group('robotics content');
-ok('six months, 28 builds, each with proof', R.MONTHS.length === 6 && R.BUILDS.length === 28 && R.BUILDS.every(b => b.proof));
-ok('every build points at a topic in its own month', R.BUILDS.every(b => R.topicById(b.topic)?.month === b.month));
+ok('four months, 28 builds, each with proof', R.MONTHS.length === 4 && R.BUILDS.length === 28 && R.BUILDS.every(b => b.proof));
+ok('every build is taught no later than its own month', R.BUILDS.every(b => R.topicById(b.topic)?.month <= b.month));
+ok('every skill points at a real topic', Sk.SKILLS.every(s => R.topicById(s.topic)));
 ok('milestones name only real builds and skills',
   Object.values(R.MILESTONES).flat().every(m => (m.builds || []).every(R.buildById) && (m.skills || []).every(Sk.skillById)));
 
-group('skill generators — 200 draws each');
+group('skill generators — 200 draws each, both tracks');
+ok('skill ids are unique across tracks', new Set(SB.ALL_SKILLS.map(s => s.id)).size === SB.ALL_SKILLS.length);
 let genErrors = [];
-for (const s of Sk.SKILLS) {
+for (const s of SB.ALL_SKILLS) {
   const rng = Q.seeded(s.order + 11);
   for (let i = 0; i < 200; i++) {
     let q;
@@ -99,7 +108,7 @@ for (const s of Sk.SKILLS) {
     if (why.length) { genErrors.push(`${s.id}: ${why.join(', ')} — ${q.q}`); break; }
   }
 }
-ok(`all ${Sk.SKILLS.length} skills generate gradable questions`, !genErrors.length, genErrors.slice(0, 3).join(' | '));
+ok(`all ${SB.ALL_SKILLS.length} skills generate gradable questions`, !genErrors.length, genErrors.slice(0, 3).join(' | '));
 
 group('multiple choice is shuffled');
 {
@@ -172,22 +181,134 @@ group('picking reviews');
   ok('skills already in the mission are skipped', !G.pickReviews(pool, st, '2026-09-03', 100, ['c']).includes('c'));
 }
 
-group('the 180 missions');
+group('the robotics plan');
 {
-  const MS = await import('../js/tracks/robotics/missions.js');
-  ok('180 missions, 30 a month', MS.MISSIONS.length === 180 && R.MONTHS.every(m => MS.MISSIONS.filter(x => x.month === m.n).length === 30));
-  ok('numbered 1 to 180 in order', MS.MISSIONS.every((x, i) => x.n === i + 1));
-  const intro = MS.MISSIONS.flatMap(x => x.skills);
+  const MS = RP.MISSIONS;
+  ok('120 missions, 30 a month', MS.length === 120 && R.MONTHS.every(m => MS.filter(x => x.month === m.n).length === 30));
+  ok('numbered 1 to 120 in order', MS.every((x, i) => x.n === i + 1));
+  const intro = MS.flatMap(x => x.skills);
   ok('every skill is introduced exactly once', intro.length === Sk.SKILLS.length && new Set(intro).size === Sk.SKILLS.length);
-  ok('a skill is introduced in its own month', MS.MISSIONS.every(x => x.skills.every(id => Sk.skillById(id).month === x.month)));
-  ok('every focus point in the article gets a day', MS.MISSIONS.filter(x => x.learn).length === R.TOPICS.reduce((n, t) => n + t.focus.length, 0));
-  ok('the last day of each month is its boss, with nothing else', MS.MISSIONS.filter(x => x.boss).every(x => x.day === 30 && !x.build && !x.skills.length));
-  ok('every other day has a build step', MS.MISSIONS.filter(x => !x.boss).every(x => x.build));
-  const runs = R.BUILDS.map(b => MS.MISSIONS.filter(x => x.build?.id === b.id));
-  ok('every build gets a run of consecutive days', runs.every(r => r.length >= 2 && r.every((x, i) => !i || x.n === r[i - 1].n + 1)));
-  ok('each run starts with planning and ends with shipping', runs.every(r => r[0].build.kind === 'plan' && r.at(-1).build.kind === 'ship'));
-  ok('and every stage of the article\'s task is on some day', R.BUILDS.every((b, i) => MS.stages(b.task).every(st => runs[i].some(x => x.build.text === st || (x.build.text || '').includes(st)))));
-  ok('the daily check grows each month', R.MONTHS.every((m, i) => !i || MS.checkBudget(m.n) > MS.checkBudget(m.n - 1)));
+  ok('a skill is introduced in its own month', MS.every(x => x.skills.every(id => Sk.skillById(id).month === x.month)));
+  ok('every day points at a real topic', MS.every(x => R.topicById(x.topic)));
+  ok('each 30th day is the boss, with nothing else', MS.filter(x => x.boss).every(x => x.day === 30 && !x.build && !x.skills.length));
+  const runs = R.BUILDS.map(b => MS.filter(x => x.build?.id === b.id));
+  ok('all 28 builds are scheduled', runs.every(r => r.length >= 2));
+  ok('every build ships last, in its own month', runs.every((r, i) => r.at(-1).build.kind === 'ship' && r.at(-1).month === R.BUILDS[i].month));
+  ok('every step has something to do', MS.filter(x => x.build).every(x => RP.stepLine(x.build).length > 10));
+  ok('the check grows each month', R.MONTHS.every((m, i) => !i || RP.checkBudget(m.n) > RP.checkBudget(m.n - 1)));
+}
+
+group('the programming plan');
+{
+  const MS = CP.MISSIONS;
+  ok('120 missions, 30 a month', MS.length === 120 && CP.MONTHS.every(m => MS.filter(x => x.month === m.n).length === 30));
+  const intro = MS.flatMap(x => x.skills);
+  ok('every DSA skill is introduced exactly once', intro.length === CS.SKILLS.length && new Set(intro).size === CS.SKILLS.length);
+  ok('a skill is introduced in its own month', MS.every(x => x.skills.every(id => CS.skillById(id).month === x.month)));
+  ok('each 30th day is the month\'s contest', MS.filter(x => x.boss).map(x => x.n).join() === '30,60,90,120'
+    && CP.MONTHS.every(m => Con.contestById(m.contest)));
+  const CF_TAGS = new Set(['implementation', 'brute force', 'sortings', 'strings', 'binary search', 'two pointers', 'greedy',
+    'constructive algorithms', 'number theory', 'math', 'bitmasks', 'data structures', 'hashing', 'graphs', 'dfs and similar',
+    'shortest paths', 'dsu', 'trees', 'dp', 'combinatorics', 'probabilities', 'games', 'geometry', 'divide and conquer',
+    'meet-in-the-middle', 'interactive']);
+  ok('every solve tag is a real Codeforces tag', MS.every(x => x.tag === null || CF_TAGS.has(x.tag)));
+  ok('every non-contest day asks for at least one solve', MS.filter(x => !x.boss).every(x => x.count >= 1));
+  ok('every link is https', MS.flatMap(x => x.links).every(l => /^https:\/\//.test(l.url)));
+}
+
+group('DSA answers against brute force');
+{
+  const rng = Q.seeded(77), N = s => (s.match(/-?\d+/g) || []).map(Number);
+  const draw = (id, test) => { for (let i = 0; i < 150; i++) { const q = Q.generate(id, rng); if (q.kind === 'num' && !test(q)) return q.q; } return null; };
+  const pairs = text => [...text.matchAll(/\((\d+), (\d+)\)/g)].map(m => [+m[1], +m[2]]);
+
+  let bad = draw('knapsack', q => {
+    const W = +q.q.match(/capacity (\d+)/)[1], items = pairs(q.q);
+    let best = 0;
+    for (let m = 0; m < 1 << items.length; m++) {
+      let w = 0, v = 0; items.forEach(([iw, iv], i) => { if (m >> i & 1) { w += iw; v += iv; } });
+      if (w <= W) best = Math.max(best, v);
+    }
+    return best === q.answer;
+  });
+  ok('knapsack matches trying every subset', !bad, bad);
+
+  bad = draw('lis', q => {
+    const a = N(q.q.match(/\[(.*)\]/)[1]); let best = 0;
+    for (let m = 1; m < 1 << a.length; m++) {
+      const s = a.filter((_, i) => m >> i & 1);
+      if (s.every((x, i) => !i || x > s[i - 1])) best = Math.max(best, s.length);
+    }
+    return best === q.answer;
+  });
+  ok('LIS matches trying every subsequence', !bad, bad);
+
+  bad = draw('intervals', q => {
+    const iv = [...q.q.matchAll(/\[(\d+), (\d+)\]/g)].map(m => [+m[1], +m[2]]); let best = 0;
+    for (let m = 1; m < 1 << iv.length; m++) {
+      const s = iv.filter((_, i) => m >> i & 1).sort((x, y) => x[0] - y[0]);
+      if (s.every((x, i) => !i || x[0] >= s[i - 1][1])) best = Math.max(best, s.length);
+    }
+    return best === q.answer;
+  });
+  ok('interval scheduling matches trying every subset', !bad, bad);
+
+  const edges = text => [...text.matchAll(/(\d+)–(\d+)(?: \((\d+)\))?/g)].map(m => [+m[1], +m[2], m[3] ? +m[3] : 1]);
+  bad = draw('dijkstra', q => {
+    const es = edges(q.q.split('Edges')[1]), n = 6, d = Array.from({ length: n + 1 }, (_, i) => Array(n + 1).fill(i ? Infinity : 0));
+    for (let i = 1; i <= n; i++) d[i][i] = 0;
+    for (const [u, v, w] of es) { d[u][v] = Math.min(d[u][v], w); d[v][u] = Math.min(d[v][u], w); }
+    for (let k = 1; k <= n; k++) for (let i = 1; i <= n; i++) for (let j = 1; j <= n; j++) d[i][j] = Math.min(d[i][j], d[i][k] + d[k][j]);
+    return d[1][6] === q.answer;
+  });
+  ok('Dijkstra matches Floyd–Warshall', !bad, bad);
+
+  bad = draw('mst', q => {
+    const n = +q.q.match(/on 1\.\.(\d+)/)[1], es = edges(q.q.split('Edges')[1]);
+    let best = Infinity;
+    for (let m = 0; m < 1 << es.length; m++) {
+      const pick = es.filter((_, i) => m >> i & 1);
+      if (pick.length !== n - 1) continue;
+      const p = Array.from({ length: n + 1 }, (_, i) => i), f = x => (p[x] === x ? x : (p[x] = f(p[x])));
+      let ok2 = true; for (const [u, v] of pick) { if (f(u) === f(v)) { ok2 = false; break; } p[f(u)] = f(v); }
+      if (ok2) best = Math.min(best, pick.reduce((s2, e) => s2 + e[2], 0));
+    }
+    return best === q.answer;
+  });
+  ok('MST matches trying every spanning tree', !bad, bad);
+
+  bad = draw('gridpaths', q => {
+    const [R2, C2] = N(q.q.match(/A (\d+) × (\d+)/)[0]), blocked = new Set(pairs(q.q.split('Blocked')[1]).map(([r, c]) => `${r},${c}`));
+    const walk = (r, c) => (r > R2 || c > C2 || blocked.has(`${r},${c}`) ? 0 : r === R2 && c === C2 ? 1 : walk(r + 1, c) + walk(r, c + 1));
+    return walk(1, 1) === q.answer;
+  });
+  ok('grid paths match walking every path', !bad, bad);
+
+  bad = draw('inversions', q => {
+    const a = N(q.q.match(/\[(.*)\]/)[1]); let c = 0;
+    const sort = x => { if (x.length < 2) return x; const m = x.length >> 1, l = sort(x.slice(0, m)), r = sort(x.slice(m)), o = [];
+      while (l.length && r.length) { if (r[0] < l[0]) { c += l.length; o.push(r.shift()); } else o.push(l.shift()); } return [...o, ...l, ...r]; };
+    sort(a); return c === q.answer;
+  });
+  ok('inversions match a merge-sort count', !bad, bad);
+
+  bad = draw('stairs', q => {
+    const n = +q.q.match(/climb (\d+)/)[1], steps = N(q.q.match(/taking (.*) at a time/)[1]);
+    const ways = k => (k === 0 ? 1 : k < 0 ? 0 : steps.reduce((s2, st) => s2 + ways(k - st), 0));
+    return ways(n) === q.answer;
+  });
+  ok('stair counts match recursion', !bad, bad);
+
+  bad = draw('lca', q => {
+    const p = {}; for (const [, c, par] of q.q.matchAll(/p\((\d+)\) = (\d+)/g)) p[+c] = +par;
+    const [u, v] = N(q.q.match(/of (\d+) and (\d+)\?/)[0]);
+    const up = x => { const a = [x]; while (a.at(-1) !== 1) a.push(p[a.at(-1)]); return a; };
+    return up(u).find(x => up(v).includes(x)) === q.answer;
+  });
+  ok('LCA matches walking both paths up', !bad, bad);
+
+  bad = draw('modinv', q => { const [a, p] = N(q.q); return (a * q.answer) % p === 1; });
+  ok('every modular inverse really is one', !bad, bad);
 }
 
 group('GitHub: reading a folder name');
@@ -402,7 +523,7 @@ reset();
   const rng = Q.seeded(42);
   const today = G.dayKey();
   const m1 = Ro.mission();
-  ok('it starts at mission 1', m1.n === 1 && !m1.done && m1.skills.length >= 1);
+  ok('it starts at mission 1, on Ohm\'s law and dividers', m1.n === 1 && !m1.done && m1.skills.join() === 'ohm,divider');
   const a = Ro.startMission(today, rng);
   ok('its check starts today\'s new skills at level 1', a.groups.every(g => g.isNew && g.level === 1) && a.groups.map(g => g.skill).join() === m1.skills.join());
   ok('level 1 asks two questions a skill, with three minutes each for a number', a.qs.length === 2 * a.groups.length && a.qs.filter(q => q.kind === 'num').every(q => q.secs === 180));
@@ -418,6 +539,7 @@ reset();
   ok('the skill with a miss stays at level 1', g1.to === 1 && g1.move === 0);
   ok('a clean skill goes up to level 2', !g2 || (g2.to === 2 && Ro.skillLevel(g2.skill) === 2));
   ok('the mission is recorded as done today', Ro.missionsDone() === 1 && Ro.missionDoneToday() && St.S.tracks.robotics.missions[1] === today);
+  ok('and its check is recorded against it', St.S.tracks.robotics.checks[1]?.total === 4);
   ok('it counts for the shared streak', St.S.streak.current === 1 && St.dayIsActive());
   ok('the skill score is logged for the day', St.S.tracks.robotics.scores[today] === Ro.skillScore() && s.scoreTo === Ro.skillScore());
   ok('a second mission the same day is refused', Ro.startMission(today) === null);
@@ -448,11 +570,12 @@ group('robotics: practice');
 }
 
 group('robotics: months opening');
-ok('day 0: month 1 only', RM.unlockedMonths('2026-09-01', '2026-09-01').join() === '1');
-ok('day 30: month 2 by date', RM.unlockedMonths('2026-09-01', '2026-10-01').join() === '1,2');
-ok('mission 31: month 2, whatever the date', RM.unlockedMonths('2026-09-01', '2026-09-02', {}, 31).join() === '1,2');
-ok('beating boss 1 opens month 2 early', RM.unlockedMonths('2026-09-01', '2026-09-05', { 1:true }).join() === '1,2');
-ok('boss 2 cannot open month 3 while month 2 is shut', RM.unlockedMonths('2026-09-01', '2026-09-05', { 2:true }).join() === '1');
+ok('day 0: month 1 only', LP.unlockedMonths('2026-09-01', '2026-09-01').join() === '1');
+ok('day 30: month 2 by date', LP.unlockedMonths('2026-09-01', '2026-10-01').join() === '1,2');
+ok('mission 31: month 2, whatever the date', LP.unlockedMonths('2026-09-01', '2026-09-02', {}, 31).join() === '1,2');
+ok('beating boss 1 opens month 2 early', LP.unlockedMonths('2026-09-01', '2026-09-05', { 1:true }).join() === '1,2');
+ok('boss 2 cannot open month 3 while month 2 is shut', LP.unlockedMonths('2026-09-01', '2026-09-05', { 2:true }).join() === '1');
+ok('four months at most', LP.unlockedMonths('2026-01-01', '2026-12-31').join() === '1,2,3,4');
 
 group('robotics: bosses');
 {
@@ -496,6 +619,95 @@ group('robotics: paying for builds');
   Ro.applyVerification('b01', { owner:'t', repo:'b', path:'d' }, { ok:true, verified:false, checks:[{ label:'x', pass:false }], meta:{} });
   ok('a failing re-check keeps it verified, and shows the failure', Ro.isVerified('b01') && St.S.tracks.robotics.builds.b01.lastPassed === false);
   ok('the claimed folder is excluded from other builds', Ro.claimedTargets('b03').includes('t/b/d'));
+}
+
+/* ========================== programming: missions ========================= */
+group('programming: the daily mission');
+reset();
+{
+  const rng = Q.seeded(21), key = G.dayKey();
+  Ca.linkCodeforces({ handle: 'tester', rating: null });
+  const m = Ca.mission();
+  ok('it starts at mission 1, on complexity', m.n === 1 && m.skills.join() === 'bigo,ops' && m.tag === 'implementation');
+  ok('an unrated beginner starts at 800', Ca.targetFor('implementation') === 800);
+  const tagged = (k, rating, tags = ['implementation']) => ({ key: k, name: k, contestId: 1, index: k, rating, tags, at: now(), day: key });
+
+  Ca.applySolves([tagged('A1', 800), tagged('A2', 900)]);
+  ok('solving first is not enough: the check is half the mission', !Ca.mission().done);
+  Ca.startMission(key, rng);
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng);
+  const s = E.finishSession(rng);
+  ok('the check then finishes it, because the judge already accepted two', s.completed && Ca.mission().done && Ca.missionsDone() === 1);
+  ok('and the level for that tag goes up 100', Ca.targetFor('implementation') === 900);
+
+  // Next day: check first, then the judge.
+  const k2 = G.addDays(key, 1), rng2 = Q.seeded(22);
+  const m2 = E.mission('cp', k2);
+  ok('the next day is mission 2', m2.n === 2 && !m2.done);
+  E.startMission('cp', k2, rng2);
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng2);
+  const s2 = E.finishSession(rng2);
+  ok('a check alone leaves the mission waiting on the solves', !s2.completed && E.mission('cp', k2).check && !E.mission('cp', k2).done);
+  ok('a second check that day is refused', E.startMission('cp', k2) === null);
+  St.S.tracks.cp.solved.push({ ...tagged('B1', 700), day: k2 });
+  ok('a problem below your level does not count', !Ca.settleMission(k2));
+  St.S.tracks.cp.solved.push({ ...tagged('B2', 900), day: k2 }, { ...tagged('B3', 1000, ['implementation', 'math']), day: k2 });
+  ok('two at or above it do', Ca.settleMission(k2) && E.mission('cp', k2).done);
+
+  const before = Ca.targetFor('math');
+  Ca.lowerTarget('math');
+  ok('"too hard today" drops a tag\'s level by 100, never below 800', Ca.targetFor('math') === Math.max(800, before - 100));
+  for (let i = 0; i < 20; i++) Ca.lowerTarget('math');
+  ok('and stops at 800', Ca.targetFor('math') === 800);
+}
+
+group('programming: a rated player starts near their rating');
+reset();
+{
+  Ca.linkCodeforces({ handle: 'strong', rating: 1900 });
+  Ca.applySolves([solve('x1', 2400, ['dp'], 3), solve('x2', 900, ['implementation'], 3)]);
+  ok('never more than 100 above the rating', Ca.targetFor('dp') === 2000);
+  ok('never more than 300 below it', Ca.targetFor('implementation') === 1600);
+  ok('a tag never solved starts from the rating too', Ca.targetFor('geometry') === 1600);
+}
+
+group('programming: the contest day');
+reset();
+{
+  Ca.linkCodeforces({ handle: 'tester', rating: null });
+  St.S.tracks.cp.missions = Object.fromEntries(Array.from({ length: 29 }, (_, i) => [i + 1, '2000-01-01']));
+  const m = Ca.mission();
+  ok('mission 30 is the month\'s contest, with no check', m.boss && Ca.contestFor(m).id === 'warmup' && Ca.startMission() === null);
+  Ca.startContest('warmup');
+  Ca.finishContest();
+  ok('finishing the contest — even lost — completes the mission', Ca.mission().done && Ca.missionsDone() === 30);
+}
+
+group('testing out of a week');
+reset();
+{
+  const rng = Q.seeded(31);
+  const t = Ro.testOut(1);
+  ok('week 1 can be tested out of', t.ok && t.skills.length >= 2 && t.left.length === 7);
+  Ro.startTestOut(1, undefined, rng);
+  ok('six questions, at level 4 timing', St.S.active.qs.length === E.TEST_OUT.questions && St.S.active.qs.filter(q => q.kind === 'num').every(q => q.secs === G.LEVELS[4][1]));
+  let k = 0;
+  while (!E.sessionOver()) E.answer(k++ === 0 ? wrongAnswer(E.currentQuestion()) : rightAnswer(E.currentQuestion()), rng);
+  const s = E.finishSession(rng);
+  ok('five of six passes', s.passed && s.skipped === 7);
+  ok('the week is skipped: today\'s mission is now day 8', Ro.mission().n === 8 && !Ro.mission().done);
+  ok('skipping does not use up the day', !Ro.missionDoneToday() && Ro.startMission() !== null);
+  E.abandonSession(); St.S.active = null;
+  ok('the week\'s skills start at level 3', t.skills.every(id => Ro.skillLevel(id) >= 3));
+  ok('the same week cannot be tried twice in a day', Ro.startTestOut(2, undefined, rng) !== null && (E.abandonSession(), St.S.active = null, true));
+
+  reset();
+  Ro.startTestOut(1, undefined, rng);
+  while (!E.sessionOver()) E.answer(wrongAnswer(E.currentQuestion()), rng);
+  const f = E.finishSession(rng);
+  ok('a failed test skips nothing', !f.passed && Ro.mission().n === 1);
+  ok('and waits until tomorrow', Ro.startTestOut(1) === null && Ro.testOut(1).triedToday);
+  ok('a week with fewer than two new skills cannot be tested out of', !Ro.testOut(5).ok);
 }
 
 /* ============================== shared: timer ============================= */
@@ -628,13 +840,13 @@ group('migration: folding in Botify');
 /* ================================ economy ================================= */
 group('economy, one track played honestly');
 {
-  const days = 180;
+  const days = RP.MISSIONS.length;
   const timer = 120, quests = 55 * 3;
   // A typical mission: about fourteen questions at 88%, a level-up or two.
   const drill = 14 * 0.88 * (Ro.XP.right + 3) + 1.5 * Ro.XP.levelUp + Ro.XP.missionDone + 0.2 * Ro.XP.missionClean;
   const robo = ((drill + timer + quests + 20) * days + R.BUILDS.reduce((n, b) => n + R.buildXp(b), 0)
     + R.MONTHS.reduce((n, m) => n + Boss.bossXp(m.n), 0)) * 1.2;
-  const cp = ((2 * CM.solveXp(1300) + timer + quests) * days + 40 * T.tierXp({ n: 2 }) + 3 * 450) * 1.2;
+  const cp = ((2 * CM.solveXp(1300) + drill + timer + quests) * days + 40 * T.tierXp({ n: 2 }) + 3 * 450) * 1.2;
   const lr = G.levelFromXp(robo).level, lc = G.levelFromXp(cp).level;
   ok(`robotics alone lands between 40 and 55 (level ${lr})`, lr >= 40 && lr <= 55);
   ok(`programming alone lands between 35 and 55 (level ${lc})`, lc >= 35 && lc <= 55);

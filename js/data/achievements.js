@@ -40,6 +40,9 @@ export const ACHIEVEMENTS = [
   a('cp', 'topic-max',   '⭐', 'Maxed',         'Clear every tier of one topic',   900,  s => s.topicsMaxed >= 1),
   a('cp', 'broad',       '🌈', 'Broad',         'Solve in ten different topics',   500,  s => s.topicsStarted >= 10),
   a('cp', 'contest-1',   '⚔️', 'Beat the clock', 'Win a timed contest',           300,  s => s.contestsWon >= 1),
+  a('cp', 'cp-m1',       '🧭', 'First code mission', 'Finish a daily programming mission', 50, s => (s.codeMissions || 0) >= 1),
+  a('cp', 'cp-m30',      '📅', 'A month of code', 'Thirty programming missions done', 300, s => (s.codeMissions || 0) >= 30),
+  a('cp', 'cp-m120',     '🎓', 'The whole plan',  'All 120 programming missions done', 2000, s => (s.codeMissions || 0) >= 120),
 
   /* robotics */
   a('robotics', 'drill1',  '🎯', 'First mission',      'Finish a daily mission',                50,   s => s.drills >= 1),
@@ -47,8 +50,8 @@ export const ACHIEVEMENTS = [
   a('robotics', 'clean10', '🏅', 'Ten without a miss', 'Ten missions with every answer right',  250,  s => s.perfectDrills >= 10),
   a('robotics', 'up1',     '📈', 'Levelled up',        'Level up a skill',                      40,   s => (s.levelUps || 0) >= 1),
   a('robotics', 'm30',     '📅', 'A month of missions','Thirty missions done',                  300,  s => (s.missions || 0) >= 30),
-  a('robotics', 'm90',     '🗓️', 'Halfway',            'Ninety missions done',                  700,  s => (s.missions || 0) >= 90),
-  a('robotics', 'm180',    '🎓', 'The whole roadmap',  'All 180 missions done',                 2000, s => (s.missions || 0) >= 180),
+  a('robotics', 'm60',     '🗓️', 'Halfway',            'Sixty missions done',                   700,  s => (s.missions || 0) >= 60),
+  a('robotics', 'm120',    '🎓', 'The whole roadmap',  'All 120 missions done',                 2000, s => (s.missions || 0) >= 120),
   a('robotics', 'right100','✔️', 'A hundred right',    '100 correct robotics answers',          150,  s => s.correct >= 100),
   a('robotics', 'right500','✅', 'Five hundred right', '500 correct robotics answers',          400,  s => s.correct >= 500),
   a('robotics', 'build1',  '🔧', 'Proof',              'Verify your first build on GitHub',     150,  s => s.builds >= 1),
@@ -56,9 +59,9 @@ export const ACHIEVEMENTS = [
   a('robotics', 'build14', '🏗️', 'Halfway there',      'Fourteen verified builds',              900,  s => s.builds >= 14),
   a('robotics', 'build28', '🏭', 'Every build',        'All 28 verified',                       2500, s => s.builds >= s.totalBuilds),
   a('robotics', 'boss1',   '⚔️', 'First boss down',    'Beat a monthly boss',                   300,  s => s.bosses >= 1),
-  a('robotics', 'boss6',   '🏆', 'All six',            'Beat every boss',                       2000, s => s.bosses >= 6),
+  a('robotics', 'boss4',   '🏆', 'All four',           'Beat every boss',                       2000, s => s.bosses >= 4),
   a('robotics', 'month1',  '📜', 'Month cleared',      'Every milestone of a month, plus its boss', 500, s => s.monthsCleared >= 1),
-  a('robotics', 'month6',  '🎓', 'Roboticist',         'Clear all six months',                  4000, s => s.monthsCleared >= 6),
+  a('robotics', 'month4',  '🎓', 'Roboticist',         'Clear all four months',                 4000, s => s.monthsCleared >= 4),
   a('robotics', 'box10',   '🗄️', 'Deep memory',        'Ten skills at level 5 or higher',       300,  s => (s.lvl5 || 0) >= 10),
   a('robotics', 'lvl10',   '🧠', 'Automatic',          'A skill at level 10',                   400,  s => (s.maxSkill || 0) >= 10),
 ];
