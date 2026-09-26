@@ -65,9 +65,9 @@ export function paceCard(track) {
   const p = E.paceInfo(track);
   return `<div class="card">
     <div class="between"><div class="h3">Your pace</div><span class="tiny">finished ${esc(shortDate(p.finish))}</span></div>
-    <div class="seg" style="margin-top:10px">${E.PACES.map(x => `<button class="${x.months === p.months ? 'on' : ''}" data-pace="${x.months}">${x.months} mo</button>`).join('')}</div>
-    <div class="tiny" style="margin-top:8px">Same 120 missions, ${esc(p.label)}. ${p.months === 4 ? 'A new mission every day.'
-      : `A new mission every ${p.dpm === 1.5 ? '1–2' : p.dpm} days; the days between are a short review and keep going.`} Change it any time — nothing is lost.</div>
+    <div class="seg" style="margin-top:10px">${E.pacesOf(track).map(x => `<button class="${x.months === p.months ? 'on' : ''}" data-pace="${x.months}">${x.months} mo</button>`).join('')}</div>
+    <div class="tiny" style="margin-top:8px">Same ${E.trackCfg(track).plan.length} missions, ${esc(p.label)}. ${p.dpm === 1 ? 'A new mission every day.'
+      : `A new mission every ${Number.isInteger(p.dpm) ? p.dpm : `${Math.floor(p.dpm)}–${Math.ceil(p.dpm)}`} days; the days between are a short review and keep going.`} Change it any time — nothing is lost.</div>
   </div>`;
 }
 

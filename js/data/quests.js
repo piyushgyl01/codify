@@ -43,10 +43,16 @@ export const QUESTS = [
   q('robotics', 'practice', 'prac5', 'Extra practice',   '5 right in practice mode',              5,  50, 15, 'practice', c => c.robo.practiceCorrect),
   q('robotics', 'practice', 'rt10',  'Ten right',        '10 correct robotics answers today',     10, 55, 18, 'practice', c => c.robo.correct),
   q('robotics', 'practice', 'ans15', 'Fifteen answered', 'Answer fifteen robotics questions',     15, 50, 15, 'practice', c => c.robo.answered),
+
+  /* AI */
+  q('ai', 'mission',  'ai-up1',   'Level up, AI',     'Level up an AI skill today',                 1,  50, 15, 'ai', c => c.ai.ups),
+  q('ai', 'mission',  'ai-clean', 'Clean AI check',   'Every answer right in today\'s AI check',     1,  70, 20, 'ai', c => (c.ai.check && c.ai.check.score === c.ai.check.total ? 1 : 0)),
+  q('ai', 'practice', 'ai-rt10',  'Ten AI answers',   '10 correct AI answers today',                10, 55, 18, 'ai', c => c.ai.correct),
+  q('ai', 'practice', 'ai-run5',  'Five in a row',    'Five right AI answers back to back',          5, 50, 15, 'ai', c => c.ai.bestRun),
 ];
 
 /** The pools each track deals from, in order. */
-export const TRACK_POOLS = { cp: ['solve', 'depth'], robotics: ['mission', 'practice'] };
+export const TRACK_POOLS = { cp: ['solve', 'depth'], robotics: ['mission', 'practice'], ai: ['mission', 'practice'] };
 
 /** FNV-1a with a final avalanche, so consecutive dates do not deal alike. */
 export function hash(s) {

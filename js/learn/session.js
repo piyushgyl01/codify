@@ -42,7 +42,9 @@ const slice = id => TRACKS[id].slice();
 
 /* ------------------------------ day counters ------------------------------ */
 
+/** Where each track keeps its numbers inside a day. Older tracks kept their own names. */
 const DAY_FIELD = { robotics: 'robotics', cp: 'code' };
+const dayField = track => DAY_FIELD[track] || track;
 
 export const emptyCounters = () => ({
   mission: null, drill: null, answered: 0, correct: 0, bestRun: 0, ups: 0, practiceCorrect: 0, practiceXp: 0, check: null, review: null,
@@ -50,7 +52,7 @@ export const emptyCounters = () => ({
 
 /** A day's numbers for a track, created on first use and filled in place — every caller holds the same object. */
 export function counters(track, key = today()) {
-  const day = getDay(key), f = DAY_FIELD[track];
+  const day = getDay(key), f = dayField(track);
   if (!day[f]) day[f] = emptyCounters();
   for (const [k, v] of Object.entries(emptyCounters())) if (!(k in day[f])) day[f][k] = v;
   return day[f];
@@ -74,13 +76,15 @@ export function mission(track, key = today()) {
 /* ---------------------------------- pace ---------------------------------- */
 
 /**
- * The same 120 missions, spread over 4, 6, 8 or 12 months. A slower pace means
- * fewer hours a day, not less content: a new mission every 1, 1.5, 2 or 3 days,
- * and on the days between, a short review and keep going on what is in hand.
+ * The same plan, spread over more or fewer months. A slower pace means fewer
+ * hours a day, not less content: new missions come less often, and on the days
+ * between there is a short review and keep going on what is in hand.
  *
  * The schedule counts missions actually done since the pace was set, so
  * changing it never loses progress, testing out moves the whole plan forward,
  * and doing a mission early just puts you ahead.
+ *
+ * A track can bring its own paces; the fastest is always one mission a day.
  */
 export const PACES = [
   { months: 4,  hours: 3,   label: 'about 3 hours a day' },
@@ -88,11 +92,16 @@ export const PACES = [
   { months: 8,  hours: 1.5, label: 'about 1½ hours a day' },
   { months: 12, hours: 1,   label: 'about an hour a day' },
 ];
-export const paceOf = track => PACES.find(p => p.months === slice(track).pace) || PACES[0];
-export const daysPerMission = months => months / 4;
+export const pacesOf = track => TRACKS[track].paces || PACES;
+export const paceOf = track => pacesOf(track).find(p => p.months === slice(track).pace) || pacesOf(track)[0];
+/** Days per mission at a pace: the fastest pace is one a day, the rest in proportion. */
+export const daysPerMission = (months, track) => {
+  const fastest = track ? pacesOf(track)[0].months : 4;
+  return months / fastest;
+};
 
 export function setPace(track, months, key = today()) {
-  if (!PACES.some(p => p.months === months)) return false;
+  if (!pacesOf(track).some(p => p.months === months)) return false;
   const r = slice(track), done = P.missionsDone(r);
   const last = Object.values(r.missions || {}).sort().at(-1);
   r.pace = months;
@@ -107,12 +116,12 @@ export function setPace(track, months, key = today()) {
  * does the plan end at this pace?
  */
 export function paceInfo(track, key = today()) {
-  const r = slice(track), pace = paceOf(track), dpm = daysPerMission(pace.months);
+  const r = slice(track), pace = paceOf(track), dpm = daysPerMission(pace.months, track);
   const doneToday = !!P.missionDoneOn(r, key);
   const doneBefore = P.missionsDone(r) - (doneToday ? 1 : 0);
   const since = r.paceSince || { day: key, done: doneBefore };
   const due = since.done + Math.floor(Math.max(0, daysBetween(since.day, key)) / dpm) + 1;
-  const missionDay = pace.months === 4 || doneBefore < due;
+  const missionDay = pace.months === pacesOf(track)[0].months || doneBefore < due;
   // Missions still to do; if today's is due and not done yet, today is the first of them.
   const left = TRACKS[track].plan.filter(m => !P.isComplete(r, m.n)).length;
   const finish = addDays(key, Math.ceil(Math.max(0, missionDay && !doneToday ? left - 1 : left) * dpm));
@@ -145,6 +154,11 @@ export function missionSkills(track, m, key = today()) {
   for (const id of started) {
     if (picked.length >= 2 && used + cost(id) > want) break;
     picked.push(id); used += cost(id);
+  }
+  // Still nothing (a day with nothing new, and nothing started yet): check what the plan has taught so far.
+  if (!picked.length && !m.boss) {
+    const taught = [...new Set(cfg.plan.filter(x => x.n < m.n).flatMap(x => x.skills || []))].filter(id => pool.includes(id));
+    picked.push(...taught.slice(-2));
   }
   return picked;
 }

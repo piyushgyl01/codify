@@ -19,11 +19,12 @@ import { questsForDay } from './data/quests.js';
 import { dayKey, daysBetween, levelFromXp, newlyEarned, XP } from './game.js';
 import * as cpModel from './tracks/cp/model.js';
 import * as roboModel from './tracks/robotics/model.js';
+import * as aiModel from './tracks/ai/model.js';
 
 const SAVE_KEY = 'codify.save.v1';     // unchanged, so an existing Codify save upgrades in place
 const BACKUP_KEY = 'codify.save.prior';
 
-export const TRACK_IDS = ['cp', 'robotics'];
+export const TRACK_IDS = ['cp', 'robotics', 'ai'];
 
 /* --------------------------------- themes --------------------------------- */
 
@@ -58,6 +59,8 @@ const freshCp = () => ({
   credited:{ problems:{}, tiers:{} }, contest:null, contests:{}, dailySolves:2,
   start: dayKey(), skills:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, targets:{}, pace: 4,
 });
+const freshAi = () => ({ start: dayKey(), skills:{}, builds:{}, bosses:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, pace: 8,
+  frontier:{}, frontierRepo: null, hf: null });
 const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, builds:{}, bosses:{}, read:{}, missions:{}, skipped:{}, checks:{}, scores:{}, testouts:{}, pace: 4, plan: 2 });
 
 const freshSave = () => ({
@@ -69,7 +72,7 @@ const freshSave = () => ({
   timer: null,                // { start, day, tag } — the one focus timer
   active: null,               // an unfinished robotics mission, practice set or boss fight
   github: { user:'', avatar:null, pushes:[], syncedAt:0, error:'', credited:{} },
-  tracks: { cp: freshCp(), robotics: freshRobotics() },
+  tracks: { cp: freshCp(), robotics: freshRobotics(), ai: freshAi() },
   earned: {}, owned: [], loot: {},
   stats: {
     xpEarned:0, quests:0, timerMin:0, sessions:0, commits:0, pushes:0,
@@ -118,8 +121,17 @@ function mergeV3(o) {
     tracks: {
       cp:       { ...base.tracks.cp,       ...(o.tracks?.cp       || {}) },
       robotics: toFourMonths({ ...base.tracks.robotics, ...(o.tracks?.robotics || {}), plan: o.tracks?.robotics?.plan }),
+      ai:       { ...base.tracks.ai,       ...(o.tracks?.ai       || {}) },
     },
+    ...withAi(o),
   };
+}
+
+/** The AI track arrived later: an existing character gets it switched on, once, with a note saying so. */
+function withAi(o) {
+  if (o.tracks?.ai || !o.profile?.onboarded) return {};
+  const tracks = [...new Set([...(o.profile.tracks || []), 'ai'])];
+  return { profile: { ...freshSave().profile, ...o.profile, tracks }, notice: 'ai' };
 }
 
 /** Codify's daily goals were named; their minutes become the focus goal. */
@@ -396,7 +408,7 @@ export function dayIsActive(key = today()) {
   const day = S.days[key];
   return cpModel.solvesOn(S.tracks.cp, key).length >= 1
     || !!day?.robotics?.check || !!day?.robotics?.mission || !!day?.robotics?.drill || !!day?.robotics?.review
-    || !!day?.code?.check || !!day?.code?.review
+    || !!day?.code?.check || !!day?.code?.review || !!day?.ai?.check || !!day?.ai?.review
     || commitsOn(key) >= 1
     || (day?.timerMin || 0) >= 20;
 }
@@ -404,8 +416,9 @@ export function dayIsActive(key = today()) {
 export function statsSnapshot() {
   const cpSnap = cpModel.snapshot(S.tracks.cp);
   const roSnap = roboModel.snapshot(S.tracks.robotics);
-  const tracksActive = (S.stats.solved > 0 ? 1 : 0) + (S.stats.drills > 0 || roSnap.builds > 0 ? 1 : 0);
-  return { ...S.stats, ...cpSnap, ...roSnap, level: progress().level, bestStreak: S.streak.best, tracksActive };
+  const aiSnap = aiModel.snapshot(S.tracks.ai);
+  const tracksActive = (S.stats.solved > 0 ? 1 : 0) + (S.stats.drills > 0 || roSnap.builds > 0 ? 1 : 0) + (aiSnap.aiMissions > 0 ? 1 : 0);
+  return { ...S.stats, ...cpSnap, ...roSnap, ...aiSnap, level: progress().level, bestStreak: S.streak.best, tracksActive };
 }
 
 /* --------------------------------- quests --------------------------------- */
@@ -416,6 +429,7 @@ export function questContext(key = today()) {
     key, day,
     cp: cpModel.dayTotals(S.tracks.cp, key),
     robo: roboModel.roboDayOf(day),
+    ai: { answered: 0, correct: 0, bestRun: 0, ups: 0, practiceCorrect: 0, check: null, ...(day.ai || {}) },
     commits: commitsOn(key),
     rating: S.tracks.cp.rating,
     github: !!S.github.user,

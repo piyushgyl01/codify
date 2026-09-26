@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v10';
+const CACHE_VERSION = 'v11';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -31,6 +31,7 @@ const CORE = [
   './js/data/quests.js',
   './js/game.js',
   './js/github.js',
+  './js/hf.js',
   './js/icons.js',
   './js/learn/plan.js',
   './js/learn/session.js',
@@ -43,6 +44,17 @@ const CORE = [
   './js/skillbook.js',
   './js/state.js',
   './js/sync.js',
+  './js/tracks/ai/actions.js',
+  './js/tracks/ai/feed.js',
+  './js/tracks/ai/hub.js',
+  './js/tracks/ai/model.js',
+  './js/tracks/ai/plan.js',
+  './js/tracks/ai/skills.js',
+  './js/tracks/ai/today.js',
+  './js/tracks/ai/view-builds.js',
+  './js/tracks/ai/view-mission.js',
+  './js/tracks/ai/view-new.js',
+  './js/tracks/ai/view-plan.js',
   './js/tracks/cp/actions.js',
   './js/tracks/cp/codeforces.js',
   './js/tracks/cp/contests.js',
@@ -75,6 +87,7 @@ const CORE = [
   './js/views/mission-parts.js',
   './js/views/onboarding.js',
   './js/views/player.js',
+  './js/views/skills-list.js',
   './js/views/tracks.js',
 ];
 

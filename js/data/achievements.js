@@ -64,6 +64,17 @@ export const ACHIEVEMENTS = [
   a('robotics', 'month4',  '🎓', 'Roboticist',         'Clear all four months',                 4000, s => s.monthsCleared >= 4),
   a('robotics', 'box10',   '🗄️', 'Deep memory',        'Ten skills at level 5 or higher',       300,  s => (s.lvl5 || 0) >= 10),
   a('robotics', 'lvl10',   '🧠', 'Automatic',          'A skill at level 10',                   400,  s => (s.maxSkill || 0) >= 10),
+
+  /* AI */
+  a('ai', 'ai-m1',       '🧠', 'First AI mission',     'Finish an AI mission',                  50,   s => (s.aiMissions || 0) >= 1),
+  a('ai', 'ai-m60',      '📚', 'Two parts in',         'Sixty AI missions done',                500,  s => (s.aiMissions || 0) >= 60),
+  a('ai', 'ai-m240',     '🌌', 'Everything in AI',     'All 240 AI missions done',              3000, s => (s.aiMissions || 0) >= 240),
+  a('ai', 'ai-build1',   '🔬', 'First AI build',       'Verify an AI build',                    150,  s => (s.aiBuilds || 0) >= 1),
+  a('ai', 'ai-paper1',   '📄', 'First reproduction',   'Reproduce a paper and verify it',       400,  s => (s.aiCapstones || 0) >= 1),
+  a('ai', 'ai-paper8',   '🏛️', 'Eight papers',         'All eight reproductions verified',      3000, s => (s.aiCapstones || 0) >= 8),
+  a('ai', 'ai-boss1',    '⚔️', 'First AI boss',        'Beat an AI boss',                       300,  s => (s.aiBosses || 0) >= 1),
+  a('ai', 'ai-front4',   '🔭', 'Keeping up',           'Four frontier logs',                    200,  s => (s.frontier || 0) >= 4),
+  a('ai', 'ai-front25',  '🛰️', 'Always current',       'Twenty-five frontier logs',             1000, s => (s.frontier || 0) >= 25),
 ];
 
 /** Botify used different IDs for the achievements the two apps shared. */

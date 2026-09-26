@@ -187,6 +187,16 @@ export async function verifyBuild(build, target, { user, usedBy = [], fetchImpl 
       checks.push(check(bad.label, countMatches(doc, bad.re) === 0, 'Found in the write-up.'));
     }
 
+    if (proof.ci) {
+      // The newest finished workflow run on the default branch has to have passed.
+      const q2 = new URLSearchParams({ branch: info.default_branch || 'main', status: 'completed', per_page: '1' });
+      const runs = await getJson(`${base}/actions/runs?${q2}`, fetchImpl);
+      const run = runs?.workflow_runs?.[0];
+      checks.push(check('Tests pass on GitHub Actions', run?.conclusion === 'success',
+        !run ? 'No finished workflow run on the default branch yet. Add a workflow that runs your tests, and push.'
+          : `The latest run ${run.conclusion === 'failure' ? 'failed' : `ended "${run.conclusion}"`}. Fix it and push again.`));
+    }
+
     if (proof.files?.length) {
       const branch = info.default_branch || 'HEAD';
       const tree = await getJson(`${base}/git/trees/${encodeURIComponent(branch)}?recursive=1`, fetchImpl);
@@ -212,6 +222,39 @@ export async function verifyBuild(build, target, { user, usedBy = [], fetchImpl 
       checks,
       meta: { url: targetUrl(target), commits: count, words, mediaTop: mediaNearTop(doc), media: media.total },
     };
+  } catch (err) {
+    if (err instanceof GitHubError) return { ok: false, error: err.message };
+    throw err;
+  }
+}
+
+/**
+ * A frontier-log entry: a public repo you own, a commit by you in the last
+ * week, and a log that mentions the thing you picked — its id or its link.
+ * Resolves like verifyBuild: { ok, verified, checks } or { ok:false, error }.
+ */
+export async function verifyFrontierEntry(target, { user, needles = [], since, fetchImpl = globalThis.fetch } = {}) {
+  const { owner, repo } = target, base = `${API}/repos/${owner}/${repo}`, checks = [];
+  try {
+    const info = await getJson(base, fetchImpl);
+    const mine = !!info && !info.private && String(info.owner?.login || '').toLowerCase() === String(user || '').toLowerCase();
+    checks.push(check('Your public frontier-log repo', mine, !info ? 'Not found, or not public.' : !mine ? `It belongs to ${info.owner?.login}, not ${user}.` : ''));
+    if (!mine) return { ok: true, verified: false, checks };
+    const commits = await getJson(`${base}/commits?${new URLSearchParams({ author: user, since, per_page: '10' })}`, fetchImpl);
+    const n = Array.isArray(commits) ? commits.length : 0;
+    checks.push(check('A commit by you this week', n > 0, 'Push your entry, then check again.'));
+    const readme = await getJson(`${base}/readme`, fetchImpl);
+    let text = readme?.content ? decode(readme.content) : '';
+    if (!needles.some(x => text.toLowerCase().includes(String(x).toLowerCase()))) {
+      // Entries may live in their own files; look through the newest commits' files too.
+      for (const c of (Array.isArray(commits) ? commits : []).slice(0, 3)) {
+        const full = await getJson(`${base}/commits/${c.sha}`, fetchImpl);
+        text += '\n' + (full?.files || []).map(f => `${f.filename}\n${f.patch || ''}`).join('\n');
+      }
+    }
+    const found = needles.some(x => text.toLowerCase().includes(String(x).toLowerCase()));
+    checks.push(check('The log mentions what you picked', found, `Put its link (or id) in your entry: ${needles[0] || ''}`));
+    return { ok: true, verified: checks.every(c => c.pass), checks };
   } catch (err) {
     if (err instanceof GitHubError) return { ok: false, error: err.message };
     throw err;

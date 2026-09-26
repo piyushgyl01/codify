@@ -58,7 +58,7 @@ export function startBoss(month, key = today(), rng = Math.random) {
   if (!M.bossReady(r(), month, key).ok) return null;
   const pool = skillsIn(month).map(s => s.id);
   S.active = {
-    mode:'boss', track: T, day:key, month, hp: BOSS_HP, maxHp: BOSS_HP, hearts: BOSS_HEARTS, asked: 0,
+    mode:'boss', track: T, day:key, month, boss: bossFor(month), hp: BOSS_HP, maxHp: BOSS_HP, hearts: BOSS_HEARTS, maxHearts: BOSS_HEARTS, asked: 0,
     questions: BOSS_QUESTIONS, secs: BOSS_SECS, run:0, best:0, dealt:0, pool, taunt:'intro', shown: -1,
     q: generate(pool[Math.floor(rng() * pool.length)], rng), qStartedAt: Date.now(), results: [],
   };
@@ -82,7 +82,7 @@ function finishBoss(a, rng) {
   } else {
     reward = award(Math.round(bossXp(a.month) * 0.25 * (a.dealt / BOSS_HP)), 0, 'Partial credit');
   }
-  const extra = { won, month: a.month, dealt: a.dealt, hearts: a.hearts, asked: a.asked };
+  const extra = { won, month: a.month, boss: a.boss, dealt: a.dealt, hearts: a.hearts, asked: a.asked };
   if (a.mission) {
     E.completeMission(T, a.mission, a.day, { boss: true, won, score: a.results.filter(x => x.correct).length, total: a.asked });
     extra.n = a.mission;
@@ -104,6 +104,8 @@ E.registerTrack({
     return true;
   },
   finishBoss,
+  bossReady: n => M.bossReady(r(), n, today()),
+  fight: n => startBoss(n),
 });
 
 /* --------------------------------- builds --------------------------------- */

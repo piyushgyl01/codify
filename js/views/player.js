@@ -1,10 +1,7 @@
 /** The session runner, shared by every track: the daily check, testing out of a week, practice and boss fights. */
 import { S } from '../state.js';
 import * as E from '../learn/session.js';
-import { startBoss, bossReady } from '../tracks/robotics/actions.js';
 import { skillById } from '../skillbook.js';
-import { monthByN as roboMonth } from '../tracks/robotics/roadmap.js';
-import { monthByN as codeMonth } from '../tracks/cp/plan.js';
 import { bossFor, BOSS_HP, BOSS_HEARTS } from '../tracks/robotics/bosses.js';
 import { RARITY } from '../data/loot.js';
 import { drillCombo, bossCombo, roundFor, daysBetween } from '../game.js';
@@ -12,7 +9,7 @@ import { fullscreen, esc, toast, rewardToast, confetti, sfx, haptic, fmt, dialog
 import { icon } from '../icons.js';
 
 const { currentQuestion, answer, sessionOver, finishSession, abandonSession, timeLimit, markShown } = E;
-const monthOf = (track, n) => (track === 'cp' ? codeMonth(n) : roboMonth(n));
+const monthOf = (track, n) => E.trackCfg(track).months.find(m => m.n === n);
 const busy = rerender => { toast('Finish the session you already started first.'); run(rerender); };
 
 /* ---------------------------------- entry --------------------------------- */
@@ -49,12 +46,13 @@ export function openPractice(track, skillId, rerender) {
   sfx('start'); run(rerender);
 }
 
-export function openBoss(month, rerender) {
+/** Fight a part's boss. Each track with bosses registers how to check and start one. */
+export function openBoss(month, rerender, track = 'robotics') {
   if (S.active && S.active.mode !== 'boss') return busy(rerender);
   if (!S.active) {
-    const ready = bossReady(month);
+    const cfg = E.trackCfg(track), ready = cfg.bossReady(month);
     if (!ready.ok) { toast(esc(ready.why)); return; }
-    startBoss(month);
+    cfg.fight(month);
   }
   sfx('start'); run(rerender);
 }
@@ -89,6 +87,7 @@ function nextLine(g, a) {
 /* ---------------------------------- runner -------------------------------- */
 
 function run(rerender) {
+  if (document.querySelector('.player')) return;             // already open — a double tap, not a second run
   let phase = sessionOver() ? 'over' : 'ask';
   let last = null, summary = null, tick = null, el = null;
 
@@ -117,7 +116,7 @@ function run(rerender) {
       : a.mode === 'review' ? 'Review'
       : a.mode === 'testout' ? `Test out of week ${a.week}`
       : a.mode === 'practice' ? skillById(a.skill)?.name || 'Practice'
-      : bossFor(a.month).name;
+      : (a.boss || bossFor(a.month)).name;
     const label = a.mode === 'mission' ? 'Prove it'
       : a.mode === 'review' ? 'Keep-going day'
       : a.mode === 'testout' ? `${E.TEST_OUT.pass} of ${a.qs.length} right skips the week`
@@ -146,16 +145,16 @@ function run(rerender) {
         ? `<div class="pl-timebox"><div class="pl-clock"><i data-clock></i></div><div class="tiny num" data-left></div></div>` : '';
       return `<div class="pl-segs">${segs}</div>${timed ? clockBar : combo}`;
     }
-    const boss = bossFor(a.month);
-    const hearts = Array.from({ length: BOSS_HEARTS }, (_, i) =>
+    const boss = a.boss || bossFor(a.month);
+    const hearts = Array.from({ length: a.maxHearts || BOSS_HEARTS }, (_, i) =>
       `<span class="heart ${i < a.hearts ? 'on' : ''}">${icon('heart', 18).value}</span>`).join('');
     const taunt = a.taunt === 'intro' ? boss.intro : a.taunt === 'half' ? boss.half : '';
     return `<div class="pl-boss">
       <div class="row">
         <div class="boss-ico">${boss.icon}</div>
         <div class="grow">
-          <div class="between"><span class="tiny">HP</span><span class="tiny num">${a.hp} / ${BOSS_HP}</span></div>
-          <div class="pl-hp"><i style="width:${(a.hp / BOSS_HP) * 100}%"></i></div>
+          <div class="between"><span class="tiny">HP</span><span class="tiny num">${a.hp} / ${a.maxHp || BOSS_HP}</span></div>
+          <div class="pl-hp"><i style="width:${(a.hp / (a.maxHp || BOSS_HP)) * 100}%"></i></div>
         </div>
         <div class="hearts" aria-label="${a.hearts} hearts left">${hearts}</div>
       </div>
@@ -335,7 +334,7 @@ function run(rerender) {
       <button class="btn primary block" style="margin-top:20px" data-done>Done</button></div>`;
     let glyph, title, line, cls = '';
     if (s.mode === 'boss') {
-      const boss = bossFor(s.month);
+      const boss = s.boss || bossFor(s.month);
       glyph = s.won ? boss.icon : '✕'; cls = s.won ? '' : 'lost';
       title = s.won ? `${boss.name} is down` : `${boss.name} survived`;
       line = s.won ? boss.won : boss.lost;

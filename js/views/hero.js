@@ -1,4 +1,4 @@
-/** Hero: the character, both tracks at a glance, accounts, gear, achievements, settings, backup. */
+/** Hero: the character, every track at a glance, accounts, gear, achievements, settings, backup. */
 import {
   S, THEMES, ownsTheme, buyTheme, selectTheme, buyFreeze, FREEZE_COST, progress, gearBonus, statsSnapshot,
   saveProfile, setTrack, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
@@ -8,6 +8,8 @@ import { ACHIEVEMENTS } from '../data/achievements.js';
 import { LOOT, RARITY, LOOT_CAP } from '../data/loot.js';
 import { TRACKS, trackById } from '../tracks/index.js';
 import { linkCodeforces, unlinkCodeforces, setDailySolves } from '../tracks/cp/actions.js';
+import { linkHf, unlinkHf } from '../tracks/ai/actions.js';
+import { checkHfUser } from '../hf.js';
 import { checkHandle } from '../tracks/cp/codeforces.js';
 import { colorForRating } from '../tracks/cp/model.js';
 import { verifiedCount, setStart, mission as roboMission } from '../tracks/robotics/actions.js';
@@ -62,6 +64,7 @@ function tiles() {
   ];
   if (trackOn('cp')) t.push([s.solved, 'solved'], [s.bestRating || '—', 'hardest'], [s.contestsWon, 'contests won']);
   if (trackOn('robotics')) t.push([s.missions, 'missions'], [acc, 'accuracy'], [s.skillScore, 'skill score']);
+  if (trackOn('ai')) t.push([s.aiMissions, 'AI missions'], [s.aiCapstones, 'papers reproduced'], [s.frontier, 'frontier logs']);
   return `<div class="grid3">${t.map(([v, k]) => `<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join('')}</div>`;
 }
 
@@ -94,8 +97,28 @@ function accounts() {
       ${c.handle ? `<span class="badge" style="background:${colorForRating(c.rating)}">${c.rating ?? '—'}</span>` : '<span>›</span>'}</div></button>` : ''}
     <button class="card tap pad-s" data-act="gh"><div class="between"><div><div class="h3">GitHub</div>
       <div class="tiny">${g.user ? `${esc(g.user)} · ${S.stats.commits} commits credited` : 'Not connected — builds cannot be verified, commits earn nothing'}</div></div><span>›</span></div></button>
+    ${trackOn('ai') ? `<button class="card tap pad-s" data-act="hf"><div class="between"><div><div class="h3">Hugging Face</div>
+      <div class="tiny">${S.tracks.ai.hf?.user ? esc(S.tracks.ai.hf.user) : 'Not connected — AI models and demos cannot be verified'}</div></div><span>›</span></div></button>` : ''}
     ${c.handle || g.user ? '<button class="btn block sm" data-act="sync">Sync now</button>' : ''}
   </div>`;
+}
+
+function openHf(rerender) {
+  const current = S.tracks.ai.hf?.user || '';
+  sheet('Hugging Face', `<p class="sub">AI builds you publish — models, adapters, demos — are verified on your public Hugging Face account. No sign-in; only the name is sent.</p>
+    <div class="field" style="margin-top:14px"><label for="hf-v">Username</label>
+      <input class="input" id="hf-v" value="${esc(current)}" autocapitalize="off" spellcheck="false" placeholder="your-name"></div>
+    <button class="btn primary block" style="margin-top:16px" data-save>Save</button>
+    ${current ? '<button class="btn ghost block sm" style="margin-top:8px" data-unlink>Disconnect</button>' : ''}`,
+  (el, close) => {
+    $('[data-save]', el).onclick = async e => {
+      e.target.disabled = true; e.target.textContent = 'Checking…';
+      try { const u = await checkHfUser($('#hf-v', el).value); linkHf({ user: u.user, avatar: u.avatar }); close(); toast(`Connected to <b>${esc(u.user)}</b>`); }
+      catch (err) { toast(esc(err.message), 4000); e.target.disabled = false; e.target.textContent = 'Save'; }
+      rerender();
+    };
+    $('[data-unlink]', el)?.addEventListener('click', () => { unlinkHf(); close(); toast('Disconnected. Credit already earned stays.'); rerender(); });
+  });
 }
 
 function tracks() {
@@ -342,6 +365,7 @@ export function mount(root, rerender) {
     profile: () => openProfile(rerender),
     cf:      () => openAccount('cf', rerender),
     gh:      () => openAccount('gh', rerender),
+    hf:      () => openHf(rerender),
     backup:  () => openBackup(rerender),
     sync:    async el => { el.textContent = 'Syncing…'; const r = await syncAll({ force: true }); toast(esc(describeSync(r)), 3200); rerender(); },
     sound:   () => { S.settings.sound = !S.settings.sound; saveProfile({}); },

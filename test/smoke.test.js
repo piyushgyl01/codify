@@ -23,6 +23,7 @@ const ok = (name, cond, extra = '') => {
 };
 const group = n => console.log('\n\x1b[1m▸ ' + n + '\x1b[0m');
 const near = (a, b, tol = 1e-6) => Math.abs(a - b) <= tol;
+const sum = a => a.reduce((n, x) => n + x, 0);
 
 const G    = await import('../js/game.js');
 const Q    = await import('../js/quiz.js');
@@ -46,6 +47,11 @@ const RP   = await import('../js/tracks/robotics/plan.js');
 const CP   = await import('../js/tracks/cp/plan.js');
 const CS   = await import('../js/tracks/cp/skills.js');
 const SB   = await import('../js/skillbook.js');
+const AP   = await import('../js/tracks/ai/plan.js');
+const AS   = await import('../js/tracks/ai/skills.js');
+const Ai   = await import('../js/tracks/ai/actions.js');
+const HFm  = await import('../js/hf.js');
+const Feed = await import('../js/tracks/ai/feed.js');
 
 const rightAnswer = q => (q.kind === 'mc' ? q.correct : String(q.answer));
 // Far enough from any answer that no tolerance could accept it.
@@ -351,7 +357,7 @@ group('GitHub: build proof patterns');
 
 
 /* A fake GitHub. Files are { path: content }; the README for a folder is its README.md. */
-function fakeGitHub({ owner = 'tester', repo = 'bench', priv = false, files = {}, commits = 5, limited = false, offline = false }) {
+function fakeGitHub({ owner = 'tester', repo = 'bench', priv = false, files = {}, commits = 5, limited = false, offline = false, ci = null, commitFiles = [] }) {
   const b64 = s => Buffer.from(s, 'utf8').toString('base64');
   const json = (status, body, headers = {}) => ({
     status, ok: status >= 200 && status < 300, json: async () => body,
@@ -375,6 +381,8 @@ function fakeGitHub({ owner = 'tester', repo = 'bench', priv = false, files = {}
       return content == null ? json(404, {}) : json(200, { content: b64(content) });
     }
     if (rest[0] === 'git') return json(200, { tree: Object.keys(files).map(path => ({ path, type: 'blob' })) });
+    if (rest[0] === 'actions') return json(200, { workflow_runs: ci ? [{ conclusion: ci }] : [] });
+    if (rest[0] === 'commits' && rest[1]) return json(200, { files: commitFiles });
     if (rest[0] === 'commits') {
       const author = u.searchParams.get('author');
       return json(200, author === owner ? Array.from({ length: commits }, (_, i) => ({ sha: String(i) })) : []);
@@ -763,6 +771,182 @@ group('learn with AI: the tutor prompt');
   ok('slower paces get shorter sessions', TU.tutorMinutes(3) > TU.tutorMinutes(1) && TU.tutorMinutes(1) >= 20);
 }
 
+/* ================================= AI track =============================== */
+group('the AI plan');
+{
+  const MS = AP.MISSIONS;
+  ok('240 missions in eight parts of 30', MS.length === 240 && AP.MONTHS.length === 8 && AP.MONTHS.every(m => MS.filter(x => x.month === m.n).length === 30));
+  const intro = MS.flatMap(x => x.skills);
+  ok('every AI skill is introduced exactly once, in its own part', intro.length === AS.SKILLS.length && new Set(intro).size === AS.SKILLS.length
+    && MS.every(x => x.skills.every(id => AS.skillById(id).month === x.month)));
+  ok('days 7, 14, 21 and 28 of every part are frontier days', MS.filter(x => x.frontier).length === 32 && MS.filter(x => x.frontier).every(x => [7, 14, 21, 28].includes(x.day)));
+  ok('day 30 of every part is the boss', MS.filter(x => x.boss).every(x => x.day === 30) && MS.filter(x => x.boss).length === 8);
+  ok('every part ends with a paper reproduction', AP.MONTHS.every(m => AP.capstoneOf(m.n)?.proof));
+  const runs = AP.BUILDS.map(b => MS.filter(x => x.build?.id === b.id));
+  ok('all 34 builds are scheduled and ship in their own part', AP.BUILDS.length === 34 && runs.every((r, i) => r.length >= 2 && r.at(-1).build.kind === 'ship' && r.at(-1).month === AP.BUILDS[i].month));
+  ok('each build is checked on GitHub, Hugging Face or across your builds', AP.BUILDS.every(b => ['github', 'hf', 'portfolio'].includes(b.verify) && (b.verify !== 'hf' || b.proof.hf)));
+  ok('each build says what it costs to run', AP.BUILDS.every(b => ['free', 'cheap'].includes(b.compute) && b.cost));
+  ok('every reproduction links its paper', AP.BUILDS.filter(b => b.capstone).every(b => [...(b.proof.readme || []), ...(b.proof.hf?.card || [])].some(x => /arXiv/.test(x.label))));
+  ok('every learning link is a web link', AP.TOPICS.every(t => t.resources.every(x => /^https?:\/\//.test(x.url))));
+  ok('the AI track paces are 8, 12, 16 and 24 months', AP.PACES.map(p => p.months).join() === '8,12,16,24');
+}
+
+group('AI answers against brute force');
+{
+  const rng = Q.seeded(55), N = s => (s.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  const draw = (id, test, n = 120) => { for (let i = 0; i < n; i++) { const q = Q.generate(id, rng); if (q.kind === 'num' && !test(q)) return q.q; } return null; };
+  let bad = draw('iou', q => {
+    const [a, b] = [...q.q.matchAll(/\(([-\d, ]+)\)/g)].map(m => N(m[1]));
+    let inter = 0; for (let x = 0; x < 20; x++) for (let y = 0; y < 20; y++) {
+      const inA = x >= a[0] && x < a[2] && y >= a[1] && y < a[3], inB = x >= b[0] && x < b[2] && y >= b[1] && y < b[3];
+      if (inA && inB) inter++;
+    }
+    const area = r => (r[2] - r[0]) * (r[3] - r[1]);
+    return near(inter / (area(a) + area(b) - inter), q.answer, 1e-9);
+  });
+  ok('IoU matches counting unit cells', !bad, bad);
+  bad = draw('auc', q => {
+    const [pos, neg] = q.q.split('negatives').map(s => N(s.replace(/positives/, '')));
+    const all = [...pos.map(s => [s, 1]), ...neg.map(s => [s, 0])].sort((x, y) => x[0] - y[0]);
+    // Mann–Whitney: average ranks, then U / (P·N)
+    const ranks = all.map((_, i) => i + 1); for (let i = 0; i < all.length;) { let j = i; while (j + 1 < all.length && all[j + 1][0] === all[i][0]) j++; const avg = (i + j + 2) / 2; for (let k = i; k <= j; k++) ranks[k] = avg; i = j + 1; }
+    const R1 = sum(all.map((x, i) => (x[1] ? ranks[i] : 0))), U = R1 - (pos.length * (pos.length + 1)) / 2;
+    return near(U / (pos.length * neg.length), q.answer, 1e-9);
+  });
+  ok('ROC-AUC matches the Mann–Whitney statistic', !bad, bad);
+  bad = draw('sampling', q => {
+    if (!/top-p/.test(q.q)) return true;
+    const nums = N(q.q), P = nums.at(-1), probs = nums.slice(0, -1).filter(x => x < 1 && x > 0);
+    let c = 0, k = 0; while (c < P - 1e-9) c += probs[k++];
+    return k === q.answer;
+  });
+  ok('top-p keeps the smallest set reaching p', !bad, bad);
+  bad = draw('grpo', q => {
+    const r = q.q.match(/rewards (.*?)\. What/)[1].split(', ').map(Number);
+    const m = sum(r) / r.length, sd = Math.sqrt(sum(r.map(x => (x - m) ** 2)) / r.length);
+    return near((Math.max(...r) - m) / sd, q.answer, 1e-9);
+  });
+  ok('GRPO advantages are (r − mean)/std of the group', !bad, bad);
+  bad = draw('kvcache', q => {
+    if (!/How many GB/.test(q.q)) return true;
+    const [L, kv, hd, S2, B] = N(q.q.replace(/,/g, ''));
+    return near(2 * L * kv * hd * S2 * B * 2 / 1e9, q.answer, 1e-9);
+  });
+  ok('KV cache size is 2 · layers · kv heads · head size · tokens · batch · bytes', !bad, bad);
+}
+
+group('AI: missions, pace and the boss');
+reset();
+{
+  const rng = Q.seeded(61);
+  const m = Ai.mission();
+  ok('mission 1 is dot products and matrices', m.n === 1 && m.skills.join() === 'dot' && m.build.id === 'a1');
+  ok('eight months is one mission a day', E.paceOf('ai').months === 8 && E.paceInfo('ai').missionDay && E.daysPerMission(8, 'ai') === 1);
+  ok('twenty-four months is one every three days', E.daysPerMission(24, 'ai') === 3 && E.setPace('ai', 24) && !E.setPace('ai', 4));
+  E.setPace('ai', 8);
+  Ai.startMission(undefined, rng);
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng);
+  const s = E.finishSession(rng);
+  ok('the check completes an AI mission', s.completed && Ai.missionsDone() === 1 && St.dayIsActive());
+  St.S.tracks.ai.missions = Object.fromEntries(Array.from({ length: 29 }, (_, i) => [i + 1, '2000-01-01']));
+  for (const sk of AS.skillsIn(1)) St.S.tracks.ai.skills[sk.id] = { level: 3, due: '2099-01-01', hist: [] };
+  ok('the boss waits for the paper reproduction', !Ai.bossReady(1).ok && /Reproduce: Adam/.test(Ai.bossReady(1).why));
+  Ai.applyVerification('c1', { owner: 't', repo: 'r', path: '' }, { ok: true, verified: true, checks: [], meta: {} });
+  ok('verifying it opens the fight', Ai.bossReady(1).ok);
+  const f = Ai.startMission(undefined, rng);
+  ok('mission 30 is the fight', f?.mode === 'boss' && f.boss.name === 'The Exploding Gradient');
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng);
+  const won = E.finishSession(rng);
+  ok('winning it completes the mission and counts the boss', won.won && Ai.missionsDone() === 30 && St.statsSnapshot().aiBosses === 1);
+}
+
+group('Hugging Face: verifying a build');
+{
+  const fakeHf = ({ owner = 'tester', priv = false, missing = false, card = '', running = true } = {}) => async url => {
+    const res = (status, body, text) => ({ status, ok: status < 300, json: async () => body, text: async () => text });
+    if (missing) return res(401, {});
+    if (url.includes('/raw/main/README.md')) return res(200, null, card);
+    return res(200, { id: `${owner}/m`, author: owner, private: priv, likes: 3, downloads: 12, runtime: { stage: running ? 'RUNNING' : 'BUILD_ERROR' } });
+  };
+  const b = AP.buildById('a13');
+  const card = `---\nlicense: mit\n---\n# A LoRA adapter\nI fine-tuned SmolLM2 with QLoRA. The base model is HuggingFaceTB/SmolLM2-360M. ${'Some honest words about it. '.repeat(20)} Before: 41.5, after: 57.2 on my held-out set.`;
+  let r = await HFm.verifyHf(b, { kind: 'model', id: 'tester/m' }, { user: 'tester', fetchImpl: fakeHf({ card }) });
+  ok('a public model under your name with a full card passes', r.ok && r.verified, r.checks?.filter(c => !c.pass).map(c => c.label).join(', '));
+  r = await HFm.verifyHf(b, { kind: 'model', id: 'other/m' }, { user: 'tester', fetchImpl: fakeHf({ owner: 'other', card }) });
+  ok('someone else\'s model fails', !r.verified && /belongs to other/.test(r.checks[0].detail));
+  r = await HFm.verifyHf(b, { kind: 'model', id: 'tester/m' }, { user: 'tester', fetchImpl: fakeHf({ missing: true }) });
+  ok('a private or missing model is "not found or private"', !r.verified && /private/.test(r.checks[0].detail));
+  r = await HFm.verifyHf(b, { kind: 'model', id: 'tester/m' }, { user: 'tester', fetchImpl: fakeHf({ card: 'Tiny card.' }) });
+  ok('a thin card fails its checks', !r.verified && r.checks.some(c => /words/.test(c.label) && !c.pass));
+  const sp = AP.buildById('a19');
+  r = await HFm.verifyHf(sp, { kind: 'space', id: 'tester/m' }, { user: 'tester', fetchImpl: fakeHf({ running: false, card: `${'words '.repeat(90)} 42 tokens/s, p95 latency 800 ms, int8 quantization.` }) });
+  ok('a Space that is not running fails exactly that', !r.verified && r.checks.filter(c => !c.pass).map(c => c.label).join() === 'The demo is running');
+  ok('links parse from huggingface.co, including Spaces', HFm.parseHf('https://huggingface.co/spaces/a/b').kind === 'space' && HFm.parseHf('a/b').id === 'a/b' && !HFm.parseHf('nope'));
+}
+
+group('GitHub: tests passing, and the frontier log');
+{
+  const a1 = AP.buildById('a1'), target = { owner: 'tester', repo: 'bench', path: 'la' };
+  const readme = `# Linear algebra from scratch\n\n![plot](p.png)\n\n${'I implemented everything and tested it against NumPy carefully. '.repeat(20)}\n\nPCA on the wine data: the explained variance of the first two components is 55.4 %.\n\n## What broke\nMy determinant sign.`;
+  const files = { 'la/README.md': readme, 'la/tests/test_linalg.py': 'x' };
+  let r = await GH.verifyBuild(a1, target, { user: 'tester', fetchImpl: fakeGitHub({ files, ci: 'success' }) });
+  ok('a passing GitHub Actions run passes the tests check', r.verified, r.checks?.filter(c => !c.pass).map(c => c.label).join(', '));
+  r = await GH.verifyBuild(a1, target, { user: 'tester', fetchImpl: fakeGitHub({ files, ci: 'failure' }) });
+  ok('a failing run fails exactly that', !r.verified && r.checks.filter(c => !c.pass).map(c => c.label).join() === 'Tests pass on GitHub Actions');
+  r = await GH.verifyBuild(a1, target, { user: 'tester', fetchImpl: fakeGitHub({ files }) });
+  ok('no workflow at all says so', !r.verified && /No finished workflow/.test(r.checks.find(c => /Actions/.test(c.label)).detail));
+
+  const url = 'https://huggingface.co/papers/2609.00001';
+  r = await GH.verifyFrontierEntry({ owner: 'tester', repo: 'bench' }, { user: 'tester', needles: [url], since: new Date().toISOString(),
+    fetchImpl: fakeGitHub({ files: { 'README.md': `# Log\n- ${url}: tried it, it worked` } }) });
+  ok('a log entry with the link, pushed this week, passes', r.ok && r.verified);
+  r = await GH.verifyFrontierEntry({ owner: 'tester', repo: 'bench' }, { user: 'tester', needles: [url], since: new Date().toISOString(),
+    fetchImpl: fakeGitHub({ files: { 'README.md': '# Log' }, commitFiles: [{ filename: 'entries/week.md', patch: `+ ${url}` }] }) });
+  ok('the link may live in the entry file rather than the README', r.verified);
+  r = await GH.verifyFrontierEntry({ owner: 'tester', repo: 'bench' }, { user: 'tester', needles: [url], since: new Date().toISOString(),
+    fetchImpl: fakeGitHub({ files: { 'README.md': '# Log' }, commits: 0 }) });
+  ok('no commit this week, no entry', !r.verified && r.checks.some(c => /this week/.test(c.label) && !c.pass));
+}
+
+group('AI: frontier days');
+reset();
+{
+  St.S.github.user = 'tester';
+  const item = { kind: 'paper', id: '2609.00001', title: 'A new thing', url: 'https://huggingface.co/papers/2609.00001' };
+  ok('you can pick something for a frontier mission', Ai.pickFrontier(7, item) && Ai.frontierFor(7).item.id === item.id);
+  ok('the log repo must be owner/repo', !Ai.setFrontierRepo('nonsense') && Ai.setFrontierRepo('tester/bench').repo === 'bench');
+  const xp0 = St.S.xp;
+  const r = await Ai.verifyFrontier(7, fakeGitHub({ files: { 'README.md': `- ${item.url}` } }));
+  ok('a verified entry pays and is recorded', r.verified && St.S.xp > xp0 && Ai.frontierFor(7).verified && St.statsSnapshot().frontier === 1);
+  ok('it cannot be re-picked once logged', !Ai.pickFrontier(7, { ...item, id: 'x' }));
+  const f7 = AP.MISSIONS[6], ids = E.missionSkills('ai', f7);
+  ok('a frontier day with nothing started still checks what was taught', !f7.skills.length && ids.length > 0
+    && ids.every(id => AP.MISSIONS.slice(0, 6).some(x => x.skills.includes(id))));
+}
+
+group('AI: the What\'s new feed');
+{
+  const now = G.dayKey(), old = G.addDays(now, -20);
+  const f = Feed.shapeFeed({
+    papers: [{ paper: { id: '1', title: 'Low', upvotes: 3, submittedOnDailyAt: now } }, { paper: { id: '2', title: 'High', upvotes: 90, submittedOnDailyAt: now } },
+      { paper: { id: '3', title: 'Old but popular', upvotes: 999, submittedOnDailyAt: old } }],
+    models: [{ id: 'a/real', downloads: 50000, likes: 10 }, { id: 'b/spam', downloads: 0, likes: 3000 }, { id: 'c/something-NSFW', downloads: 90000 }],
+    repos: [{ full_name: 'x/y', stargazers_count: 10, html_url: 'https://github.com/x/y' }, { full_name: 'x/y', stargazers_count: 10, html_url: 'https://github.com/x/y' }],
+  }, now);
+  ok('papers are this week\'s, most upvoted first', f.papers.map(p => p.id).join() === '2,1');
+  ok('models need real downloads, and blocked words are refused', f.models.map(m => m.id).join() === 'a/real');
+  ok('repos are not listed twice', f.repos.length === 1);
+}
+
+group('migration: the AI track arrives');
+{
+  store.clear();
+  St.importSave(JSON.stringify({ v: 3, tracks: { cp: {}, robotics: { plan: 2 } }, profile: { name: 'P', onboarded: true, tracks: ['cp', 'robotics'] }, xp: 10 }));
+  ok('an existing character gets the AI track switched on, with a note', St.S.profile.tracks.includes('ai') && St.S.notice === 'ai' && !!St.S.tracks.ai.missions);
+  St.importSave(JSON.stringify({ v: 3, tracks: { cp: {}, robotics: { plan: 2 }, ai: { pace: 12 } }, profile: { name: 'P', onboarded: true, tracks: ['cp'] }, xp: 10 }));
+  ok('but once you have it, turning it off sticks', !St.S.profile.tracks.includes('ai') && St.S.tracks.ai.pace === 12);
+}
+
 /* ============================== shared: timer ============================= */
 group('shared: the focus timer');
 reset();
@@ -804,6 +988,7 @@ group('shared: quests across tracks');
   const ctx = (patch = {}) => ({ key:'2026-10-10', day:{ timerMin:90, timerTagged:90, claimed:[] },
     cp:{ solved:4, ratedSolved:4, bestRating:2000, tags:3 },
     robo:{ mission:{ score:9, total:9 }, ups:2, bestRun:5, answered:15, correct:15, practiceCorrect:10 },
+    ai:{ check:{ score:9, total:9 }, ups:2, bestRun:6, answered:15, correct:15 },
     commits:3, rating:2000, github:true, usable:['cp', 'robotics'], ...patch });
   const c = ctx();
   ok('every quest in every pool can be finished in one day', Qs.QUESTS.every(q => q.value(c) >= q.goal), Qs.QUESTS.filter(q => q.value(c) < q.goal).map(q => q.id).join());
@@ -850,7 +1035,7 @@ group('migration: an existing Codify save upgrades in place');
   ok('the named goal becomes minutes and a solve target', m.profile.focusGoal === 90 && m.tracks.cp.dailySolves === 3);
   ok('a timed session becomes timer minutes', m.days[day(1)].timerMin === 45 && m.days[day(1)].timer[0].tag === 'cp:dp');
   ok('typed sessions and notes are kept, not deleted', m.legacy.days[day(1)].sessions.length === 1 && m.legacy.days[day(1)].notes.length === 1);
-  ok('both tracks are switched on, with a note about what changed', m.profile.tracks.join() === 'cp,robotics' && m.notice === 'merged');
+  ok('every track is switched on, with a note about what changed', m.profile.tracks.join() === 'cp,robotics,ai' && m.notice === 'merged');
 
   St.importSave(JSON.stringify(codify));
   const xp = St.S.xp;

@@ -5,7 +5,8 @@
  */
 import { SKILLS as ROBOTICS } from './tracks/robotics/skills.js';
 import { SKILLS as CODE } from './tracks/cp/skills.js';
+import { SKILLS as AI } from './tracks/ai/skills.js';
 
-export const ALL_SKILLS = [...ROBOTICS, ...CODE];
+export const ALL_SKILLS = [...ROBOTICS, ...CODE, ...AI];
 const byId = new Map(ALL_SKILLS.map(s => [s.id, s]));
 export const skillById = id => byId.get(id) || null;

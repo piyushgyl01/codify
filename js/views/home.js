@@ -36,6 +36,11 @@ function notices() {
     <div class="h3" style="margin-top:6px">Codify is now one tech RPG</div>
     <div class="sub" style="margin-top:4px">Your progress carried over. Robotics is a new track. Botify progress: Hero → Backup → Import.</div>
   </div>`;
+  if (S.notice === 'ai') out += `<div class="card notice">
+    <div class="between"><span class="label">New track</span><button class="btn xs" data-act="dismiss">Got it</button></div>
+    <div class="h3" style="margin-top:6px">🧠 AI: 240 missions, from the maths to the frontier</div>
+    <div class="sub" style="margin-top:4px">It's switched on. Pick its pace in the AI tab, or turn it off in Hero → Tracks.</div>
+  </div>`;
   if (needsBackup()) out += `<div class="card warn-card"><div class="between"><div class="grow"><div class="h3">Back up your progress</div>
       <div class="tiny">It only lives in this browser.</div></div>
       <button class="btn sm" data-act="backup">Back up</button></div></div>`;
@@ -114,6 +119,7 @@ export function mount(root, rerender) {
       if (where === 'timer') openFocus(rerender);
       else if (where === 'hero') go('hero');
       else if (where === 'cp') go('cp');
+      else if (where === 'ai') go('ai');
       else if (where === 'mission') { if (missionDoneToday()) { roTab('today'); go('robotics'); } else openMission(rerender); }
       else if (where === 'practice') { roTab('skills'); go('robotics'); }
     };

@@ -45,6 +45,7 @@ const P = {
   back:    '<path d="m15 5-7 7 7 7"/>',
   code:    '<path d="m8 6-5 6 5 6M16 6l5 6-5 6"/>',
   robot:   '<rect x="5" y="8" width="14" height="11" rx="2"/><path d="M12 8V4.5M9.5 12.5v1M14.5 12.5v1M10 16h4"/>',
+  spark:   '<path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M6 18l2.5-2.5M15.5 8.5 18 6"/><circle cx="12" cy="12" r="2.5"/>',
   grid:    '<rect x="4" y="4" width="7" height="7" rx="1"/><rect x="13" y="4" width="7" height="7" rx="1"/><rect x="4" y="13" width="7" height="7" rx="1"/><rect x="13" y="13" width="7" height="7" rx="1"/>',
   copy:    '<rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',
 };
