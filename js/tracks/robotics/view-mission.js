@@ -17,6 +17,7 @@ import { openTab } from './hub.js';
 import { go } from '../../router.js';
 import * as Parts from '../../views/mission-parts.js';
 import * as E from '../../learn/session.js';
+import { tutorPrompt, tutorMinutes } from '../../learn/tutor.js';
 
 const T = 'robotics';
 
@@ -33,7 +34,7 @@ function learnStep(m) {
     <span class="m-num">1</span>
     <div class="grow"><div class="label">Learn</div>
       <div class="h3">${esc(m.learn)}</div>
-      <div class="tiny">${esc(t.name)} · ${t.resources.filter(r => r.url).length} links</div>
+      <div class="tiny">🤖 AI tutor prompt · ${t.resources.filter(r => r.url).length} links · ${esc(t.name)}</div>
       ${m.order ? `<div class="tiny m-order">📦 Order now: ${esc(m.order)}</div>` : ''}</div>
     ${icon('chevron', 16).value}
   </button>`;
@@ -118,8 +119,24 @@ export function missionCard({ compact = false } = {}) {
 
 /* ---------------------------------- learn --------------------------------- */
 
+/** Today's mission as a tutor prompt: the topic, what came before, the quiz, and the build step. */
+function tutorFor(m) {
+  const t = topicById(m.topic), recent = [];
+  for (let k = m.n - 1; k >= 1 && recent.length < 5; k--) { const x = missionAt(k); if (!x.boss) recent.unshift(x.learn); }
+  const next = m.n < TOTAL_MISSIONS ? missionAt(m.n + 1) : null;
+  return tutorPrompt({
+    subject: 'robotics, from electronics to robot learning', n: m.n, total: TOTAL_MISSIONS, part: monthByN(m.month),
+    learn: m.learn, why: t.why, skills: m.skills.map(id => skillById(id).name), recent,
+    next: next && !next.boss ? next.learn : '',
+    links: t.resources.filter(r => r.url),
+    task: m.build ? `${buildById(m.build.id).name} — ${stepName(m.build).toLowerCase()} step ${m.build.step} of ${m.build.of}: ${stepLine(m.build)}` : '',
+    notes: ['If I don\'t have a part yet, show me how to try it in a free simulator first (Falstad, Tinkercad, Wokwi or Gazebo).'],
+    minutes: tutorMinutes(E.paceOf(T).hours),
+  });
+}
+
 export function openLearn(n, rerender) {
-  const m = missionAt(n), t = topicById(m.topic);
+  const m = missionAt(n), t = topicById(m.topic), prompt = tutorFor(m);
   const paint = () => {
     const res = t.resources.map(r => {
       const done = r.url && S.tracks.robotics.read[r.url];
@@ -133,14 +150,16 @@ export function openLearn(n, rerender) {
     return `<div class="label">Mission ${m.n} · ${esc(t.name)}</div>
       <div class="h2" style="margin-top:6px">${esc(m.learn)}</div>
       <p class="sub" style="margin-top:10px">${esc(t.why)}</p>
+      ${Parts.tutorCard(prompt)}
       ${skills.length ? `<div class="card sunk pad-s" style="margin-top:14px"><div class="label">New in today's check</div>
         <div class="h3" style="margin-top:4px">${esc(skills.join(', '))}</div></div>` : ''}
-      <div class="label" style="margin-top:16px">Where to learn it</div>
+      <div class="label" style="margin-top:16px">Or learn it from the sources</div>
       <div class="res-list">${res}</div>
       <button class="btn block" style="margin-top:16px" data-open-month>See all of part ${m.month}</button>`;
   };
   sheet('Learn', paint(), (el, close) => {
     const wire = () => {
+      Parts.mountTutor(el, prompt);
       el.querySelectorAll('[data-read]').forEach(b => {
         b.onclick = e => { e.preventDefault(); toggleRead(b.dataset.read); el.querySelector('.sheet-bd').innerHTML = paint(); wire(); };
       });

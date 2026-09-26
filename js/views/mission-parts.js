@@ -7,7 +7,7 @@ import { S, today } from '../state.js';
 import * as E from '../learn/session.js';
 import { skillById } from '../skillbook.js';
 import { roundFor, levelOf, addDays } from '../game.js';
-import { esc, bar, shortDate } from '../ui.js';
+import { esc, bar, shortDate, toast } from '../ui.js';
 import { lineChart } from '../charts.js';
 import { icon } from '../icons.js';
 import { openMission, openTestOut, openReview, resumeSession } from './player.js';
@@ -173,6 +173,37 @@ export function howItWorks(track, third) {
       <p class="sub" style="margin-top:8px">Know a week already? Test out: ${E.TEST_OUT.questions} questions at level ${E.TEST_OUT.level}, and ${E.TEST_OUT.pass} right skips the rest of that week. Once a day per week.</p>
     </div>
   </details>`;
+}
+
+/* ------------------------------ learn with AI ----------------------------- */
+
+/** The top of every Learn sheet: copy a tutor prompt for today, and see it first if you want. */
+export function tutorCard(prompt) {
+  return `<div class="card tutor-card">
+    <div class="h3">🤖 Learn it with AI</div>
+    <div class="tiny" style="margin-top:4px">Copy a tutor prompt for today and paste it into ChatGPT, Claude or Gemini.
+      It finds out what you know, teaches in small steps, makes you do the thinking, and quizzes you before the app does.</div>
+    <button class="btn primary block" style="margin-top:12px" data-tutor-copy>Copy today's tutor prompt</button>
+    <details class="tutor-peek"><summary class="tiny">Read the prompt first</summary>
+      <textarea class="input tutor-text" readonly rows="12" aria-label="Tutor prompt">${esc(prompt)}</textarea></details>
+  </div>`;
+}
+
+export function mountTutor(el, prompt) {
+  const btn = el.querySelector('[data-tutor-copy]');
+  if (!btn) return;
+  btn.onclick = async () => {
+    let ok = false;
+    try { await navigator.clipboard.writeText(prompt); ok = true; } catch { /* fall back to selecting the text */ }
+    if (!ok) {
+      const ta = el.querySelector('.tutor-text');
+      el.querySelector('.tutor-peek').open = true;
+      ta.focus(); ta.select();
+      try { ok = document.execCommand('copy'); } catch { ok = false; }
+    }
+    btn.textContent = ok ? '✓ Copied — paste it into your AI' : 'Select the text below and copy it';
+    toast(ok ? 'Copied. Paste it into ChatGPT, Claude or Gemini.' : 'Your browser blocked copying — select the prompt and copy it.');
+  };
 }
 
 export function mountParts(root, track, rerender) {

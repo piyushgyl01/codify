@@ -748,6 +748,21 @@ reset();
   ok('each track has its own pace', E.paceOf('cp').months === 4 && E.paceOf('robotics').months === 12);
 }
 
+group('learn with AI: the tutor prompt');
+{
+  const TU = await import('../js/learn/tutor.js');
+  const m = RP.missionAt(13);
+  const p = TU.tutorPrompt({ subject: 'robotics', n: m.n, total: 120, part: R.monthByN(m.month), learn: m.learn, why: 'because',
+    skills: ['PWM and duty cycle'], recent: ['a', 'b'], next: 'tomorrow', links: [{ name: 'Arduino docs', url: 'https://docs.arduino.cc/' }],
+    task: 'solder', notes: ['use a simulator'], minutes: 60 });
+  ok('it says which mission and topic it is', p.includes('mission 13 of 120') && p.includes(m.learn));
+  ok('it carries the quiz, the task, what came before and what comes next', ['PWM and duty cycle', 'solder', 'a; b', 'tomorrow'].every(x => p.includes(x)));
+  ok('it lists only the links it was given, and asks for no invented ones', p.includes('https://docs.arduino.cc/') && /Don't invent links/.test(p));
+  ok('it makes the learner do the thinking and ends with a quiz', /wait for my answer/.test(p) && /5-question quiz/.test(p));
+  ok('nothing is left undefined', !/undefined|null|\[object/.test(p));
+  ok('slower paces get shorter sessions', TU.tutorMinutes(3) > TU.tutorMinutes(1) && TU.tutorMinutes(1) >= 20);
+}
+
 /* ============================== shared: timer ============================= */
 group('shared: the focus timer');
 reset();

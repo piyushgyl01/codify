@@ -16,6 +16,7 @@ import { esc, sheet, dialog, toast, sfx, haptic, $ } from '../../ui.js';
 import { icon } from '../../icons.js';
 import * as Parts from '../../views/mission-parts.js';
 import * as E from '../../learn/session.js';
+import { tutorPrompt, tutorMinutes } from '../../learn/tutor.js';
 
 const T = 'cp';
 const plural = (n, one, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
@@ -31,7 +32,7 @@ function learnStep(m) {
     <span class="m-num">1</span>
     <div class="grow"><div class="label">Learn</div>
       <div class="h3">${esc(m.learn)}</div>
-      <div class="tiny">${m.links.length ? plural(m.links.length, 'link') : 'Practice day — use what you have learned'}</div></div>
+      <div class="tiny">🤖 AI tutor prompt${m.links.length ? ` · ${plural(m.links.length, 'link')}` : ' · practice day'}</div></div>
     ${icon('chevron', 16).value}
   </button>`;
 }
@@ -112,17 +113,38 @@ export function missionCard({ compact = false } = {}) {
 
 /* --------------------------------- sheets --------------------------------- */
 
+/** Today's mission as a tutor prompt: the idea, what came before, the quiz, and the problems to solve. */
+function tutorFor(m) {
+  const recent = [];
+  for (let k = m.n - 1; k >= 1 && recent.length < 5; k--) { const x = missionAt(k); if (!x.boss) recent.unshift(x.learn); }
+  const next = m.n < TOTAL_MISSIONS ? missionAt(m.n + 1) : null, st = solveStatus(m);
+  return tutorPrompt({
+    subject: 'data structures and algorithms for competitive programming', n: m.n, total: TOTAL_MISSIONS, part: monthByN(m.month),
+    learn: m.learn, skills: m.skills.map(id => skillById(id).name), recent,
+    next: next && !next.boss ? next.learn : '',
+    links: m.links,
+    task: `solve ${plural(m.count, 'Codeforces problem')} ${m.tag ? `tagged "${m.tag}"` : 'with any tag'}, rated ${st.target} or more (my current level for it).`,
+    notes: [
+      'Ask me which programming language I use, and show code in it.',
+      'Never solve my Codeforces problems for me. When I\'m stuck, ask about my approach, then give one hint at a time.',
+    ],
+    minutes: tutorMinutes(E.paceOf(T).hours),
+  });
+}
+
 function openLearn(m) {
-  const skills = m.skills.map(id => skillById(id).name);
+  const skills = m.skills.map(id => skillById(id).name), prompt = tutorFor(m);
   sheet('Learn', `<div class="label">Mission ${m.n}</div>
     <div class="h2" style="margin-top:6px">${esc(m.learn)}</div>
+    ${Parts.tutorCard(prompt)}
     ${skills.length ? `<div class="card sunk pad-s" style="margin-top:14px"><div class="label">New in today's check</div>
       <div class="h3" style="margin-top:4px">${esc(skills.join(', '))}</div></div>` : ''}
-    ${m.links.length ? `<div class="label" style="margin-top:16px">Where to learn it</div>
+    ${m.links.length ? `<div class="label" style="margin-top:16px">Or learn it from the sources</div>
       <div class="res-list">${m.links.map(r => `<div class="res"><div class="grow">
         <div class="res-name"><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.name)} ${icon('ext', 12).value}</a></div>
         ${r.note ? `<div class="tiny">${esc(r.note)}</div>` : ''}</div><span class="badge price">${esc(r.price)}</span></div>`).join('')}</div>`
-      : '<p class="sub" style="margin-top:14px">No new reading today. Solve, and look back at the week\'s links when you get stuck.</p>'}`);
+      : '<p class="sub" style="margin-top:14px">No new reading today. Solve, and look back at the week\'s links when you get stuck.</p>'}`,
+  el => Parts.mountTutor(el, prompt));
 }
 
 function openFind(m) {

@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v9';
+const CACHE_VERSION = 'v10';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -34,6 +34,7 @@ const CORE = [
   './js/icons.js',
   './js/learn/plan.js',
   './js/learn/session.js',
+  './js/learn/tutor.js',
   './js/main.js',
   './js/platforms.js',
   './js/pwa.js',

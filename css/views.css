@@ -759,6 +759,11 @@ details.explain > summary { padding: var(--s3); }
   border-radius: var(--radius-s);
 }
 .m-early .btn { flex: none; }
+.tutor-card { background: var(--cyan); margin-top: 14px; }
+.tutor-card .tiny { color: var(--ink); }
+.tutor-peek { margin-top: 10px; }
+.tutor-peek summary { cursor: pointer; font-weight: 750; text-decoration: underline; min-height: 28px; }
+.tutor-card .tutor-text { width: 100%; min-height: 220px; margin-top: 8px; padding: 10px; font-size: 13px; font-weight: 500; line-height: 1.45; text-align: left; resize: vertical; background: var(--card); }
 .linkish { display: block; background: none; border: 0; padding: 8px 0 0; font-size: 12.5px; font-weight: 750; text-decoration: underline; color: var(--ink); text-align: left; min-height: 32px; }
 
 /* A skill's round, shown when its last question is answered. */
