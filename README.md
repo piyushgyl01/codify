@@ -187,8 +187,10 @@ the plan, so it is right for any day on any track.
   from robotics. Each is a permanent XP bonus, capped at +40% in total.
 - **Achievements, streak freezes, accents, backup.**
 
-Switch tracks on and off in Hero. The nav follows: Today, one tab per track, Hero — and
-past three tracks they fold into a single Tracks tab.
+The nav is three tabs however many tracks there are: **Today**, **Tracks**, **Hero**. Today
+has a card for each track you are doing; the Tracks tab lists yours (with where you are and
+whether today is done), adds or removes one, and gets a search box once there are enough to
+need it. Removing a track keeps its progress.
 
 ## Coming from Codify or Botify
 
@@ -221,7 +223,7 @@ achievements. Nothing else has to know it exists.
 
 ```
 js/
-  main.js router.js       boot; tabs that follow the switched-on tracks
+  main.js router.js       boot; the three tabs, and a track's page under Tracks
   state.js                the character: save, migrations, rewards, streak, timer, quests
   game.js                 pure maths: levels, ranks, skill levels, combos
   learn/                  the mission engine every track shares: plan pointer, checks, test-outs, pace, tutor prompts

@@ -796,3 +796,10 @@ details.explain > summary { padding: var(--s3); }
 .pl-timebox .pl-clock { flex: 1; margin-top: 10px; }
 .pl-timebox [data-left] { margin-top: 10px; min-width: 64px; text-align: right; font-weight: 750; }
 .res-row .h3 { font-size: 14px; }
+
+/* Tracks: the way back from a track's page, and the search once there are many. */
+.back-link { display:inline-flex; align-items:center; gap:4px; background:none; border:0; padding:0; margin-bottom:10px;
+  font-size:13px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--ink); min-height:32px; }
+.search-field { position:relative; }
+.search-field > svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none; }
+.search-field .input { padding-left:40px; }

@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v11';
+const CACHE_VERSION = 'v12';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**

@@ -1,7 +1,7 @@
 /** Hero: the character, every track at a glance, accounts, gear, achievements, settings, backup. */
 import {
   S, THEMES, ownsTheme, buyTheme, selectTheme, buyFreeze, FREEZE_COST, progress, gearBonus, statsSnapshot,
-  saveProfile, setTrack, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
+  saveProfile, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
   priorSave, undoImport, backupFilename, markBackup, saveHealthy, linkGithub, unlinkGithub, dayIsActive,
 } from '../state.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
@@ -119,14 +119,6 @@ function openHf(rerender) {
     };
     $('[data-unlink]', el)?.addEventListener('click', () => { unlinkHf(); close(); toast('Disconnected. Credit already earned stays.'); rerender(); });
   });
-}
-
-function tracks() {
-  return `<div class="stack s2">${TRACKS.map(t => `
-    <div class="card pad-s"><div class="between"><div class="grow"><div class="h3">${t.icon} ${esc(t.name)}</div>
-      <div class="tiny">${esc(t.tagline)}</div></div>
-      <button class="pill ${trackOn(t.id) ? 'on' : ''}" data-track="${t.id}">${trackOn(t.id) ? 'On' : 'Off'}</button></div></div>`).join('')}
-</div>`;
 }
 
 function gear() {
@@ -347,7 +339,6 @@ export function render() {
   return `<div class="stack s4 fade-up">
     ${unsaved}${head()}${trackBadges()}${tiles()}${charts()}
     <div><div class="section-head"><div class="h2">Accounts</div></div>${accounts()}</div>
-    <div><div class="section-head"><div class="h2">Tracks</div></div>${tracks()}</div>
     <div>${gear()}</div>
     <div>${achievements()}</div>
     <div>${shop()}</div>
@@ -384,12 +375,6 @@ export function mount(root, rerender) {
         d.querySelector('[data-no]').onclick = close;
         d.querySelector('[data-yes]').onclick = () => { close(); resetSave(); location.reload(); };
       }),
-  });
-  root.querySelectorAll('[data-track]').forEach(b => {
-    b.onclick = () => {
-      const id = b.dataset.track;
-      if (!setTrack(id, !trackOn(id))) toast('At least one track has to stay on.');
-    };
   });
   root.querySelectorAll('[data-theme]').forEach(b => {
     b.onclick = () => {

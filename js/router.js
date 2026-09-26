@@ -1,9 +1,9 @@
 /**
  * View switching, the topbar and the bottom nav.
  *
- * The tabs follow the tracks you have switched on: Today, one tab per track, and
- * Hero. Past three tracks they fold into a single Tracks tab, so the nav never
- * needs more than five buttons however far the app grows.
+ * Three tabs, however many tracks there are: Today, Tracks and Hero. A track
+ * opens from Today's card or from the Tracks tab, and its page sits under
+ * Tracks with a way back.
  */
 import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks } from './state.js';
 import { missionDoneToday, reviewDoneToday, paceInfo } from './learn/session.js';
@@ -17,25 +17,18 @@ import * as hero       from './views/hero.js';
 import * as onboarding from './views/onboarding.js';
 import * as tracksView from './views/tracks.js';
 
-function routes() {
-  const on = enabledTracks().map(trackById);
-  const middle = on.length <= 3
-    ? Object.fromEntries(on.map(t => [t.id, { view: t.hub, icon: t.navIcon, label: t.nav }]))
-    : { tracks: { view: tracksView, icon: 'grid', label: 'Tracks' } };
-  return {
-    home: { view: home, icon: 'home', label: 'Today' },
-    ...middle,
-    hero: { view: hero, icon: 'profile', label: 'Hero' },
-  };
-}
+const ROUTES = {
+  home:   { view: home, icon: 'home', label: 'Today' },
+  tracks: { view: tracksView, icon: 'grid', label: 'Tracks' },
+  hero:   { view: hero, icon: 'profile', label: 'Hero' },
+};
 
 let current = 'home';
 const scrollMemory = {};
 
 export function go(name) {
-  const R = routes();
-  // A track hidden inside the Tracks tab is still reachable by name.
-  const target = R[name] ? name : trackById(name) ? name : null;
+  // A track is reached by its id; its page lives under the Tracks tab.
+  const target = ROUTES[name] || trackById(name) ? name : null;
   if (!target) return;
   if (target === current) { $('#view').scrollTo({ top: 0, behavior: 'smooth' }); return; }
   scrollMemory[current] = $('#view').scrollTop;
@@ -48,8 +41,7 @@ export function rerender() { paint({ resetScroll: false }); }
 export const currentRoute = () => current;
 
 function viewFor(name) {
-  const R = routes();
-  if (R[name]) return R[name].view;
+  if (ROUTES[name]) return ROUTES[name].view;
   const t = trackById(name);
   return t && enabledTracks().includes(t.id) ? t.hub : null;
 }
@@ -80,8 +72,9 @@ function nav() {
   // Something left today: the mission on a mission day, the review on a keep-going day.
   const missionTodo = enabledTracks().some(t => (paceInfo(t).missionDay ? !missionDoneToday(t) : !reviewDoneToday(t)));
   const dots = { home: claimable || missionTodo, hero: needsBackup() };
-  return Object.entries(routes()).map(([k, r]) => `
-    <button class="${k === current ? 'on' : ''}" data-nav="${k}" aria-current="${k === current ? 'page' : 'false'}">
+  const here = trackById(current) ? 'tracks' : current;
+  return Object.entries(ROUTES).map(([k, r]) => `
+    <button class="${k === here ? 'on' : ''}" data-nav="${k}" aria-current="${k === here ? 'page' : 'false'}">
       <span class="ico">${icon(r.icon, 22).value}</span>${r.label}
       ${dots[k] ? '<span class="nav-dot"></span>' : ''}
     </button>`).join('');
@@ -114,14 +107,24 @@ function paint({ resetScroll = false } = {}) {
   if (!viewFor(current)) current = 'home';
 
   navEl.classList.remove('hide');
-  navEl.style.gridTemplateColumns = `repeat(${Object.keys(routes()).length}, 1fr)`;
+  navEl.style.gridTemplateColumns = `repeat(${Object.keys(ROUTES).length}, 1fr)`;
   viewEl.style.paddingBottom = '';
   chrome.innerHTML = topbar();
   navEl.innerHTML = nav();
 
   const keep = viewEl.scrollTop;
-  viewEl.replaceChildren(mountView(viewFor(current)));
+  const page = mountView(viewFor(current));
+  if (trackById(current)) page.prepend(backToTracks());
+  viewEl.replaceChildren(page);
   viewEl.scrollTop = resetScroll ? (scrollMemory[current] ?? 0) : keep;
+}
+
+function backToTracks() {
+  const b = document.createElement('button');
+  b.className = 'back-link';
+  b.innerHTML = `${icon('back', 16).value} Tracks`;
+  b.onclick = () => go('tracks');
+  return b;
 }
 
 /** Keep the live timer chip honest without repainting the whole page. */
