@@ -2,7 +2,7 @@
 import {
   S, THEMES, ownsTheme, buyTheme, selectTheme, buyFreeze, FREEZE_COST, progress, gearBonus, statsSnapshot,
   saveProfile, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
-  priorSave, undoImport, backupFilename, markBackup, saveHealthy, linkGithub, unlinkGithub, dayIsActive,
+  priorSave, undoImport, backupFilename, markBackup, saveHealthy, linkGithub, unlinkGithub, dayIsActive, DEGREE_IDS,
 } from '../state.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { LOOT, RARITY, LOOT_CAP } from '../data/loot.js';
@@ -23,6 +23,8 @@ import { seriesChart, calendarGrid } from '../charts.js';
 import { h, raw, esc, bind, sheet, dialog, toast, fmt, hm, confetti, sfx, $, shortDate } from '../ui.js';
 import { canInstall, isInstalled, promptInstall } from '../pwa.js';
 import { APP_VERSION } from '../version.js';
+import { degreeData, degreeMeta } from '../degrees/load.js';
+import { degreeProgress } from '../degrees/model.js';
 
 /* --------------------------------- pieces --------------------------------- */
 
@@ -51,6 +53,14 @@ function trackBadges() {
     cards.push(`<div class="card pad-s rail" style="--rail:var(--acid)"><div class="label">🤖 Robotics</div>
       <div class="h3" style="margin-top:4px">Mission ${roboMission().n} · ${won}/${BOSSES.length} bosses</div>
       <div class="tiny">${verifiedCount()}/${BUILDS.length} builds verified</div></div>`);
+  }
+  for (const id of DEGREE_IDS.filter(trackOn)) {
+    const D = degreeData(id), meta = degreeMeta(id);
+    if (!D) continue;
+    const p = degreeProgress(D, S.tracks[id]);
+    cards.push(`<div class="card pad-s rail" style="--rail:${meta.color}"><div class="label">${meta.icon} ${esc(meta.title)}</div>
+      <div class="h3" style="margin-top:4px">${p.passed}/${p.courses} courses · ${p.credits} credits</div>
+      <div class="tiny">${p.unitsDone}/${p.units} units done</div></div>`);
   }
   return `<div class="grid2">${cards.join('')}</div>`;
 }

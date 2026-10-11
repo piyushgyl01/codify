@@ -1,0 +1,103 @@
+[
+ {
+  "slug": "computer-science",
+  "id": "cs",
+  "icon": "💻",
+  "color": "var(--blue)",
+  "version": "1.2.0",
+  "title": "Computer Science",
+  "short": "CS",
+  "summary": "A rigorous three-year independent-study pathway spanning mathematical foundations, programming, algorithms, systems, data, networks, software engineering, security, AI, human-centered computing, ethics, research, a coherent concentration, and a two-stage defended capstone.",
+  "duration": "3 years · 6 terms",
+  "courses": 34,
+  "units": 272,
+  "terms": 6,
+  "concentrations": [
+   "Intelligent Systems",
+   "Scalable and Secure Systems",
+   "Interactive Applications"
+  ],
+  "concentrationCourses": 6
+ },
+ {
+  "slug": "electrical-engineering",
+  "id": "ee",
+  "icon": "⚡",
+  "color": "var(--yellow)",
+  "version": "1.0.0",
+  "title": "Electrical Engineering",
+  "short": "EE",
+  "summary": "A three-year, laboratory-rich route from mathematical foundations to specialization and a defended senior design project.",
+  "duration": "3 years · 6 semesters",
+  "courses": 37,
+  "units": 592,
+  "terms": 6,
+  "concentrations": [
+   "Chips & Embedded",
+   "Signals, AI & Communications",
+   "Robotics & Control",
+   "Energy & Power"
+  ],
+  "concentrationCourses": 8
+ },
+ {
+  "slug": "mechanical-engineering",
+  "id": "me",
+  "icon": "⚙️",
+  "color": "var(--orange)",
+  "version": "1.0.0",
+  "title": "Mechanical Engineering",
+  "short": "ME",
+  "summary": "A rigorous three-year independent-study pathway across mathematics and physics, solid mechanics and materials, thermodynamics and fluids, heat transfer, dynamics and control, sensing and computation, design and manufacturing, experimentation, reliability, professional practice, a coherent concentration, and a two-stage defended capstone.",
+  "duration": "3 years · 6 terms",
+  "courses": 34,
+  "units": 272,
+  "terms": 6,
+  "concentrations": [
+   "Robotics and Autonomous Systems",
+   "Aerospace and Propulsion",
+   "Sustainable Energy"
+  ],
+  "concentrationCourses": 6
+ },
+ {
+  "slug": "physics",
+  "id": "phys",
+  "icon": "🔭",
+  "color": "var(--violet)",
+  "version": "1.0.0",
+  "title": "Physics",
+  "short": "Physics",
+  "summary": "A rigorous three-year independent-study pathway spanning mathematical methods, classical mechanics, electromagnetism, waves and optics, relativity, quantum mechanics, thermodynamics and statistical physics, scientific computing and inference, experimental physics, research communication, one coherent depth concentration, and a defended senior research thesis.",
+  "duration": "3 years · 6 terms",
+  "courses": 34,
+  "units": 272,
+  "terms": 6,
+  "concentrations": [
+   "Astrophysics and Gravitation",
+   "Quantum Science and Materials",
+   "Particle and Nuclear Physics"
+  ],
+  "concentrationCourses": 6
+ },
+ {
+  "slug": "mathematics",
+  "id": "math",
+  "icon": "∑",
+  "color": "var(--pink)",
+  "version": "1.0.0",
+  "title": "Mathematics",
+  "short": "Mathematics",
+  "summary": "A rigorous three-year independent-study pathway spanning proof and logic, calculus, linear and abstract algebra, analysis, geometry and topology, probability and discrete mathematics, differential equations, optimization, numerical and computational mathematics, mathematical modeling, one coherent pure or applied concentration, and a defended senior research thesis.",
+  "duration": "3 years · 6 terms",
+  "courses": 34,
+  "units": 272,
+  "terms": 6,
+  "concentrations": [
+   "Pure Structures and Number Theory",
+   "Analysis, PDEs, and Mathematical Physics",
+   "Discrete Optimization and Computation"
+  ],
+  "concentrationCourses": 6
+ }
+]

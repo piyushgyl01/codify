@@ -803,3 +803,41 @@ details.explain > summary { padding: var(--s3); }
 .search-field { position:relative; }
 .search-field > svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); pointer-events:none; }
 .search-field .input { padding-left:40px; }
+
+/* -------------------------------- degrees -------------------------------- */
+
+.deg-task .res-name a { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 2px; }
+.deg-produce { margin-top: 4px; }
+.deg-task .linkish { margin-top: 6px; display: inline-block; }
+.deg-prac { padding: 8px 0; gap: 10px; }
+.deg-prac + .deg-prac { border-top: var(--line-thin) solid var(--ink); }
+.deg-courses { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.deg-course {
+  display: block; width: 100%; text-align: left; padding: 10px 12px;
+  background: var(--card); border: var(--line-thin) solid var(--ink); border-radius: var(--radius-s);
+}
+.deg-course:active { transform: translate(1px, 1px); }
+.deg-unit summary { list-style: none; cursor: pointer; }
+.deg-unit summary::-webkit-details-marker { display: none; }
+.deg-unit[open] .chev { transform: rotate(90deg); }
+.deg-unit.done { background: var(--sunk); }
+.deg-tick {
+  width: 30px; height: 30px; flex: none; display: grid; place-items: center;
+  font-weight: 800; font-size: 13px;
+  border: var(--line-thin) solid var(--ink); border-radius: 50%; background: var(--card);
+}
+.deg-tick.on { background: var(--acid); }
+.deg-more { margin-top: 8px; }
+.deg-more summary { cursor: pointer; }
+.deg-rubric { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.deg-crit {
+  display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px;
+  background: var(--sunk); border: var(--line-thin) solid var(--ink); border-radius: var(--radius-s);
+}
+.deg-crit .input { width: 74px; flex: none; text-align: center; }
+.deg-assess.got { background: var(--sunk); }
+.pl-code {
+  margin-top: 12px; padding: 12px 14px; overflow-x: auto;
+  font-family: var(--mono); font-size: 14px; line-height: 1.5; white-space: pre;
+  background: var(--ink); color: var(--paper); border-radius: var(--radius-s);
+}

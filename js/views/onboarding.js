@@ -1,5 +1,5 @@
 /** First run: who you are, which tracks, which accounts, and how long a day is. */
-import { S, saveProfile, linkGithub, TRACK_IDS } from '../state.js';
+import { S, saveProfile, linkGithub, TRACK_IDS, CORE_TRACKS, isDegree } from '../state.js';
 import { TRACKS } from '../tracks/index.js';
 import { linkCodeforces, setDailySolves } from '../tracks/cp/actions.js';
 import { checkHandle } from '../tracks/cp/codeforces.js';
@@ -9,7 +9,7 @@ import { dayKey } from '../game.js';
 import { h, raw, esc, bind, $, confetti, sfx, toast } from '../ui.js';
 
 let step = 0;
-const draft = { name:'', tracks:[...TRACK_IDS], handle:'', github:'', focusGoal:120, solves:2 };
+const draft = { name:'', tracks:[...CORE_TRACKS], handle:'', github:'', focusGoal:120, solves:2 };
 
 const GOALS = [
   { min:60,  name:'One hour',    desc:'Alongside a demanding job.' },
@@ -23,9 +23,11 @@ function splash() {
     <div class="h2" style="margin-top:22px">Tech, as an RPG.</div>
     <p class="sub" style="margin:12px auto 0;max-width:340px">One character that levels up across everything you learn.
       It only pays for what it can check — a judge's verdict, a graded answer, a commit, a timed minute.</p>
-    <div class="stack s2" style="margin-top:20px;text-align:left">${TRACKS.map(t => `
+    <div class="stack s2" style="margin-top:20px;text-align:left">${TRACKS.filter(t => !isDegree(t.id)).map(t => `
       <div class="card pad-s rail" style="--rail:${t.color}"><div class="h3">${t.icon} ${esc(t.name)}</div>
-        <div class="tiny" style="margin-top:2px">${esc(t.tagline)}</div></div>`).join('')}</div>
+        <div class="tiny" style="margin-top:2px">${esc(t.tagline)}</div></div>`).join('')}
+      <div class="card pad-s rail" style="--rail:var(--ink)"><div class="h3">🎓 Five whole degrees</div>
+        <div class="tiny" style="margin-top:2px">${TRACKS.filter(t => isDegree(t.id)).map(t => esc(t.name)).join(' · ')} — every course in order, on free material.</div></div></div>
     <button class="btn primary block" style="margin-top:22px" data-act="next">Start</button>
   </div>`;
 }
@@ -40,8 +42,8 @@ const nameStep = () => h`
 function tracksStep() {
   return `<div class="label">2 of 4</div>
     <div class="h1" style="margin-top:8px">What are you levelling?</div>
-    <p class="sub" style="margin-top:10px">Pick one or both. You can switch tracks on or off any time in Hero — the character stays the same.</p>
-    <div class="stack" style="margin-top:16px">${TRACKS.map(t => `
+    <p class="sub" style="margin-top:10px">Pick any. You can switch tracks on or off any time — the character stays the same.</p>
+    <div class="stack" style="margin-top:16px">${TRACKS.map((t, i) => `${isDegree(t.id) && !isDegree(TRACKS[i - 1]?.id) ? '<div class="label" style="margin-top:8px">Degrees</div>' : ''}
       <button class="card tap opt ${draft.tracks.includes(t.id) ? 'on' : ''}" data-track="${t.id}">
         <div class="between"><div class="h3">${t.icon} ${esc(t.name)}</div><span class="badge">${draft.tracks.includes(t.id) ? '✓ on' : 'off'}</span></div>
         <div class="tiny" style="margin-top:4px">${esc(t.tagline)}</div>

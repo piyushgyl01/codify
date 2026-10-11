@@ -1103,6 +1103,156 @@ group('gear');
   ok('every achievement reads a real stat', Ach.ACHIEVEMENTS.every(a => typeof a.check(snap) === 'boolean'));
 }
 
+/* ================================ degrees ================================= */
+group('degrees: the catalog from Course Atlas');
+const DL = await import('../js/degrees/load.js');
+const DM = await import('../js/degrees/model.js');
+const DA = await import('../js/degrees/actions.js');
+const DP = await import('../js/degrees/practice/index.js');
+await import('../js/degrees/engine.js');
+{
+  const fs = await import('node:fs/promises');
+  for (const d of DL.DEGREES) DL.setDegreeData(d.id, JSON.parse(await fs.readFile(`data/degrees/${d.slug}.json`, 'utf8')));
+  ok('five degrees: CS, EE, ME, Physics and Maths', DL.DEGREES.map(d => d.id).join() === 'cs,ee,me,phys,math');
+  for (const d of DL.DEGREES) {
+    const D = DL.degreeData(d.id), keys = new Set(D.courses.map(c => c.key)), problems = [];
+    for (const c of D.courses) {
+      if (!(c.term >= 0 && c.term < D.terms.length)) problems.push(`${c.key}: term`);
+      if (!c.units.length) problems.push(`${c.key}: no units`);
+      if (!c.assessments.length) problems.push(`${c.key}: no assessments`);
+      if (!c.resources.length || !c.resources.every(r => /^https:\/\//.test(r.url))) problems.push(`${c.key}: resources`);
+      for (const k of [...c.prereqs, ...c.recommended]) if (!keys.has(k)) problems.push(`${c.key}: prereq ${k}`);
+      for (const a of c.assessments) if (a.unit && !c.units.some(u => u.id === a.unit)) problems.push(`${c.key}: ${a.id} unit`);
+      // A prerequisite is taught earlier, never later.
+      for (const k of c.prereqs) if (DM.courseByKey(D, k).term > c.term) problems.push(`${c.key}: ${k} comes later`);
+    }
+    for (const req of D.requirements) for (const o of req.options) if (!keys.has(o.course)) problems.push(`req ${req.title}: ${o.course}`);
+    for (const c of D.concentrations) for (const k of c.courses) if (!keys.has(k)) problems.push(`conc ${c.key}: ${k}`);
+    ok(`${d.title}: ${D.courses.length} courses, every link and prerequisite resolves`, !problems.length, problems.slice(0, 3).join(' | '));
+    ok(`${d.title}: ${D.terms.length} terms, ${D.concentrations.length} concentrations`, D.terms.length === 6 && D.concentrations.length >= 3);
+  }
+  const cs = DL.degreeData('cs');
+  ok('CS carries its weekly assignments', cs.courses.every(c => c.units.every(u => u.weeks?.length === 2)));
+  ok('older Course Atlas ids map onto the newest', Object.keys(cs.aliases).length > 400 && Object.values(cs.aliases).every(v => typeof v === 'string'));
+}
+
+group('degrees: the path, passing a course, prerequisites');
+{
+  const D = DL.degreeData('cs');
+  St.S.tracks.cs = DM.freshDegree(day(30));
+  const r = St.S.tracks.cs;
+  const before = DM.pathCourses(D, r).length;
+  ok('without a concentration the path is the fixed core', before === 28, String(before));
+  ok('the concentration still counts toward the total', DM.degreeProgress(D, r).courses === 30);
+  DA.setConcentration('cs', 'intelligent-systems');
+  ok('choosing a concentration adds its two courses', DM.pathCourses(D, r).length === 30 && DM.pathKeys(D, r).has('computer-vision'));
+  ok('an unknown concentration is refused', !DA.setConcentration('cs', 'made-up'));
+  const p1 = DM.courseByKey(D, 'programming-1'), ds = DM.courseByKey(D, 'data-structures');
+  ok('the first course is open, its follow-on is locked', DM.courseStatus(D, r, p1).state === 'not-started' && DM.courseStatus(D, r, ds).state === 'locked');
+  let next = DM.nextTasks(D, r);
+  const open1 = DM.termCourses(D, r, 0).filter(c => !c.prereqs.length).map(c => c.key);
+  ok('next up starts with week 1 of every open Term 1 course', next.map(t => t.course.key).join() === open1.join() && next.every(t => t.kind === 'week' && t.week.week === 1));
+  ok('a Term 1 course that builds on another waits for it', DM.lockedNow(D, r).every(c => c.prereqs.length && c.term === 0));
+  DA.toggleWeek('cs', p1.units[0].id, 1);
+  next = DM.nextTasks(D, r);
+  ok('ticking a week moves that course on to the next', next.find(t => t.course.key === 'programming-1').week.week === 2);
+  DA.toggleWeek('cs', p1.units[0].id, 2);
+  ok('both weeks ticked finishes the unit', DM.unitDone(r, p1.units[0]));
+  DA.toggleUnit('cs', p1.units[0].id);
+  ok('unticking a unit unticks its weeks', !DM.unitDone(r, p1.units[0]) && !DM.weekDone(r, p1.units[0], p1.units[0].weeks[0]));
+  for (const u of p1.units) DA.toggleUnit('cs', u.id);
+  ok('all units done: assessments are what is left', DM.courseStatus(D, r, p1).state === 'assessments' && DM.nextTasks(D, r).find(t => t.course.key === 'programming-1').kind === 'assessment');
+  const [mid, fin] = p1.assessments;
+  const full = a => Object.fromEntries(a.rubric.map(x => [x.criterion, x.points]));
+  const low = a => Object.fromEntries(a.rubric.map(x => [x.criterion, Math.floor(x.points * 0.4)]));
+  DA.markAssessment('cs', mid.id, { points: full(mid) });
+  ok('a rubric mark adds its lines up', r.assessments[mid.id].score === mid.rubric.reduce((n, x) => n + x.points, 0));
+  DA.markAssessment('cs', fin.id, { points: low(fin) });
+  ok('a required assessment below its pass mark holds the course back', !DM.courseStatus(D, r, p1).passed && DM.courseStatus(D, r, p1).state === 'retry');
+  DA.markAssessment('cs', fin.id, { points: { ...full(fin), [fin.rubric[0].criterion]: 999 } });
+  ok('points are clamped to what a line allows', r.assessments[fin.id].score === fin.rubric.reduce((n, x) => n + x.points, 0));
+  ok('everything done and over the bar: the course passes, and the day is recorded', DM.courseStatus(D, r, p1).passed && !!r.passed['programming-1']);
+  ok('a passed prerequisite opens the next course', DM.courseStatus(D, r, ds).state !== 'locked' || DM.missingPrereqs(D, r, ds).every(c => c.key !== 'programming-1'));
+  DA.clearAssessment('cs', fin.id);
+  ok('clearing a mark un-passes the course', !DM.courseStatus(D, r, p1).passed && !r.passed['programming-1']);
+  const os = DM.courseByKey(D, 'operating-systems');
+  DA.waive('cs', 'operating-systems');
+  ok('"I already know it" unlocks a course', DM.missingPrereqs(D, r, os).length === 0);
+  DA.waive('cs', 'operating-systems', false);
+  ok('…and undoing it locks it again', DM.missingPrereqs(D, r, os).length > 0);
+  const p = DM.projection(D, r, G.dayKey());
+  DA.setHours('cs', 30);
+  ok('a faster pace finishes sooner', DM.projection(D, r, G.dayKey()).weeks < p.weeks);
+  const ee = DL.degreeData('ee'), er = DM.freshDegree(G.dayKey());
+  const c1 = ee.courses[0];
+  for (const u of c1.units) er.units[u.id] = G.dayKey();
+  for (const a of c1.assessments) er.assessments[a.id] = { score: 90, max: a.max, day: G.dayKey() };
+  ok('a degree without rubrics passes on single scores', DM.courseStatus(ee, er, c1).passed);
+  ok('nothing about ticking or marking paid XP', St.S.xp === St.S.xp && !Object.keys(G.XP).includes('degreeTick'));
+}
+
+group('degrees: practice the app marks');
+{
+  const missing = [...new Set(Object.values(DP.COURSE_PRACTICE).flat())].filter(id => !SB.skillById(id));
+  ok('every practice skill exists', !missing.length, missing.join(', '));
+  ok('every practice key names a real course', Object.keys(DP.COURSE_PRACTICE).every(k => { const [id, key] = k.split('/'); return !!DM.courseByKey(DL.degreeData(id), key); }));
+  ok('every Programming I unit has practice', DM.courseByKey(DL.degreeData('cs'), 'programming-1').units.every(u => DP.unitPractice(u.id).length));
+  const rng = Q.seeded(21);
+  let wrong = [];
+  for (const s of DP.PYTHON_SKILLS) for (let i = 0; i < 25; i++) {
+    const q = Q.generate(s.id, rng);
+    if (!Q.grade(q, rightAnswer(q)).correct) wrong.push(s.id);
+    if (Q.grade(q, wrongAnswer(q)).correct) wrong.push(`${s.id} (wrong accepted)`);
+  }
+  ok('18 Python skills, every answer graded right', DP.PYTHON_SKILLS.length === 18 && !wrong.length, [...new Set(wrong)].join(', '));
+  let ran = 0, mismatch = [];
+  try {
+    const { execFileSync } = await import('node:child_process');
+    for (const s of DP.PYTHON_SKILLS) for (let i = 0; i < 6; i++) {
+      const q = Q.generate(s.id, rng);
+      if (!q.python) continue;
+      const out = execFileSync('python3', ['-c', q.python], { encoding: 'utf8', timeout: 5000 }).trim();
+      const want = q.kind === 'mc' ? q.options[q.correct] : String(q.answer);
+      ran++;
+      if (out !== want && !(q.kind === 'num' && near(Number(out), q.answer, 1e-9))) mismatch.push(`${s.id}: ${out} ≠ ${want}`);
+    }
+  } catch { /* no python3 here: the in-code answers are still checked above */ }
+  if (ran) ok(`real Python agrees with every answer (${ran} programs run)`, !mismatch.length, mismatch.slice(0, 2).join(' | '));
+
+  St.S.active = null;
+  const ids = DP.coursePractice('cs', 'programming-1').slice(0, 2), xp0 = St.S.xp;
+  const a = E.startCheck('cs', ids, { key: 'course:programming-1', label: 'CS101 check' }, G.dayKey(), Q.seeded(4));
+  ok('a course check starts with its skills', a && a.mode === 'check' && a.groups.map(g => g.skill).join() === ids.join());
+  while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()));
+  const sum = E.finishSession();
+  ok('all right: every skill levels up and it pays', sum.groups.every(g => g.move > 0) && St.S.xp > xp0);
+  ok('the level lands in the degree, not another track', E.skillLevel('cs', ids[0]) === 2);
+  ok('one check a day for the same course', E.startCheck('cs', ids, { key: 'course:programming-1', label: 'x' }) === null && E.checkDoneToday('cs', 'course:programming-1'));
+  ok('a degree check keeps the streak alive', St.dayIsActive());
+  ok('due and new skills come first', E.pickCheck('cs', DP.coursePractice('cs', 'programming-1')).every(id => !ids.includes(id)));
+}
+
+group('degrees: importing Course Atlas progress');
+{
+  const D = DL.degreeData('cs');
+  St.S.tracks.cs = DM.freshDegree(G.dayKey());
+  const oldUnit = Object.keys(D.aliases).find(k => k.startsWith('unt_') && D.aliases[k] === DM.courseByKey(D, 'programming-1').units[0].id);
+  const programVersionId = D.programIds.at(-1);
+  const envelope = { guest: { programs: { [programVersionId]: {
+    courses: { x: { completedUnitIds: [oldUnit, 'unt_unknown'], updatedAt: '2026-09-01T10:00:00Z' } },
+    selectedConcentrationId: Object.keys(D.aliases).find(k => D.aliases[k] === 'scalable-secure-systems'),
+    enrollment: { startDate: '2026-08-20', paceHoursPerWeek: 22 },
+  } } } };
+  const file = JSON.stringify({ format: 'course-atlas-progress-backup', version: 1, exportedAt: '2026-10-01T00:00:00Z', entries: { 'course-atlas-progress-v3': JSON.stringify(envelope) } });
+  const res = DA.importAtlas(file);
+  const r = St.S.tracks.cs;
+  ok('a Course Atlas backup is read', res.ok && res.found.cs.units === 1, JSON.stringify(res));
+  ok('an older unit id lands on the newest unit', DM.unitDone(r, DM.courseByKey(D, 'programming-1').units[0]));
+  ok('the concentration, pace and start come across', r.concentration === 'scalable-secure-systems' && r.hours === 22 && r.start === '2026-08-20');
+  ok('the degree is switched on', St.S.profile.tracks.includes('cs'));
+  ok('a file that is not a backup is refused', !DA.importAtlas('{"hello":1}').ok && !DA.importAtlas('nope').ok);
+}
+
 /* ================================ shipping ================================ */
 group('shipping');
 {

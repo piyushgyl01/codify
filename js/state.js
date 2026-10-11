@@ -6,6 +6,8 @@
  *   Programming   solves read from Codeforces, which does not care what you typed
  *   Robotics      answers graded in code; builds verified against your GitHub
  *   Shared        minutes the app's own timer measured; commits read from GitHub
+ *   Degrees       practice checks the app marks itself; the rest — units ticked,
+ *                 assessments you mark — moves you along the map and pays nothing
  *
  * There is no field anywhere to type in minutes or claim a solve. Things you
  * choose — a direction, a reading list — are recorded, and pay nothing.
@@ -20,11 +22,17 @@ import { dayKey, daysBetween, levelFromXp, newlyEarned, XP } from './game.js';
 import * as cpModel from './tracks/cp/model.js';
 import * as roboModel from './tracks/robotics/model.js';
 import * as aiModel from './tracks/ai/model.js';
+import { DEGREE_IDS } from './degrees/load.js';
+import { freshDegree } from './degrees/model.js';
 
 const SAVE_KEY = 'codify.save.v1';     // unchanged, so an existing Codify save upgrades in place
 const BACKUP_KEY = 'codify.save.prior';
 
-export const TRACK_IDS = ['cp', 'robotics', 'ai'];
+/** The three original tracks, then the five degrees from Course Atlas. */
+export const CORE_TRACKS = ['cp', 'robotics', 'ai'];
+export { DEGREE_IDS };
+export const TRACK_IDS = [...CORE_TRACKS, ...DEGREE_IDS];
+export const isDegree = id => DEGREE_IDS.includes(id);
 
 /* --------------------------------- themes --------------------------------- */
 
@@ -65,14 +73,14 @@ const freshRobotics = () => ({ start: dayKey(), direction:null, skills:{}, build
 
 const freshSave = () => ({
   v: 3,
-  profile: { name:'', theme:'lime', focusGoal:120, tracks:[...TRACK_IDS], onboarded:false, created: dayKey() },
+  profile: { name:'', theme:'lime', focusGoal:120, tracks:[...CORE_TRACKS], onboarded:false, created: dayKey() },
   xp: 0, coins: 0,
   streak: { current:0, best:0, lastActive:null, freezes:1 },
   days: {},
   timer: null,                // { start, day, tag } — the one focus timer
   active: null,               // an unfinished robotics mission, practice set or boss fight
   github: { user:'', avatar:null, pushes:[], syncedAt:0, error:'', credited:{} },
-  tracks: { cp: freshCp(), robotics: freshRobotics(), ai: freshAi() },
+  tracks: { cp: freshCp(), robotics: freshRobotics(), ai: freshAi(), ...Object.fromEntries(DEGREE_IDS.map(id => [id, freshDegree(dayKey())])) },
   earned: {}, owned: [], loot: {},
   stats: {
     xpEarned:0, quests:0, timerMin:0, sessions:0, commits:0, pushes:0,
@@ -122,9 +130,17 @@ function mergeV3(o) {
       cp:       { ...base.tracks.cp,       ...(o.tracks?.cp       || {}) },
       robotics: toFourMonths({ ...base.tracks.robotics, ...(o.tracks?.robotics || {}), plan: o.tracks?.robotics?.plan }),
       ai:       { ...base.tracks.ai,       ...(o.tracks?.ai       || {}) },
+      ...Object.fromEntries(DEGREE_IDS.map(id => [id, { ...base.tracks[id], ...(o.tracks?.[id] || {}) }])),
     },
     ...withAi(o),
+    ...withDegrees(o),
   };
+}
+
+/** The degrees arrived later: an existing character hears about them once. They start switched off. */
+function withDegrees(o) {
+  if (o.tracks?.cs || !o.profile?.onboarded || o.notice === 'ai' || !o.tracks?.ai) return {};
+  return { notice: 'degrees' };
 }
 
 /** The AI track arrived later: an existing character gets it switched on, once, with a note saying so. */
@@ -409,6 +425,7 @@ export function dayIsActive(key = today()) {
   return cpModel.solvesOn(S.tracks.cp, key).length >= 1
     || !!day?.robotics?.check || !!day?.robotics?.mission || !!day?.robotics?.drill || !!day?.robotics?.review
     || !!day?.code?.check || !!day?.code?.review || !!day?.ai?.check || !!day?.ai?.review
+    || DEGREE_IDS.some(id => !!day?.[id]?.check)
     || commitsOn(key) >= 1
     || (day?.timerMin || 0) >= 20;
 }
@@ -418,7 +435,8 @@ export function statsSnapshot() {
   const roSnap = roboModel.snapshot(S.tracks.robotics);
   const aiSnap = aiModel.snapshot(S.tracks.ai);
   const tracksActive = (S.stats.solved > 0 ? 1 : 0) + (S.stats.drills > 0 || roSnap.builds > 0 ? 1 : 0) + (aiSnap.aiMissions > 0 ? 1 : 0);
-  return { ...S.stats, ...cpSnap, ...roSnap, ...aiSnap, level: progress().level, bestStreak: S.streak.best, tracksActive };
+  const coursesPassed = DEGREE_IDS.reduce((n, id) => n + Object.keys(S.tracks[id]?.passed || {}).length, 0);
+  return { ...S.stats, ...cpSnap, ...roSnap, ...aiSnap, level: progress().level, bestStreak: S.streak.best, tracksActive, coursesPassed };
 }
 
 /* --------------------------------- quests --------------------------------- */

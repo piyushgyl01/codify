@@ -41,7 +41,13 @@ function notices() {
     <div class="h3" style="margin-top:6px">🧠 AI: 240 missions, from the maths to the frontier</div>
     <div class="sub" style="margin-top:4px">It's switched on. Pick its pace in the AI tab, or turn it off in Hero → Tracks.</div>
   </div>`;
-  if (needsBackup()) out += `<div class="card warn-card"><div class="between"><div class="grow"><div class="h3">Back up your progress</div>
+  if (S.notice === 'degrees') out += `<div class="card notice">
+    <div class="between"><span class="label">New</span><button class="btn xs" data-act="dismiss">Got it</button></div>
+    <div class="h3" style="margin-top:6px">🎓 Five whole degrees are here</div>
+    <div class="sub" style="margin-top:4px">Computer Science, Electrical and Mechanical Engineering, Physics and Maths — every course in order, on free material. Add one from Tracks.</div>
+    <button class="btn sm" style="margin-top:10px" data-go="tracks">See the degrees</button>
+  </div>`;
+    if (needsBackup()) out += `<div class="card warn-card"><div class="between"><div class="grow"><div class="h3">Back up your progress</div>
       <div class="tiny">It only lives in this browser.</div></div>
       <button class="btn sm" data-act="backup">Back up</button></div></div>`;
   return out;

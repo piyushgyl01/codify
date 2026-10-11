@@ -57,6 +57,17 @@ export function openBoss(month, rerender, track = 'robotics') {
   sfx('start'); run(rerender);
 }
 
+/** A degree course's or unit's check: chosen skills, marked by the app, levels moving as in a mission. */
+export function openCheck(track, ids, { key, label }, rerender) {
+  const a = S.active;
+  if (a && !(a.track === track && a.mode === 'check' && a.key === key)) return busy(rerender);
+  if (!a && !E.startCheck(track, ids, { key, label })) {
+    toast(E.checkDoneToday(track, key) ? 'Checked today already — it comes back tomorrow.' : 'Nothing to check here yet.');
+    return;
+  }
+  sfx('start'); run(rerender);
+}
+
 export function resumeSession(rerender) { if (S.active) run(rerender); }
 
 export const clock = s => `${Math.floor(s / 60)}:${String(Math.round(s) % 60).padStart(2, '0')}`;
@@ -114,11 +125,13 @@ function run(rerender) {
   function top(a) {
     const title = a.mode === 'mission' ? `Mission ${a.n}`
       : a.mode === 'review' ? 'Review'
+      : a.mode === 'check' ? a.label || 'Check'
       : a.mode === 'testout' ? `Test out of week ${a.week}`
       : a.mode === 'practice' ? skillById(a.skill)?.name || 'Practice'
       : (a.boss || bossFor(a.month)).name;
     const label = a.mode === 'mission' ? 'Prove it'
       : a.mode === 'review' ? 'Keep-going day'
+      : a.mode === 'check' ? 'Check · marked by the app'
       : a.mode === 'testout' ? `${E.TEST_OUT.pass} of ${a.qs.length} right skips the week`
       : a.mode === 'practice' ? 'Practice · no clock, no levels' : a.mission ? `Mission ${a.mission} · part ${a.month} boss` : `Part ${a.month} boss`;
     const count = a.mode === 'boss' ? `${a.asked + (phase === 'ask' ? 1 : 0)}/${a.questions}`
@@ -137,10 +150,10 @@ function run(rerender) {
       const segs = a.qs.map((q, i) => {
         const r = a.results[i];
         const cls = r ? (r.correct ? 'ok' : 'miss') : i === a.i && phase === 'ask' ? 'now' : '';
-        const gap = (a.mode === 'mission' || a.mode === 'review') && i && q.grp !== a.qs[i - 1].grp ? ' gap' : '';
+        const gap = (a.mode === 'mission' || a.mode === 'review' || a.mode === 'check') && i && q.grp !== a.qs[i - 1].grp ? ' gap' : '';
         return `<i class="${cls}${gap}"></i>`;
       }).join('');
-      const timed = a.mode === 'mission' || a.mode === 'review' || a.mode === 'testout';
+      const timed = a.mode === 'mission' || a.mode === 'review' || a.mode === 'check' || a.mode === 'testout';
       const clockBar = timed && phase === 'ask'
         ? `<div class="pl-timebox"><div class="pl-clock"><i data-clock></i></div><div class="tiny num" data-left></div></div>` : '';
       return `<div class="pl-segs">${segs}</div>${timed ? clockBar : combo}`;
@@ -164,14 +177,17 @@ function run(rerender) {
   }
 
   function questionHead(a, q) {
-    const skill = skillById(q.skill), month = monthOf(a.track, skill.month);
-    const g = a.mode === 'mission' || a.mode === 'review' ? a.groups[q.grp] : null;
+    const skill = skillById(q.skill), cfg = E.trackCfg(a.track), month = cfg.kind === 'degree' ? null : monthOf(a.track, skill.month);
+    const g = a.mode === 'mission' || a.mode === 'review' || a.mode === 'check' ? a.groups[q.grp] : null;
     const lvl = g ? `<span class="badge solid">${g.isNew ? 'New' : `Level ${g.level}`}</span>` : '';
+    const tag = month ? `<span class="badge" style="background:${month.color}">P${month.n}</span>`
+      : `<span class="badge" style="background:${cfg.color || 'var(--card)'}">${esc(cfg.short || cfg.name || '')}</span>`;
     return `<div class="row" style="gap:8px;flex-wrap:wrap">
-        <span class="badge" style="background:${month.color}">P${month.n}</span>
+        ${tag}
         <span class="tiny">${esc(skill.name)}</span>${lvl}
       </div>
-      <div class="pl-question">${esc(q.q)}</div>`;
+      <div class="pl-question">${esc(q.q)}</div>
+      ${q.code ? `<pre class="pl-code">${esc(q.code)}</pre>` : ''}`;
   }
 
   function body(a) {
@@ -269,7 +285,7 @@ function run(rerender) {
   function wire(a) {
     el.querySelector('[data-x]').onclick = () => {
       if (a.mode === 'practice') { clearInterval(tick); close(); rerender(); toast('Paused — pick it up from Today.'); return; }
-      if (a.mode === 'mission' || a.mode === 'review' || a.mode === 'testout') {
+      if (a.mode === 'mission' || a.mode === 'review' || a.mode === 'check' || a.mode === 'testout') {
         dialog(`<div class="h2">Pause?</div>
           <p class="sub" style="margin:10px 0 18px">This question's clock keeps running while you are away.</p>
           <button class="btn primary block" data-no>Keep going</button>
@@ -324,7 +340,7 @@ function run(rerender) {
 
   function celebrate(s) {
     if (!s) return;
-    const big = ((s.mode === 'mission' || s.mode === 'review') && (s.perfect || s.groups.some(g => g.move > 0))) || (s.mode === 'boss' && s.won) || (s.mode === 'testout' && s.passed);
+    const big = ((s.mode === 'mission' || s.mode === 'review' || s.mode === 'check') && (s.perfect || s.groups.some(g => g.move > 0))) || (s.mode === 'boss' && s.won) || (s.mode === 'testout' && s.passed);
     if (big) { confetti(s.mode === 'boss' ? 160 : 100); sfx('reward'); }
     rewardToast(s.reward);
   }
@@ -348,6 +364,10 @@ function run(rerender) {
       glyph = s.perfect ? '💯' : s.ups ? '📈' : '✓';
       title = 'Review done';
       line = `${s.score}/${s.total} right${s.ups ? ` · ${s.ups} skill${s.ups === 1 ? '' : 's'} levelled up` : ''}. The next mission comes at your pace.`;
+    } else if (s.mode === 'check') {
+      glyph = s.perfect ? '💯' : s.ups ? '📈' : '✓';
+      title = `${s.label || 'Check'} done`;
+      line = `${s.score}/${s.total} right${s.ups ? ` · ${s.ups} skill${s.ups === 1 ? '' : 's'} levelled up` : ''}. It comes back as the skills fall due.`;
     } else if (s.mode === 'testout') {
       glyph = s.passed ? '⏭️' : '✕'; cls = s.passed ? '' : 'lost';
       title = s.passed ? `Week ${s.week} skipped` : `${s.score} / ${s.total}`;
@@ -363,7 +383,7 @@ function run(rerender) {
         <div class="grow"><div class="label">${esc(RARITY[s.drop.rarity].name)} drop</div>
           <div class="h3">${esc(s.drop.name)}</div>
           <div class="tiny">${s.drop.dupe ? `Already owned — converted to ${s.drop.credit} credits` : `+${Math.round(s.drop.bonus * 100)}% XP, permanently`}</div></div></div></div>` : '';
-    const rows = s.mode === 'mission' || s.mode === 'review' ? s.groups.map(g => `<div class="res-row">
+    const rows = s.mode === 'mission' || s.mode === 'review' || s.mode === 'check' ? s.groups.map(g => `<div class="res-row">
         <div class="between"><span class="h3 truncate">${esc(skillById(g.skill).name)}</span>
           <span class="badge ${g.move > 0 ? 'good' : g.move < 0 ? 'warn' : ''}">${g.move > 0 ? `▲ ${g.to}` : g.move < 0 ? `▼ ${g.to}` : `= ${g.to}`}</span></div>
         <div class="tiny">${g.right}/${g.n} in ${clock(g.secs)} · ${esc(versus(g))}</div></div>`).join('')

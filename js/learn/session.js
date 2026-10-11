@@ -48,6 +48,7 @@ const dayField = track => DAY_FIELD[track] || track;
 
 export const emptyCounters = () => ({
   mission: null, drill: null, answered: 0, correct: 0, bestRun: 0, ups: 0, practiceCorrect: 0, practiceXp: 0, check: null, review: null,
+  checks: {},   // degree checks finished today, by what they checked: { key: { score, total, ups } }
 });
 
 /** A day's numbers for a track, created on first use and filled in place — every caller holds the same object. */
@@ -236,6 +237,40 @@ export function startReview(track, key = today(), rng = Math.random) {
   return S.active;
 }
 
+/* ------------------------------ degree checks ------------------------------ */
+
+/**
+ * A check on a chosen set of skills — a degree course's or unit's practice.
+ * Levels move exactly as in a mission's check, and it pays like a review.
+ * One a day for each thing checked; `key` names it ("course:…", "unit:…").
+ */
+export const checkDoneToday = (track, key, day = today()) => !!counters(track, day).checks?.[key];
+
+export function startCheck(track, ids, { key, label }, day = today(), rng = Math.random) {
+  if (S.active) return S.active;
+  if (!ids.length || checkDoneToday(track, key, day)) return null;
+  const r = slice(track), qs = [], groups = [];
+  for (const id of ids) {
+    const e = r.skills?.[id], level = Math.max(1, levelOf(e)), round = roundFor(level);
+    groups.push({ skill: id, level, from: levelOf(e), n: round.n, start: qs.length, prev: lastRound(e), isNew: !levelOf(e) });
+    for (let k = 0; k < round.n; k++) {
+      const q = generate(id, rng);
+      qs.push({ ...q, grp: groups.length - 1, secs: round.secs[q.kind] || round.secs.num });
+    }
+  }
+  S.active = { mode:'check', track, key, label, day, i:0, run:0, best:0, xp:0, qs, groups, results: [], shown: -1 };
+  emit('session');
+  return S.active;
+}
+
+/** Which of a set of skills to check today: what is due or new first, then the weakest, about one level's worth. */
+export function pickCheck(track, ids, key = today(), max = 3) {
+  const st = slice(track).skills || {};
+  const due = ids.filter(id => !levelOf(st[id]) || (st[id].due && st[id].due <= key));
+  const rest = ids.filter(id => !due.includes(id)).sort((a, b) => levelOf(st[a]) - levelOf(st[b]));
+  return [...due, ...rest].slice(0, max);
+}
+
 /* --------------------------------- test out ------------------------------- */
 
 /** Six questions across a week's skills at level 4. Five right skips the rest of the week. */
@@ -313,7 +348,7 @@ export function answer(input, rng = Math.random) {
   if (res.correct) { day.correct += 1; S.stats.correct += 1; }
 
   let xp = 0, dmg = 0, round = null;
-  if (a.mode === 'mission' || a.mode === 'review') {
+  if (a.mode === 'mission' || a.mode === 'review' || a.mode === 'check') {
     const g = a.groups[q.grp];
     if (res.correct) xp = XP.right + Math.ceil(g.level / 2);
     const mine = [...a.results.filter(x => x.grp === q.grp), { correct: res.correct, secs }];
@@ -397,6 +432,14 @@ export function finishSession(rng = Math.random) {
     reward = award(a.xp + XP.reviewDone, 2 + right, 'Review');
     touchStreak(a.day);
     extra = { score: right, total, ups, groups: a.groups, perfect: right === total };
+  } else if (a.mode === 'check') {
+    const total = a.qs.length, ups = a.groups.filter(g => g.move > 0).length;
+    const c = counters(a.track, a.day);
+    c.checks = { ...(c.checks || {}), [a.key]: { score: right, total, ups } };
+    c.check = c.check || { score: right, total, ups };
+    reward = award(a.xp + XP.reviewDone, 2 + right, a.label || 'Check');
+    touchStreak(a.day);
+    extra = { score: right, total, ups, groups: a.groups, perfect: right === total, label: a.label };
   } else if (a.mode === 'testout') {
     const t = P.testOutFor(r, cfg.plan, a.week), passed = right >= TEST_OUT.pass;
     r.testouts = { ...(r.testouts || {}), [a.week]: { day: a.day, right, total: a.qs.length, passed } };

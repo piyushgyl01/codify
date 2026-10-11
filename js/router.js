@@ -5,7 +5,7 @@
  * opens from Today's card or from the Tracks tab, and its page sits under
  * Tracks with a way back.
  */
-import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks } from './state.js';
+import { S, progress, quests, getDay, needsBackup, timerRunning, timerMinutes, MAX_SESSION_MIN, enabledTracks, isDegree } from './state.js';
 import { missionDoneToday, reviewDoneToday, paceInfo } from './learn/session.js';
 import { TRACKS, trackById } from './tracks/index.js';
 import { icon } from './icons.js';
@@ -70,7 +70,8 @@ function nav() {
   const day = getDay();
   const claimable = quests().some(q => q.done && !day.claimed.includes(q.id));
   // Something left today: the mission on a mission day, the review on a keep-going day.
-  const missionTodo = enabledTracks().some(t => (paceInfo(t).missionDay ? !missionDoneToday(t) : !reviewDoneToday(t)));
+  // Degrees have no daily mission, so they never hold the dot up.
+  const missionTodo = enabledTracks().filter(t => !isDegree(t)).some(t => (paceInfo(t).missionDay ? !missionDoneToday(t) : !reviewDoneToday(t)));
   const dots = { home: claimable || missionTodo, hero: needsBackup() };
   const here = trackById(current) ? 'tracks' : current;
   return Object.entries(ROUTES).map(([k, r]) => `
@@ -114,7 +115,8 @@ function paint({ resetScroll = false } = {}) {
 
   const keep = viewEl.scrollTop;
   const page = mountView(viewFor(current));
-  if (trackById(current)) page.prepend(backToTracks());
+  // A page with its own way back (a degree's course) does not need a second one.
+  if (trackById(current) && !page.querySelector('[data-close-course]')) page.prepend(backToTracks());
   viewEl.replaceChildren(page);
   viewEl.scrollTop = resetScroll ? (scrollMemory[current] ?? 0) : keep;
 }

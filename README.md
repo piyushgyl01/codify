@@ -5,13 +5,14 @@ from calisthenics into gym, diet and the rest of fitness, Codify is one game wit
 **tracks** — separate skill areas that share a single level, streak, timer, gear
 collection, quest board and backup.
 
-Three tracks today:
+Three tracks, and five whole degrees:
 
 | Track | What it is | What checks your work |
 |---|---|---|
 | ⌨️ **Programming** | A four-month DSA plan: 120 daily missions, and a contest each month | Graded answers, and accepted submissions on Codeforces |
 | 🤖 **Robotics** | A four-month roadmap to robotics engineer: 120 daily missions, and a boss each month | Graded answers, and builds verified on your GitHub |
 | 🧠 **AI** | From the maths underneath to the research frontier: 240 missions in eight parts, a boss and a paper reproduction in each | Graded answers, builds verified on GitHub or Hugging Face, and a weekly frontier log |
+| 🎓 **Degrees** | Computer Science, Electrical Engineering, Mechanical Engineering, Physics and Mathematics — 173 courses in six terms each, from Course Atlas | Practice checks the app marks, and the focus timer; the coursework itself is yours to tick and mark |
 
 Every track runs on the same frame. Every day is one **mission** with three steps —
 **learn** one idea, **prove it** in a timed check, then **do** something a machine can
@@ -171,6 +172,34 @@ the day's links — and asks the model to find out what you know, teach in small
 you do the thinking, not invent links, and quiz you before the app does. It is built from
 the plan, so it is right for any day on any track.
 
+### 🎓 Degrees
+
+The five degrees from **Course Atlas** (`model_uni`) live here now: every course of each
+degree, in the order a university teaches it, each built on free material from MIT,
+Stanford, Harvard, Berkeley and others.
+
+- **The path:** six terms of courses, prerequisites respected, plus a concentration you
+  choose (two courses that go deep). A course whose prerequisite is not passed is locked;
+  if you already know the material, unlock it yourself.
+- **The classroom:** each course has its free resources (with their licences), a first
+  action, setup, units of work — Computer Science has two exact weekly assignments per unit,
+  saying what to read or watch and what to produce — and assessments with rubrics and pass marks.
+- **This week:** the next piece of work in every course you are taking now, with a tick box.
+- **Passing:** a course passes when its units are done and its assessments, marked against
+  their rubrics, clear the bar the course sets. The Record tab is your transcript.
+- **What pays:** ticking work and marking assessments is your own account and pays nothing.
+  What pays is what the app can check: **practice checks** — Programming I's eighteen Python
+  skills (ported from Course Atlas, every answer verified by running real Python in the
+  tests), and Codify's own skills wherever a course teaches the same thing (linear algebra,
+  circuits, algorithms, probability, machine learning, control…) — and time on the **focus
+  timer**, which can be tagged with any course you are in.
+- **Coming from Course Atlas:** Record → *Load a Course Atlas backup* reads the progress
+  file its footer saves: finished units, assessment scores, concentration and pace.
+
+The catalog is imported, not hand-copied: `node tools/import-atlas.mjs <dir>` reads a
+`npm run catalog:export` from model_uni and writes `data/degrees/*.json`, which the app
+loads the first time a degree is opened.
+
 ## Shared across tracks
 
 - **Level** on one curve (`50 × level^1.2`) and a career-ladder rank:
@@ -187,7 +216,7 @@ the plan, so it is right for any day on any track.
   from robotics. Each is a permanent XP bonus, capped at +40% in total.
 - **Achievements, streak freezes, accents, backup.**
 
-The nav is three tabs however many tracks there are: **Today**, **Tracks**, **Hero**. Today
+The nav is three tabs however many tracks and degrees there are: **Today**, **Tracks**, **Hero**. Today
 has a card for each track you are doing; the Tracks tab lists yours (with where you are and
 whether today is done), adds or removes one, and gets a search box once there are enough to
 need it. Removing a track keeps its progress.

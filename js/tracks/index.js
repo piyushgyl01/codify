@@ -12,6 +12,7 @@ import * as roHub from './robotics/hub.js';
 import * as roToday from './robotics/today.js';
 import * as aiHub from './ai/hub.js';
 import * as aiToday from './ai/today.js';
+import { DEGREE_TRACKS } from '../degrees/index.js';
 
 export const TRACKS = [
   { id:'cp', name:'Programming', nav:'Code', icon:'🧩', navIcon:'code', color:'var(--blue)',
@@ -23,6 +24,7 @@ export const TRACKS = [
   { id:'ai', name:'AI', nav:'AI', icon:'🧠', navIcon:'spark', color:'var(--violet)',
     tagline:'240 missions in eight parts, from the maths to the frontier: learn, prove it, build, and reproduce a paper each part.',
     checks:'graded answers, and builds on GitHub and Hugging Face', hub: aiHub, today: aiToday },
+  ...DEGREE_TRACKS,
 ];
 
 export const trackById = id => TRACKS.find(t => t.id === id) || null;
