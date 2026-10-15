@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v13';
+const CACHE_VERSION = 'v14';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -30,11 +30,17 @@ const CORE = [
   './js/data/loot.js',
   './js/data/quests.js',
   './js/degrees/actions.js',
+  './js/degrees/curriculum/cs-term1.js',
   './js/degrees/engine.js',
   './js/degrees/index.js',
   './js/degrees/load.js',
   './js/degrees/meta.js',
   './js/degrees/model.js',
+  './js/degrees/practice/calculus.js',
+  './js/degrees/practice/csystems.js',
+  './js/degrees/practice/discrete.js',
+  './js/degrees/practice/python-extra.js',
+  './js/degrees/practice/writing.js',
   './js/degrees/practice/index.js',
   './js/degrees/practice/python-source.js',
   './js/degrees/views.js',

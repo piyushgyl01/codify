@@ -9,6 +9,12 @@
  * that fits yet have no practice; their work is the course's own.
  */
 import { PYTHON_FUNDAMENTALS } from './python-source.js';
+import { PYTHON_EXTRA } from './python-extra.js';
+import { DISCRETE } from './discrete.js';
+import { CALCULUS } from './calculus.js';
+import { CSYSTEMS } from './csystems.js';
+import { WRITING } from './writing.js';
+import { CS_TERM1 } from '../curriculum/cs-term1.js';
 
 /** A Course Atlas question, in Codify's shape. Multiple choice puts the right answer first. */
 function adapt(skill) {
@@ -29,6 +35,9 @@ function adapt(skill) {
 
 export const PYTHON_SKILLS = PYTHON_FUNDAMENTALS.map(adapt);
 const PY = PYTHON_SKILLS.map(s => s.id);
+
+/** Every skill written for the degrees, beyond the ones they borrow from Codify's tracks. */
+export const DEGREE_SKILLS = [...PYTHON_SKILLS, ...PYTHON_EXTRA, ...DISCRETE, ...CALCULUS, ...CSYSTEMS, ...WRITING];
 
 /** Programming I (CS 1.2), unit by unit, as Course Atlas mapped it. */
 export const UNIT_PRACTICE = {
@@ -149,5 +158,22 @@ export const COURSE_PRACTICE = {
   'math/algorithms-complexity-and-coding': ['bigo', 'ops', 'entropy', 'strhash'],
 };
 
+/*
+ * Computer Science Term 1 was audited: its practice is now whatever its
+ * outcomes are checked by (js/degrees/curriculum/cs-term1.js), course by
+ * course and unit by unit.
+ */
+for (const [key, c] of Object.entries(CS_TERM1)) COURSE_PRACTICE[`cs/${key}`] = [...new Set(c.outcomes.flatMap(o => o.skills))];
+const TERM1_UNITS = Object.fromEntries(Object.entries(CS_TERM1).map(([key, c]) => [key, c.outcomes]));
+
 export const coursePractice = (degreeId, courseKey) => COURSE_PRACTICE[`${degreeId}/${courseKey}`] || [];
-export const unitPractice = unitId => UNIT_PRACTICE[unitId] || [];
+
+/** A unit's practice: the audited outcomes that unit teaches, else Course Atlas's own mapping. */
+export function unitPractice(unitId, courseKey = null, order = null) {
+  const outcomes = courseKey && TERM1_UNITS[courseKey];
+  if (outcomes && order != null) {
+    const ids = [...new Set(outcomes.filter(o => o.units.includes(order)).flatMap(o => o.skills))];
+    if (ids.length) return ids;
+  }
+  return UNIT_PRACTICE[unitId] || [];
+}

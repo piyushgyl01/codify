@@ -82,6 +82,7 @@ const freshSave = () => ({
   github: { user:'', avatar:null, pushes:[], syncedAt:0, error:'', credited:{} },
   tracks: { cp: freshCp(), robotics: freshRobotics(), ai: freshAi(), ...Object.fromEntries(DEGREE_IDS.map(id => [id, freshDegree(dayKey())])) },
   earned: {}, owned: [], loot: {},
+  log: [],                    // every answer the app marked, newest last (see learn/session.js)
   stats: {
     xpEarned:0, quests:0, timerMin:0, sessions:0, commits:0, pushes:0,
     solved:0, ratedSolved:0, bestRating:0, tiersCleared:0, contestsWon:0, contestsRun:0,

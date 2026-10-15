@@ -16,6 +16,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { LINK_FIXES } from '../js/degrees/curriculum/cs-term1.js';
 
 const src = process.argv[2];
 if (!src) { console.error('Usage: node tools/import-atlas.mjs <catalog-export-directory>'); process.exit(1); }
@@ -37,7 +38,9 @@ const bySlug = new Map();
 for (const b of bundles) (bySlug.get(b.program.canonicalSlug) || bySlug.set(b.program.canonicalSlug, []).get(b.program.canonicalSlug)).push(b);
 
 const URL_RE = /https?:\/\/[^\s|)]+/;
-const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+/** Links found broken in the October 2026 audit are replaced wherever they appear. */
+const fixLinks = s => (s ? s.replace(/https?:\/\/[^\s|)]+/g, u => LINK_FIXES[u] || u) : s);
+const clean = s => fixLinks((s || '').replace(/\s+/g, ' ').trim());
 const index = [];
 
 for (const [slug, all] of bySlug) {
@@ -62,10 +65,10 @@ for (const [slug, all] of bySlug) {
     const units = d.learningUnits.filter(u => u.courseVersionId === cv.id).sort((a, b) => a.order - b.order).map(u => ({
       id: u.id, order: u.order, label: u.label, kind: u.kindLabel || u.kind, title: clean(u.title), topic: clean(u.topic),
       activity: clean(u.activity), evidence: clean(u.evidence), hours: u.nominalHours,
-      where: clean(u.resourceLocator), url: (u.resourceLocator || '').match(URL_RE)?.[0] || null,
+      where: clean(u.resourceLocator), url: fixLinks((u.resourceLocator || '').match(URL_RE)?.[0] || null),
       ...(u.weeklyAssignments?.length ? { weeks: u.weeklyAssignments.map(w => ({
         week: w.week, title: clean(w.title), activity: clean(w.activity), deliverable: clean(w.deliverable), hours: w.estimatedHours,
-        url: w.sourceEvidence?.resolvedUrl || w.sourceEvidence?.url || (w.resourceLocator || '').match(URL_RE)?.[0] || null,
+        url: fixLinks(w.sourceEvidence?.resolvedUrl || w.sourceEvidence?.url || (w.resourceLocator || '').match(URL_RE)?.[0] || null),
       })) } : {}),
     }));
     return {
@@ -77,7 +80,7 @@ for (const [slug, all] of bySlug) {
       passing: cv.gradingPolicy?.passingPercentage ?? 60,
       resources: (cv.resourceReferences || []).map(ref => {
         const v = rv.get(ref.resourceVersionId), r = v && res.get(v.resourceId), g = rights.get(ref.resourceVersionId), a = access.get(ref.resourceVersionId);
-        return v && { title: clean(v.title), url: v.canonicalUrl, provider: r?.provider || '', role: ref.role, license: g?.licenseIdentifier || '',
+        return v && { title: clean(v.title), url: fixLinks(v.canonicalUrl), provider: r?.provider || '', role: ref.role, license: g?.licenseIdentifier || '',
           licenseUrl: g?.licenseUrl || '', free: a ? a.type === 'free' && !a.loginRequired : true };
       }).filter(Boolean),
       units,

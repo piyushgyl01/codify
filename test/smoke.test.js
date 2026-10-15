@@ -1232,6 +1232,92 @@ group('degrees: practice the app marks');
   ok('due and new skills come first', E.pickCheck('cs', DP.coursePractice('cs', 'programming-1')).every(id => !ids.includes(id)));
 }
 
+group('degrees: CS Term 1, audited against its sources');
+{
+  const CT = await import('../js/degrees/curriculum/cs-term1.js');
+  const D = DL.degreeData('cs'), problems = [];
+  for (const [key, cur] of Object.entries(CT.CS_TERM1)) {
+    const c = DM.courseByKey(D, key);
+    if (!c) { problems.push(`${key}: no such course`); continue; }
+    const orders = new Set(c.units.map(u => u.order)), stages = new Set(c.assessments.map(a => a.stage));
+    for (const o of cur.outcomes) {
+      for (const sk of o.skills) if (!SB.skillById(sk)) problems.push(`${o.id}: skill ${sk}`);
+      for (const n of o.units) if (!orders.has(n)) problems.push(`${o.id}: unit ${n}`);
+      for (const s of o.assessed) if (!stages.has(s)) problems.push(`${o.id}: stage ${s}`);
+      if (!o.cs2023.length) problems.push(`${o.id}: no CS2023 mapping`);
+    }
+    for (const n of Object.keys(cur.problemSets || {})) if (!orders.has(+n)) problems.push(`${key}: problem sets for unit ${n}`);
+    const lines = new Set(c.assessments.flatMap(a => a.rubric.map(x => `${a.stage}/${x.criterion}`)));
+    for (const k of Object.keys(cur.anchors || {})) if (!lines.has(k)) problems.push(`${key}: anchor ${k} has no rubric line`);
+    for (const k of lines) if (!cur.anchors?.[k]) problems.push(`${key}: rubric line ${k} has no anchors`);
+    for (const s of Object.keys(cur.keyChecks || {})) if (!stages.has(s)) problems.push(`${key}: key checks for ${s}`);
+    for (const b of cur.benchmarks || []) if (!/^https:\/\//.test(b.url) || !(b.max > 0)) problems.push(`${key}: benchmark ${b.id}`);
+    if (!c.units.every(u => DP.unitPractice(u.id, key, u.order).length || !cur.outcomes.some(o => o.units.includes(u.order) && o.skills.length))) problems.push(`${key}: a unit lost its practice`);
+  }
+  ok('Term 1: five courses, every outcome, unit, rubric line and benchmark resolves', Object.keys(CT.CS_TERM1).length === 5 && !problems.length, problems.slice(0, 4).join(' | '));
+  ok('every outcome the app can check is in its course practice', Object.entries(CT.CS_TERM1).every(([k, cur]) => cur.outcomes.flatMap(o => o.skills).every(s => DP.coursePractice('cs', k).includes(s))));
+  const fs = await import('node:fs/promises');
+  const urls = (await fs.readFile('data/degrees/computer-science.json', 'utf8')).match(/https?:\/\/[^\s"|)]+/g) || [];
+  const stale = urls.filter(u => CT.LINK_FIXES[u]);
+  ok('none of the nine broken links is left in the CS catalogue', Object.keys(CT.LINK_FIXES).length === 9 && !stale.length, stale.slice(0, 2).join(', '));
+
+  const VG = await import('../tools/verify-generators.mjs');
+  const PX = await import('../js/degrees/practice/python-extra.js'), DSC = await import('../js/degrees/practice/discrete.js');
+  const CAL = await import('../js/degrees/practice/calculus.js'), CSY = await import('../js/degrees/practice/csystems.js'), WR = await import('../js/degrees/practice/writing.js');
+  const term1 = [...PX.PYTHON_EXTRA, ...DSC.DISCRETE, ...CAL.CALCULUS, ...CSY.CSYSTEMS, ...WR.WRITING];
+  const v = VG.verifySkills(term1, { perSkill: 2, rng: Q.seeded(31), toolkit: Q.toolkit });
+  ok(`Term 1 answers agree with an independent check (${v.agree} run in Python, C or SQLite, ${v.construction} by construction${v.skipped ? `, ${v.skipped} skipped: ${v.skippedFor.join(', ')}` : ''})`,
+    !v.disagree && !v.error, v.problems.slice(0, 2).join(' | '));
+
+  let keyRan = 0; const keyBad = [];
+  if (VG.availableTools().python) {
+    const { execFileSync } = await import('node:child_process');
+    for (const cur of Object.values(CT.CS_TERM1)) for (const k of Object.values(cur.keyChecks || {}).flat()) {
+      if (!k.python) continue;
+      keyRan++;
+      const got = Number(execFileSync('python3', ['-c', k.python], { encoding: 'utf8', timeout: 60000 }).trim());
+      if (!(Math.abs(got - k.answer) <= (k.tol || 0) + 1e-9)) keyBad.push(`${k.id}: ${k.answer} vs ${got}`);
+    }
+  }
+  if (keyRan) ok(`every assessment answer key is reproduced by its own program (${keyRan})`, !keyBad.length, keyBad.join(' | '));
+
+  St.S.active = null;
+  St.S.tracks.cs = DM.freshDegree(G.dayKey());
+  const cur = CT.curriculumFor('cs', 'programming-1');
+  const items = cur.outcomes.filter(o => o.skills.length).map(o => ({ outcome: o.id, text: o.text, skill: o.skills[0] }));
+  const levels0 = items.map(it => E.skillLevel('cs', it.skill)), log0 = St.S.log.length;
+  const a = E.startCourseTest('cs', 'programming-1', 'placement', items, { label: 'CS101 placement test' }, G.dayKey(), Q.seeded(8));
+  ok('a placement test asks one question per checkable outcome', a?.mode === 'ctest' && a.qs.length === items.length && a.qs.every((q, i) => q.outcome === items[i].outcome));
+  let n = 0;
+  while (!E.sessionOver()) { const q = E.currentQuestion(); E.answer(n++ % 3 ? rightAnswer(q) : wrongAnswer(q)); }
+  E.finishSession();
+  const t = E.courseTestsOf('cs', 'programming-1').at(-1);
+  ok('the result is kept outcome by outcome', t?.kind === 'placement' && t.total === items.length && t.right === items.length - Math.ceil(items.length / 3) && Object.keys(t.outcomes).length === items.length, JSON.stringify(t));
+  ok('a placement test moves no levels', items.every((it, i) => E.skillLevel('cs', it.skill) === levels0[i]));
+  ok('one sitting a day per test', E.startCourseTest('cs', 'programming-1', 'placement', items, { label: 'x' }) === null && E.courseTestToday('cs', 'programming-1', 'placement'));
+  const logged = St.S.log.slice(log0);
+  ok('every answer is logged with its skill, outcome and time', logged.length === items.length && logged.every(e => e.tr === 'cs' && e.m === 'ctest' && e.s && e.o && (e.ok === 0 || e.ok === 1) && e.l === E.COURSE_TEST.level), JSON.stringify(logged[0]));
+
+  ok('a benchmark score is recorded and bounded', !!DA.recordBenchmark('cs', 'cs101.check50', 30, 41) && DA.recordBenchmark('cs', 'cs101.check50', 50, 41) === null && St.S.tracks.cs.benchmarks['cs101.check50'].length === 1);
+  const key = CT.CS_TERM1['calculus-for-computing'].keyChecks.midterm[0];
+  ok('an answer key marks a number right or wrong', DA.answerKeyCheck('cs', key, String(key.answer)).ok && !DA.answerKeyCheck('cs', key, String(key.answer + 1)).ok && DA.answerKeyCheck('cs', key, 'x') === null);
+
+  // Item statistics on simulated learners whose abilities are known: one item is a coin toss.
+  const IS = await import('../tools/item-stats.mjs');
+  const rng = Q.seeded(11), sim = [];
+  for (let who = 0; who < 200; who++) {
+    const ability = rng() * 4 - 2;
+    for (let i = 0; i < 6; i++) {
+      const p = i === 5 ? 0.5 : 1 / (1 + Math.exp(-(ability - (i - 2) * 0.5) * 1.7));
+      sim.push({ who, tr: 'cs', m: 'ctest', s: `s${i}`, o: `o${i}`, l: 4, sec: 20, ok: rng() < p ? 1 : 0, x: 'programming-1:placement:2026-10-01' });
+    }
+  }
+  const stats = IS.itemStats(sim).courses[0].items;
+  ok('item statistics flag a question that does not discriminate', stats.slice(0, 5).every(it => it.discrimination > 0.3) && Math.abs(stats[5].discrimination) < 0.2,
+    stats.map(it => `${it.item} ${it.discrimination?.toFixed(2)}`).join(' '));
+  ok('and refuse to guess from too few sittings', IS.itemStats(sim.filter(e => e.who < 5)).courses[0].items.every(it => it.discrimination === null));
+}
+
 group('degrees: importing Course Atlas progress');
 {
   const D = DL.degreeData('cs');

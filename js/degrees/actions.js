@@ -109,6 +109,36 @@ export function waive(id, courseKey, on = true, key = today()) {
   changed(id, 'path');
 }
 
+/**
+ * An outside benchmark — an MIT exam marked against MIT's solutions, CS50's
+ * check50 — and the score you got. Kept beside the app's own measures, so the
+ * two can be compared; it pays nothing.
+ */
+export function recordBenchmark(id, benchId, score, max, key = today()) {
+  const v = Number(score), m = Number(max);
+  if (!Number.isFinite(v) || !Number.isFinite(m) || m <= 0 || v < 0 || v > m) return null;
+  const r = slice(id);
+  r.benchmarks ||= {};
+  r.benchmarks[benchId] = [...(r.benchmarks[benchId] || []), { score: v, max: m, day: key }];
+  emit('degree', { id, what: 'benchmark' });
+  return r.benchmarks[benchId].at(-1);
+}
+
+/**
+ * An answer-key check inside an assessment: a number the app computes (the
+ * optimum of a cost model, the odd vertices of a graph) checked against yours.
+ */
+export function answerKeyCheck(id, check, value, key = today()) {
+  const v = Number(String(value).replace(',', '.'));
+  if (!Number.isFinite(v)) return null;
+  const ok = Math.abs(v - check.answer) <= (check.tol || 0) + 1e-9;
+  const r = slice(id);
+  r.keys ||= {};
+  r.keys[check.id] = { value: v, ok, day: key };
+  emit('degree', { id, what: 'key' });
+  return r.keys[check.id];
+}
+
 /* ------------------------- importing Course Atlas ------------------------- */
 
 const ATLAS_NAMESPACE = 'course-atlas-progress-v3';

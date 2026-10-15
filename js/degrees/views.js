@@ -11,8 +11,9 @@ import { degreeData, degreeMeta, loadDegree, DEGREES } from './load.js';
 import * as M from './model.js';
 import * as A from './actions.js';
 import { coursePractice, unitPractice } from './practice/index.js';
+import { curriculumFor } from './curriculum/cs-term1.js';
 import { skillById } from '../skillbook.js';
-import { openCheck, openPractice } from '../views/player.js';
+import { openCheck, openPractice, openCourseTest } from '../views/player.js';
 import { openFocus } from '../views/focus.js';
 import { esc, bar, toast, dialog, hm, confetti, sfx } from '../ui.js';
 import { icon } from '../icons.js';
@@ -201,7 +202,11 @@ function unitBlock(id, D, r, c, u) {
       <div class="grow"><div class="chk-label">${w.url ? link(w.url, weekTitle(w)) : esc(weekTitle(w))} <span class="tiny">· ${w.hours} h</span></div>
         <div class="tiny">${esc(w.activity)}</div><div class="tiny deg-produce"><b>Produce:</b> ${esc(w.deliverable)}</div></div></div>`;
   }).join('')}</div>` : `<button class="btn ${done ? '' : 'primary'} sm" style="margin-top:10px" data-unit="${u.id}">${done ? '✓ Done — untick' : 'Tick the unit as done'}</button>`;
-  const practice = unitPractice(u.id), assessments = c.assessments.filter(a => a.unit === u.id);
+  const practice = unitPractice(u.id, c.key, u.order), assessments = c.assessments.filter(a => a.unit === u.id);
+  const sets = curriculumFor(id, c.key)?.problemSets?.[u.order] || [];
+  const psets = sets.length ? `<div class="deg-psets"><div class="h3">Problem sets — marked by check50</div>
+      <div class="tiny">Solve each, then run its command in a terminal with CS50's check50 installed. That is CS50's own grader, not this app.</div>
+      ${sets.map(p => `<div class="deg-pset"><span class="grow">${link(p.url, p.name)}</span><code>${esc(p.cmd)}</code></div>`).join('')}</div>` : '';
   return `<details class="card flush topic deg-unit ${done ? 'done' : ''}" data-unit-block="${u.id}" ${open ? 'open' : ''}>
     <summary class="between" style="padding:12px 14px"><span class="deg-tick ${done ? 'on' : ''}">${done ? '✓' : u.order}</span>
       <div class="grow"><div class="tiny">${esc(u.label)} · ${esc(u.kind)} · ${u.hours} h</div><div class="h3">${esc(u.title)}</div></div>
@@ -211,6 +216,7 @@ function unitBlock(id, D, r, c, u) {
       ${u.evidence ? `<div class="tiny deg-produce" style="margin-top:6px"><b>Produce:</b> ${esc(u.evidence)}</div>` : ''}
       ${u.where ? `<div class="tiny" style="margin-top:6px"><b>Where:</b> ${u.url ? link(u.url, u.where.split(' — ').slice(0, 3).join(' — ')) : esc(u.where)}</div>` : ''}
       ${weeks}
+      ${psets}
       ${practice.length ? `<div class="between deg-prac" style="margin-top:10px"><div class="grow"><div class="h3">Practice this unit</div>
           <div class="tiny">${practice.map(s => esc(skillById(s)?.name || s)).join(' · ')}</div></div>
         <button class="btn sm" data-ucheck="${u.id}">Check</button></div>` : ''}
@@ -220,12 +226,29 @@ function unitBlock(id, D, r, c, u) {
     </div></details>`;
 }
 
-function assessmentBlock(id, D, r, a) {
+function anchorsFor(id, c, a, x) {
+  const an = curriculumFor(id, c.key)?.anchors?.[`${a.stage}/${x.criterion}`];
+  if (!an) return `<div class="tiny">${esc(x.description)}</div>`;
+  return `<div class="deg-anchors"><div class="tiny"><b>${x.points}:</b> ${esc(an.full)}</div><div class="tiny"><b>≈ ${Math.round(x.points / 2)}:</b> ${esc(an.part)}</div><div class="tiny"><b>0:</b> ${esc(an.none)}</div></div>`;
+}
+
+function keyChecksFor(id, r, c, a) {
+  const checks = curriculumFor(id, c.key)?.keyChecks?.[a.stage] || [];
+  if (!checks.length) return '';
+  return `<div class="deg-keys"><div class="h3">Check your numbers</div>
+    <div class="tiny">The app works these out itself. Get them right before you mark the accuracy lines.</div>
+    ${checks.map(k => { const got = r.keys?.[k.id]; return `<div class="deg-key" data-key-row="${k.id}"><div class="tiny grow">${esc(k.q)}</div>
+      <input class="input num" inputmode="decimal" data-key-input="${k.id}" value="${got ? got.value : ''}" aria-label="Your answer">
+      <button class="btn sm" data-key="${k.id}" data-key-course="${c.key}" data-key-stage="${a.stage}">Check</button>
+      ${got ? `<span class="badge ${got.ok ? 'good' : 'warn'}">${got.ok ? '✓ right' : '✗ not yet'}</span>` : ''}</div>`; }).join('')}</div>`;
+}
+
+function assessmentBlock(id, D, r, a, c) {
   const rec = M.assessmentRecord(r, a), max = a.rubric.length ? a.rubric.reduce((n, x) => n + x.points, 0) : a.max;
   const ok = rec && M.assessmentPassed(r, a);
   const form = a.rubric.length
     ? `<div class="deg-rubric">${a.rubric.map(x => `<label class="deg-crit"><div class="grow"><div class="h3">${esc(x.criterion)} <span class="tiny">/ ${x.points}</span></div>
-          <div class="tiny">${esc(x.description)}</div></div>
+          ${anchorsFor(id, c, a, x)}</div>
         <input class="input num" type="number" inputmode="numeric" min="0" max="${x.points}" step="1" data-pt="${esc(x.criterion)}" value="${rec?.points?.[x.criterion] ?? ''}"></label>`).join('')}</div>`
     : `<label class="deg-crit"><div class="grow"><div class="h3">Your score <span class="tiny">/ ${a.max}</span></div>
         <div class="tiny">Mark it honestly against the instructions above.</div></div>
@@ -236,6 +259,7 @@ function assessmentBlock(id, D, r, a) {
     <div class="h3" style="margin-top:4px">${esc(a.title)}</div>
     <div class="sub" style="margin-top:4px">${esc(a.instructions)}</div>
     ${a.evidence.length ? `<div class="tiny deg-produce" style="margin-top:6px"><b>Submit:</b> ${a.evidence.map(esc).join('; ')}</div>` : ''}
+    ${keyChecksFor(id, r, c, a)}
     <details class="deg-more" ${rec ? '' : 'open'}><summary class="tiny"><b>${rec ? `Marked ${rec.score}/${rec.max}${a.pass != null ? ` · pass ${a.pass}` : ''} — ${ok ? 'passed' : 'below the bar'}` : `Mark it${a.pass != null ? ` · pass mark ${a.pass}/${max}` : ''}`}</b></summary>
       ${form}
       <div class="row" style="gap:8px;margin-top:10px"><button class="btn primary sm" data-save-assess="${a.id}">Save the mark</button>
@@ -262,8 +286,9 @@ function coursePage(id, D, r, c) {
     ${lock}
     <div class="card"><div class="h3">Start here</div><div class="sub" style="margin-top:4px">${esc(c.first)}</div>
       ${c.setup.length ? `<details class="deg-more"><summary class="tiny"><b>Set up</b></summary><ul class="focus">${c.setup.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>` : ''}
-      <details class="deg-more"><summary class="tiny"><b>What you will be able to do</b></summary><ul class="focus">${c.outcomes.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>
+      ${curriculumFor(id, c.key) ? '' : `<details class="deg-more"><summary class="tiny"><b>What you will be able to do</b></summary><ul class="focus">${c.outcomes.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`}
     </div>
+    ${outcomesCard(id, r, c)}
     <div class="card"><div class="h3">Free material</div><div class="res-list">${c.resources.map(x => `<div class="res">
         <span class="res-check static">${x.role === 'primary' ? '★' : '·'}</span>
         <div class="grow"><div class="res-name">${link(x.url, x.title)}</div>
@@ -275,7 +300,60 @@ function coursePage(id, D, r, c) {
     <div class="section-head"><div class="h2">Units</div><span class="tiny">${s.unitsDone}/${s.units}</span></div>
     <div class="stack s2">${c.units.map(u => unitBlock(id, D, r, c, u)).join('')}</div>
     <div class="section-head"><div class="h2">Assessments</div><span class="tiny">pass at ${c.passing}%</span></div>
-    <div class="stack s2">${c.assessments.map(a => assessmentBlock(id, D, r, a)).join('')}</div>`;
+    <div class="stack s2">${c.assessments.map(a => assessmentBlock(id, D, r, a, c)).join('')}</div>
+    ${benchmarksCard(id, r, c)}
+    ${auditCard(id, c)}`;
+}
+
+/* -------------------------- audited course design -------------------------- */
+
+const MAX_LV = 10;
+/** How far along an outcome is: the average level of the skills that check it, out of 10. */
+const outcomeLevel = (r, o) => (o.skills.length ? o.skills.reduce((n, sk) => n + levelOf(r.skills?.[sk]), 0) / o.skills.length : null);
+
+function outcomesCard(id, r, c) {
+  const cur = curriculumFor(id, c.key);
+  if (!cur) return '';
+  const tests = E.courseTestsOf(id, c.key), last = kind => [...tests].reverse().find(t => t.kind === kind);
+  const place = last('placement'), fin = last('final');
+  const testable = cur.outcomes.filter(o => o.skills.length).length;
+  return `<div class="card"><div class="between"><div class="h3">What you will be able to do</div><span class="tiny">${cur.outcomes.length} outcomes · CS2023-mapped</span></div>
+    <div class="deg-outcomes">${cur.outcomes.map(o => {
+      const lv = outcomeLevel(r, o), p = place?.outcomes?.[o.id], f = fin?.outcomes?.[o.id];
+      return `<div class="deg-outcome"><div class="between"><div class="grow"><div class="h3">${esc(o.text)}</div>
+          <div class="tiny">${o.cs2023.map(esc).join(' · ')}${o.units.length ? ` · unit${o.units.length > 1 ? 's' : ''} ${o.units.join(', ')}` : ''}${o.assessed.length ? ` · graded in the ${o.assessed.join(' and ')}` : ''}</div></div>
+          ${p != null || f != null ? `<span class="tiny">${p != null ? `before ${p ? '✓' : '✗'}` : ''}${p != null && f != null ? ' · ' : ''}${f != null ? `after ${f ? '✓' : '✗'}` : ''}</span>` : ''}</div>
+        ${lv == null ? '<div class="tiny" style="margin-top:4px">Judged by the rubric — the app cannot mark this one.</div>'
+          : `<div style="margin-top:6px">${bar((lv / MAX_LV) * 100, { color: lv >= 5 ? 'var(--good)' : 'var(--accent)' })}</div>
+             <div class="tiny" style="margin-top:2px">level ${lv.toFixed(1)} of ${MAX_LV} across ${o.skills.map(sk => esc(skillById(sk)?.name || sk)).join(', ')}</div>`}</div>`;
+    }).join('')}</div>
+    <div class="deg-tests">
+      <div class="tiny">${testable} questions, one per outcome the app can check, at level ${E.COURSE_TEST.level}. Nothing levels — it measures. Take the placement test before you start and the end-of-course test after.</div>
+      <div class="row" style="gap:8px;margin-top:8px">
+        <button class="btn sm" data-ctest="placement" data-ctest-course="${c.key}">Placement test${place ? ` · last ${place.right}/${place.total}` : ''}</button>
+        <button class="btn sm" data-ctest="final" data-ctest-course="${c.key}">End-of-course test${fin ? ` · last ${fin.right}/${fin.total}` : ''}</button>
+      </div></div></div>`;
+}
+
+function benchmarksCard(id, r, c) {
+  const cur = curriculumFor(id, c.key);
+  if (!cur?.benchmarks?.length) return '';
+  return `<div class="card"><div class="h3">Outside benchmarks</div>
+    <div class="tiny" style="margin-top:4px">Checks that are not you and not this app: MIT's exams with MIT's own solutions, CS50's check50. Record what you get; it pays nothing, but it is the honest test of everything above.</div>
+    ${cur.benchmarks.map(b => {
+      const hist = r.benchmarks?.[b.id] || [], lastB = hist.at(-1);
+      return `<div class="deg-bench" data-bench-row="${b.id}"><div class="grow"><div class="h3">${link(b.url, b.name)}</div><div class="tiny">${esc(b.how)}</div>
+          ${lastB ? `<div class="tiny" style="margin-top:2px"><b>Last: ${lastB.score}/${lastB.max}</b> on ${esc(lastB.day)}${hist.length > 1 ? ` · ${hist.length} attempts` : ''}</div>` : ''}</div>
+        <div class="row" style="gap:6px"><input class="input num" inputmode="decimal" data-bench-input="${b.id}" placeholder="0–${b.max}" aria-label="Score"><button class="btn sm" data-bench="${b.id}" data-bench-max="${b.max}">Save</button></div></div>`;
+    }).join('')}</div>`;
+}
+
+function auditCard(id, c) {
+  const cur = curriculumFor(id, c.key);
+  if (!cur?.gaps?.length) return '';
+  return `<details class="card sunk flush explain"><summary><span class="h3 grow">What the October 2026 audit changed</span><span class="chev">${icon('chevron', 16).value}</span></summary>
+    <div class="topic-bd">${cur.gaps.map(g => `<p class="sub" style="margin-top:6px"><b>${esc(g.what)}.</b> ${esc(g.why)} ${esc(g.fix)} ${g.url ? link(g.url, 'Source') : ''}</p>`).join('')}
+      <p class="tiny" style="margin-top:8px">The full audit, with its evidence, is in docs/cs-term1-audit.md.</p></div></details>`;
 }
 
 /* ---------------------------------- hub ----------------------------------- */
@@ -329,9 +407,24 @@ export function mountDegree(id, root, rerender) {
   });
   on('[data-ucheck]', b => {
     const hit = M.unitById(D, b.dataset.ucheck);
-    openCheck(id, unitPractice(b.dataset.ucheck), { key: `unit:${b.dataset.ucheck}`, label: `${hit.course.code} · ${hit.unit.title}` }, rerender);
+    openCheck(id, unitPractice(b.dataset.ucheck, hit.course.key, hit.unit.order), { key: `unit:${b.dataset.ucheck}`, label: `${hit.course.code} · ${hit.unit.title}` }, rerender);
   });
   on('[data-practice]', b => openPractice(id, b.dataset.practice, rerender));
+  on('[data-ctest]', b => {
+    const c = M.courseByKey(D, b.dataset.ctestCourse), cur = curriculumFor(id, c.key);
+    const items = cur.outcomes.filter(o => o.skills.length).map(o => ({ outcome: o.id, text: o.text, skill: o.skills[Math.floor(Math.random() * o.skills.length)] }));
+    openCourseTest(id, c.key, b.dataset.ctest, items, { label: `${c.code} ${b.dataset.ctest === 'placement' ? 'placement' : 'end-of-course'} test` }, rerender);
+  });
+  on('[data-bench]', b => {
+    const input = root.querySelector(`[data-bench-input="${b.dataset.bench}"]`);
+    if (!A.recordBenchmark(id, b.dataset.bench, input.value, +b.dataset.benchMax)) toast(`Enter a score from 0 to ${b.dataset.benchMax}.`);
+  });
+  on('[data-key]', b => {
+    const cur = curriculumFor(id, b.dataset.keyCourse), check = cur.keyChecks[b.dataset.keyStage].find(k => k.id === b.dataset.key);
+    const input = root.querySelector(`[data-key-input="${b.dataset.key}"]`);
+    const res = A.answerKeyCheck(id, check, input.value);
+    if (!res) toast('Enter a number.');
+  });
   on('[data-mark]', b => { u.course = b.dataset.course; rerender(); setTimeout(() => document.querySelector(`[data-assess="${b.dataset.mark}"]`)?.scrollIntoView({ block: 'start' }), 60); });
   on('[data-save-assess]', b => {
     const card = b.closest('[data-assess]'), aid = b.dataset.saveAssess;

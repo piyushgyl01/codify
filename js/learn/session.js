@@ -271,6 +271,31 @@ export function pickCheck(track, ids, key = today(), max = 3) {
   return [...due, ...rest].slice(0, max);
 }
 
+/* ------------------------------- course tests ------------------------------ */
+
+/**
+ * A degree course's test: one question for each outcome the app can check,
+ * at a fixed level, so two sittings are comparable. Sat before the course it
+ * is a placement test (what do you already know?); after it, the end-of-course
+ * test. It moves no levels — it measures. One of each kind per course a day.
+ */
+export const COURSE_TEST = { level: 4 };
+export const courseTestsOf = (track, key) => slice(track).tests?.[key] || [];
+export const courseTestToday = (track, key, kind, day = today()) => courseTestsOf(track, key).some(x => x.kind === kind && x.day === day);
+
+export function startCourseTest(track, key, kind, items, { label }, day = today(), rng = Math.random) {
+  if (S.active) return S.active;
+  if (!items.length || courseTestToday(track, key, kind, day)) return null;
+  const round = roundFor(COURSE_TEST.level);
+  const qs = items.map(it => {
+    const q = generate(it.skill, rng);
+    return { ...q, outcome: it.outcome, outcomeText: it.text, secs: round.secs[q.kind] || round.secs.num };
+  });
+  S.active = { mode:'ctest', track, key, kind, label, day, level: COURSE_TEST.level, i:0, run:0, best:0, xp:0, qs, results: [], shown: -1 };
+  emit('session');
+  return S.active;
+}
+
 /* --------------------------------- test out ------------------------------- */
 
 /** Six questions across a week's skills at level 4. Five right skips the rest of the week. */
@@ -381,8 +406,10 @@ export function answer(input, rng = Math.random) {
     else a.hearts -= 1;
     a.taunt = a.hp <= a.maxHp / 2 && a.taunt === 'intro' ? 'half' : a.taunt === 'half' ? 'shown' : a.taunt;
   }
+  if (a.mode === 'ctest' && res.correct) xp = XP.testOutRight;
   a.xp += xp;
-  a.results.push({ skill: q.skill, grp: q.grp, ...res, secs: Math.round(secs), xp, dmg });
+  a.results.push({ skill: q.skill, grp: q.grp, outcome: q.outcome, outcomeText: q.outcomeText, ...res, secs: Math.round(secs), xp, dmg });
+  logAttempt(a, q, res.correct, secs);
 
   if (a.mode === 'boss') {
     if (!sessionOver()) {
@@ -393,6 +420,22 @@ export function answer(input, rng = Math.random) {
   } else a.i += 1;
   save();
   return { ...res, xp, dmg, round };
+}
+
+/**
+ * Every answer the app marks, kept for analysis: which questions are hard,
+ * how long they take, which separate people who know the material from
+ * people who don't (tools/item-stats.mjs reads them from a backup). The
+ * newest 4,000 are kept.
+ */
+export const LOG_KEEP = 4000;
+function logAttempt(a, q, ok, secs) {
+  const level = a.groups?.[q.grp]?.level ?? a.level ?? null;
+  const entry = { t: Date.now(), d: a.day, tr: a.track, m: a.mode, s: q.skill, l: level, ok: ok ? 1 : 0, sec: Math.round(secs) };
+  if (a.key) entry.k = a.key;
+  if (q.outcome) entry.o = q.outcome;
+  if (a.mode === 'ctest') entry.x = `${a.key}:${a.kind}:${a.day}`;
+  S.log = [...(S.log || []), entry].slice(-LOG_KEEP);
 }
 
 export function sessionOver() {
@@ -440,6 +483,17 @@ export function finishSession(rng = Math.random) {
     reward = award(a.xp + XP.reviewDone, 2 + right, a.label || 'Check');
     touchStreak(a.day);
     extra = { score: right, total, ups, groups: a.groups, perfect: right === total, label: a.label };
+  } else if (a.mode === 'ctest') {
+    const outcomes = {};
+    for (const x of a.results) if (x.outcome) outcomes[x.outcome] = (outcomes[x.outcome] ?? true) && !!x.correct;
+    const rec = { kind: a.kind, day: a.day, right, total: a.qs.length, outcomes };
+    r.tests = { ...(r.tests || {}), [a.key]: [...(r.tests?.[a.key] || []), rec] };
+    const c = counters(a.track, a.day);
+    c.checks = { ...(c.checks || {}), [`test:${a.key}:${a.kind}`]: { score: right, total: a.qs.length } };
+    c.check = c.check || { score: right, total: a.qs.length };
+    reward = award(a.xp, 0, a.label || 'Course test');
+    touchStreak(a.day);
+    extra = { score: right, total: a.qs.length, outcomes, kind: a.kind, label: a.label, key: a.key, perfect: right === a.qs.length };
   } else if (a.mode === 'testout') {
     const t = P.testOutFor(r, cfg.plan, a.week), passed = right >= TEST_OUT.pass;
     r.testouts = { ...(r.testouts || {}), [a.week]: { day: a.day, right, total: a.qs.length, passed } };
