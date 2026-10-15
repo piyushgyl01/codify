@@ -18,6 +18,7 @@ import { BOSSES } from '../tracks/robotics/bosses.js';
 import { SOURCE, BUILDS } from '../tracks/robotics/roadmap.js';
 import { checkGithub } from '../platforms.js';
 import { syncAll, describeSync } from '../sync.js';
+import { cloudState, cloudConnect, cloudChoose, cloudDisconnect, cloudSync, cloudToken, CLOUD_REPO } from '../cloud.js';
 import { rankFor, nextRank, dayKey, addDays } from '../game.js';
 import { seriesChart, calendarGrid } from '../charts.js';
 import { h, raw, esc, bind, sheet, dialog, toast, fmt, hm, confetti, sfx, $, shortDate } from '../ui.js';
@@ -175,6 +176,8 @@ function settings() {
   return `<div class="stack s2">
     <button class="card tap pad-s" data-act="profile"><div class="between"><div><div class="h3">Profile and goals</div>
       <div class="tiny">${esc(S.profile.name)} · ${S.profile.focusGoal} min a day${trackOn('cp') ? ` · ${S.tracks.cp.dailySolves} problems` : ''}</div></div><span>›</span></div></button>
+    <button class="card tap pad-s" data-act="cloud"><div class="between"><div><div class="h3">AI &amp; sync</div>
+      <div class="tiny">${cloudLine()}</div></div><span>›</span></div></button>
     <button class="card tap pad-s" data-act="backup"><div class="between"><div><div class="h3">Backup &amp; restore</div>
       <div class="tiny">${S.backupAt ? `Last backup ${esc(shortDate(dayKey(new Date(S.backupAt))))}` : 'Never backed up'}</div></div><span>›</span></div></button>
     <div class="card pad-s"><div class="between"><span class="h3">Sound</span>
@@ -241,6 +244,99 @@ function openAccount(kind, rerender) {
         close(); toast('Disconnected. Credit already earned stays.'); rerender();
       });
     });
+}
+
+/* ------------------------------- AI & sync -------------------------------- */
+
+const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+const lastWriter = by => (!by ? '' : by === 'app' ? 'the app' : by.replace(/^agent:\s*/, ''));
+
+function cloudLine() {
+  const c = cloudState();
+  if (!c.on) return 'Off — your save is only on this device';
+  if (c.error) return `⚠ ${esc(c.error)}`;
+  const t = Math.max(c.pushedAt, c.pulledAt);
+  return `${esc(c.repo)} · ${c.dirty ? 'changes waiting' : t ? `synced ${ago(t)}` : 'connected'}`;
+}
+
+/** What to paste into an AI app. The key URL is for apps that only take a URL. */
+function mcpSetup() {
+  const c = cloudState(), token = cloudToken(), base = `${location.origin}/mcp`;
+  const q = c.repo && c.repo !== `${c.login}/${CLOUD_REPO}` ? `?repo=${encodeURIComponent(c.repo)}` : '';
+  return {
+    url: base + q,
+    keyUrl: `${base}/${token}${q}`,
+    claude: `claude mcp add --transport http codify ${base}${q} --header "Authorization: Bearer ${token}"`,
+  };
+}
+
+export function openCloud(rerender) {
+  const c = cloudState();
+  const setup = c.on ? mcpSetup() : null;
+  sheet('AI & sync', c.on ? `
+    <div class="card"><div class="label">Synced with GitHub</div>
+      <div class="h3" style="margin-top:6px">${esc(c.repo)}</div>
+      <div class="tiny" style="margin-top:4px">${c.error ? `⚠ ${esc(c.error)}` : c.dirty ? 'Changes waiting to send' : 'Up to date'}${c.pushedAt ? ` · sent ${ago(c.pushedAt)}` : ''}${c.pulledAt ? ` · checked ${ago(c.pulledAt)}` : ''}${c.lastBy ? ` · last change by ${esc(lastWriter(c.lastBy))}` : ''}</div>
+      <button class="btn block sm" style="margin-top:10px" data-cloud-sync>Sync now</button></div>
+    <hr class="rule">
+    <div class="label">Connect an AI app</div>
+    <p class="sub" style="margin-top:6px">Codify is an MCP server. An AI app connected to it can read everything here and change it — tick work, mark assessments, quiz you, set your pace — through the app's own rules.</p>
+    <div class="field" style="margin-top:12px"><label>Apps that take only a URL (Claude, ChatGPT connectors)</label>
+      <div class="row" style="gap:6px"><input class="input" readonly value="${esc(setup.keyUrl)}" data-sel><button class="btn sm" data-copy="keyUrl">Copy</button></div></div>
+    <div class="field" style="margin-top:12px"><label>Claude Code</label>
+      <div class="row" style="gap:6px"><input class="input" readonly value="${esc(setup.claude)}" data-sel><button class="btn sm" data-copy="claude">Copy</button></div></div>
+    <div class="field" style="margin-top:12px"><label>Anything else: this URL, with your token as a Bearer header</label>
+      <div class="row" style="gap:6px"><input class="input" readonly value="${esc(setup.url)}" data-sel><button class="btn sm" data-copy="url">Copy</button></div></div>
+    <div class="card sunk" style="margin-top:12px"><div class="tiny">The key URL and the token are passwords to your save: anyone with them can read and change it.
+      Keep them private. To cut every app off at once, delete the token on GitHub.</div></div>
+    <button class="btn ghost block sm" style="margin-top:14px" data-cloud-off>Stop syncing on this device</button>` : `
+    <p class="sub">Keep your save in a private GitHub repo. It syncs between your devices, and any AI app or agent can read and change it through Codify's MCP server.</p>
+    <ol class="sub" style="margin:12px 0 0 18px;display:flex;flex-direction:column;gap:8px">
+      <li><a href="https://github.com/new?name=${CLOUD_REPO}&visibility=private&description=My%20Codify%20save" target="_blank" rel="noopener">Create a private repo</a> named <b>${CLOUD_REPO}</b>.</li>
+      <li><a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Create a fine-grained token</a>:
+        Repository access → <i>Only select repositories</i> → ${CLOUD_REPO}. Permissions → <i>Contents</i> → <i>Read and write</i>.</li>
+      <li>Paste it here.</li></ol>
+    <div class="field" style="margin-top:14px"><label for="cl-token">Token</label>
+      <input class="input" id="cl-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></div>
+    <div class="field" style="margin-top:10px"><label for="cl-repo">Repo</label>
+      <input class="input" id="cl-repo" autocapitalize="off" spellcheck="false" value="${CLOUD_REPO}"></div>
+    <div class="tiny" style="margin-top:6px">The token stays on this device and goes only to GitHub, and to Codify's MCP server when an AI app you connect uses it. It is never put in a backup.</div>
+    <button class="btn primary block" style="margin-top:16px" data-cloud-on>Connect</button>`,
+  (el, close) => {
+    const reopen = () => { close(); rerender(); openCloud(rerender); };
+    el.querySelectorAll('[data-sel]').forEach(i => i.addEventListener('focus', () => i.select()));
+    el.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(setup[b.dataset.copy]); toast('Copied'); } catch { toast('Could not copy — select it and copy by hand.'); }
+    }));
+    $('[data-cloud-sync]', el)?.addEventListener('click', async e => { e.target.textContent = 'Syncing…'; await cloudSync(); reopen(); });
+    $('[data-cloud-off]', el)?.addEventListener('click', () => { cloudDisconnect(); toast('Sync is off on this device. The save on GitHub stays.'); reopen(); });
+    $('[data-cloud-on]', el)?.addEventListener('click', async e => {
+      const btn = e.target;
+      btn.disabled = true; btn.textContent = 'Checking…';
+      try {
+        const res = await cloudConnect($('#cl-token', el).value, $('#cl-repo', el).value);
+        if (!res.remote) { toast(`Connected — your save is now in ${esc(res.repo)}`, 3200); reopen(); return; }
+        const r = res.remote;
+        dialog(`<div class="h2">${esc(res.repo)} already has a save</div>
+          <div class="card sunk" style="margin-top:14px;text-align:left"><div class="tiny">GitHub: ${esc(r.name)} · level ${r.level} · ${r.days} days${r.savedAt ? ` · saved ${esc(ago(Date.parse(r.savedAt)))}` : ''}</div>
+            <div class="tiny" style="margin-top:4px">This device: ${esc(S.profile.name)} · level ${progress().level} · ${Object.keys(S.days).length} days</div></div>
+          <p class="tiny" style="margin:12px 0 16px">The other one is replaced. Whichever you drop, Backup &amp; restore keeps one undo.</p>
+          <button class="btn primary block" data-theirs>Use the save on GitHub</button>
+          <button class="btn block sm" style="margin-top:8px" data-mine>Keep this device's</button>`,
+        (d, closeD) => {
+          const pick = which => async () => {
+            try { await cloudChoose(which); closeD(); toast('Connected', 2400); reopen(); }
+            catch (err) { toast(esc(err.message), 5000); }
+          };
+          d.querySelector('[data-theirs]').onclick = pick('theirs');
+          d.querySelector('[data-mine]').onclick = pick('mine');
+        }, { dismissable: false });
+      } catch (err) {
+        toast(esc(err.message), 5000);
+        btn.disabled = false; btn.textContent = 'Connect';
+      }
+    });
+  });
 }
 
 /* ----------------------------- backup & restore --------------------------- */
@@ -368,6 +464,7 @@ export function mount(root, rerender) {
     gh:      () => openAccount('gh', rerender),
     hf:      () => openHf(rerender),
     backup:  () => openBackup(rerender),
+    cloud:   () => openCloud(rerender),
     sync:    async el => { el.textContent = 'Syncing…'; const r = await syncAll({ force: true }); toast(esc(describeSync(r)), 3200); rerender(); },
     sound:   () => { S.settings.sound = !S.settings.sound; saveProfile({}); },
     motion:  () => { S.settings.reduceMotion = !S.settings.reduceMotion; saveProfile({}); },

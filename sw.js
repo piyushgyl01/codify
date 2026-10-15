@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v14';
+const CACHE_VERSION = 'v15';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -59,6 +59,7 @@ const CORE = [
   './js/skillbook.js',
   './js/state.js',
   './js/sync.js',
+  './js/cloud.js',
   './js/tracks/ai/actions.js',
   './js/tracks/ai/feed.js',
   './js/tracks/ai/hub.js',

@@ -221,6 +221,35 @@ has a card for each track you are doing; the Tracks tab lists yours (with where 
 whether today is done), adds or removes one, and gets a search box once there are enough to
 need it. Removing a track keeps its progress.
 
+## Sync, and AI apps (MCP)
+
+Hero → **AI & sync** keeps the save in a private GitHub repo you own (`codify-save`, one
+file). Each device and any AI app read it and write it back. Every write names the version
+it read, so nothing is silently overwritten; when two sides change at once, the changes are
+merged.
+
+Setup:
+
+1. Make a fine-grained GitHub token limited to that repo, with **Contents: read and write**.
+2. Paste it into the app. It stays on the device and is never put in a backup.
+
+Codify is also an **MCP server** (`api/mcp.js`, Streamable HTTP, no SDK). An AI app or
+agent connected to it can do what you can, through the app's own code:
+
+- read your overview, missions, skills, degrees, courses, the raw save and the attempt log
+- take quizzes
+- tick weeks and mark assessments
+- set paces and change your profile
+- write the raw save
+
+There are three ways to connect:
+
+- **Apps that take only a URL** (Claude, ChatGPT connectors): `https://<app>/mcp/<token>`.
+- **Anything with headers:** `https://<app>/mcp` with `Authorization: Bearer <token>`.
+- **Local servers:** `CODIFY_GITHUB_TOKEN=… node server/stdio.mjs`.
+
+The server stores nothing. Each call reads the save from GitHub and writes it back.
+
 ## Coming from Codify or Botify
 
 - **Codify:** the save upgrades in place on first open. Handle, solves, contests, gear,
@@ -263,7 +292,13 @@ js/
   tracks/robotics/        roadmap, the 120-day plan, 51 skills, bosses, builds, views
   tracks/ai/              the 240-day plan, 64 skills, 34 builds, the live What's new feed, views
   views/                  home, hero, onboarding, the focus timer, the shared player and mission card
-test/smoke.test.js        315 assertions, with a fake GitHub and Hugging Face for the verifiers
+  cloud.js                the save on GitHub: read, write by sha, three-way merge, the app's sync
+  degrees/                five degrees: catalogue, model, practice, the audited CS Term 1 curriculum
+api/mcp.js                the MCP server over HTTP (a Vercel function)
+server/                   the tools (the app's modules run headless), the protocol, the stdio entry
+tools/                    importer, question verifier (Python, cc, sqlite3), item statistics
+docs/                     the CS Term 1 audit and its evidence
+test/smoke.test.js        408 assertions, with a fake GitHub and Hugging Face for the verifiers
 ```
 
 Bump `CACHE_VERSION` in `sw.js` and `APP_VERSION` in `js/version.js` together whenever a

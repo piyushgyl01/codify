@@ -1339,6 +1339,134 @@ group('degrees: importing Course Atlas progress');
   ok('a file that is not a backup is refused', !DA.importAtlas('{"hello":1}').ok && !DA.importAtlas('nope').ok);
 }
 
+/* ====================== AI access: the save on GitHub ====================== */
+group('AI access: the save on GitHub, and the MCP server');
+{
+  const Cl = await import('../js/cloud.js');
+  ok('three-way merge keeps both sides\' changes', JSON.stringify(Cl.merge3({ a: 1, b: { x: 1, y: 1 }, c: 1 }, { a: 2, b: { x: 2, y: 1 }, c: 1 }, { a: 1, b: { x: 1, y: 3 }, c: 4, d: 5 })) === JSON.stringify({ a: 2, b: { x: 2, y: 3 }, c: 4, d: 5 }));
+  ok('where both changed one value, GitHub\'s wins; a deletion on one side holds', Cl.merge3({ a: 1 }, { a: 2 }, { a: 3 }).a === 3 && !('k' in Cl.merge3({ k: 1, z: 1 }, { z: 1 }, { k: 1, z: 2 })));
+  ok('a repo name resolves against the token\'s owner', Cl.cloudRepo('', 'me') === 'me/codify-save' && Cl.cloudRepo('saves', 'me') === 'me/saves' && Cl.cloudRepo('you/x') === 'you/x' && Cl.cloudRepo('bad repo') === null);
+
+  // A fake GitHub: one private repo, the Contents API with shas, ETags and conflicts.
+  const gh = { files: new Map(), puts: 0, beforePut: null, token: 'github_pat_' + 'A'.repeat(40) };
+  const reply = (status, body, headers = {}) => ({ status, ok: status < 300, headers: { get: k => headers[k.toLowerCase()] ?? null }, json: async () => body });
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), method = init.method || 'GET', h = init.headers || {};
+    if (h.Authorization !== `Bearer ${gh.token}`) return reply(401, { message: 'Bad credentials' });
+    if (u.pathname === '/user') return reply(200, { login: 'tester' });
+    if (u.pathname === '/repos/tester/codify-save') return reply(200, { private: true, permissions: { push: true } });
+    const m = /^\/repos\/tester\/codify-save\/contents\/(.+)$/.exec(u.pathname);
+    if (!m) return reply(404, {});
+    const cur = gh.files.get(m[1]);
+    if (method === 'GET') {
+      if (!cur) return reply(404, {});
+      if (h['If-None-Match'] === `"${cur.sha}"`) return reply(304, null);
+      return reply(200, { sha: cur.sha, encoding: 'base64', content: Buffer.from(cur.text).toString('base64') }, { etag: `"${cur.sha}"` });
+    }
+    if (method === 'PUT') {
+      gh.beforePut?.(); gh.beforePut = null;
+      const body = JSON.parse(init.body), now = gh.files.get(m[1]);
+      if ((now?.sha || null) !== (body.sha || null)) return reply(409, { message: 'does not match' });
+      const sha = `s${++gh.puts}`;
+      gh.files.set(m[1], { sha, text: Buffer.from(body.content, 'base64').toString('utf8') });
+      return reply(200, { content: { sha } });
+    }
+    return reply(405, {});
+  };
+  const remote = () => JSON.parse(gh.files.get('codify-save.json').text);
+
+  try {
+    const MCP = await import('../server/mcp.mjs');
+    const auth = { token: gh.token, repo: null, client: null };
+    const rpc = async (method, params, id = 1) => MCP.handleMessage({ jsonrpc: '2.0', id, method, params }, auth);
+    const call = async (name, args = {}) => { const r = await rpc('tools/call', { name, arguments: args }); return { ...r.result, value: JSON.parse(r.result.content[0].text) }; };
+
+    const init = await rpc('initialize', { protocolVersion: '2025-06-18', clientInfo: { name: 'Test Agent' }, capabilities: {} });
+    ok('initialize answers with the protocol version and the tools capability', init.result.protocolVersion === '2025-06-18' && init.result.capabilities.tools && init.result.serverInfo.name === 'codify');
+    ok('a notification gets no reply', (await MCP.handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, auth)) === null);
+    const list = (await rpc('tools/list')).result.tools;
+    ok(`tools/list offers ${list.length} tools, each with a schema`, list.length === 12 && list.every(t => t.inputSchema?.type === 'object' && t.description));
+    const none = await call('get_overview');
+    ok('with no save on GitHub yet, a tool says how to connect', none.isError && /Hero → AI & sync/.test(none.value.error));
+
+    // The app's side: a save goes up, as Codify writes it.
+    St.importSave(JSON.stringify({ v: 3, profile: { name: 'Agent Test', onboarded: true, tracks: ['cp', 'ai', 'cs'] }, xp: 120, tracks: {} }));
+    await Cl.cloudWrite({ token: gh.token, repo: 'tester/codify-save', file: Cl.wrapSave(JSON.parse(JSON.stringify(St.S)), 'app', 'UTC') });
+    const ov = await call('get_overview');
+    ok('get_overview reads the save from GitHub', !ov.isError && ov.value.name === 'Agent Test' && ov.value.tracks.map(t => t.track).join() === 'cp,ai,cs', JSON.stringify(ov.value).slice(0, 200));
+    ok('reading changes nothing on GitHub', gh.puts === 1);
+
+    const D = DL.degreeData('cs'), u = DM.courseByKey(D, 'programming-1').units[0];
+    const tick = await call('update_degree', { degree: 'cs', action: 'week', unit: u.id, week: u.weeks[0].week });
+    ok('an agent ticks a week, and the save on GitHub has it', !tick.isError && tick.value.done && remote().save.tracks.cs.tasks[`${u.id}#${u.weeks[0].week}`], JSON.stringify(tick.value));
+    ok('…signed as the agent', remote().by === 'agent: Test Agent');
+    await call('update_degree', { degree: 'cs', action: 'week', unit: u.id, week: u.weeks[0].week, done: true });
+    ok('ticking again is a no-op, not a toggle', gh.puts === 2);
+
+    // The app writes between the agent's read and its write: the agent's call is re-run on the newer save.
+    gh.beforePut = () => {
+      const f = remote(); f.save.profile.name = 'Renamed In App';
+      const sha = `s${++gh.puts}`; gh.files.set('codify-save.json', { sha, text: JSON.stringify(f) });
+    };
+    const mark = await call('update_degree', { degree: 'cs', action: 'mark', assessment: DM.courseByKey(D, 'programming-1').assessments[0].id, score: 80 });
+    ok('a write racing the app is retried, and neither change is lost', !mark.isError && remote().save.profile.name === 'Renamed In App' && remote().save.tracks.cs.assessments[DM.courseByKey(D, 'programming-1').assessments[0].id].score === 80);
+
+    const start = await call('quiz', { action: 'start', track: 'cs', mode: 'practice', skill: 'py.recursion' });
+    ok('quiz: practice starts and shows a question without its answer', !start.isError && start.value.question && !('answer' in start.value) && !JSON.stringify(start.value).includes('"explain"'));
+    const q = E.currentQuestion();
+    const ans = await call('quiz', { action: 'answer', answer: q.kind === 'mc' ? q.correct : String(q.answer) });
+    ok('quiz: the answer is marked by the app', !ans.isError && ans.value.marked.correct === true, JSON.stringify(ans.value).slice(0, 200));
+    ok('quiz: the round is on GitHub', remote().save.active?.mode === 'practice' && remote().save.active.results.length === 1);
+
+    const prof = await call('update_profile', { name: 'Back To Agent', tracks: { robotics: true } });
+    ok('update_profile renames and switches a track on', !prof.isError && remote().save.profile.name === 'Back To Agent' && remote().save.profile.tracks.includes('robotics'));
+    const ws = await call('write_save', { path: 'settings.sound', value: false });
+    ok('write_save sets a raw value', !ws.isError && remote().save.settings.sound === false);
+    const rs = await call('read_save', { path: 'tracks.cs.assessments' });
+    ok('read_save reads a part by path', !rs.isError && Object.keys(rs.value).length === 1);
+    const bad = await call('update_degree', { degree: 'cs', action: 'week', unit: 'nope', week: 1 });
+    ok('a bad request comes back as a tool error, not a crash', bad.isError && /No unit/.test(bad.value.error));
+
+    const api = (await import('../api/mcp.js')).default;
+    const http = (method, body, headers = {}) => new Promise(resolve => {
+      const res = { headers: {}, setHeader(k, v) { this.headers[k] = v; }, end(b) { resolve({ status: this.statusCode, headers: this.headers, body: b ? JSON.parse(b) : null }); } };
+      api({ method, url: '/api/mcp', headers, body }, res);
+    });
+    const h1 = await http('POST', { jsonrpc: '2.0', id: 7, method: 'tools/call', params: { name: 'get_skills', arguments: { track: 'cs' } } }, { authorization: `Bearer ${gh.token}` });
+    ok('over HTTP: a Bearer token reaches the save', h1.status === 200 && !h1.body.result.isError && h1.headers['Access-Control-Allow-Origin'] === '*');
+    const h2 = await http('POST', { jsonrpc: '2.0', id: 8, method: 'tools/call', params: { name: 'get_overview' } }, { authorization: 'Bearer github_pat_wrong' });
+    ok('over HTTP: a wrong token is refused', h2.body.result.isError && /rejected the token/.test(h2.body.result.content[0].text));
+    ok('over HTTP: a notification is accepted with 202', (await http('POST', { jsonrpc: '2.0', method: 'notifications/initialized' })).status === 202);
+
+    // The app's sync, against changes made on GitHub behind its back.
+    globalThis.document ??= { addEventListener() {}, visibilityState: 'visible' };
+    const elsewhere = edit => { const f = remote(); edit(f.save); f.by = 'agent: Elsewhere'; gh.files.set('codify-save.json', { sha: `s${++gh.puts}`, text: JSON.stringify(f) }); };
+    St.S.active = null;
+    St.importSave(JSON.stringify({ v: 3, profile: { name: 'Device', onboarded: true, tracks: ['cp', 'cs'] }, xp: 50, tracks: {} }));
+    gh.files.delete('codify-save.json');
+    const con = await Cl.cloudConnect(gh.token, '');
+    ok('connecting to an empty repo uploads this device\'s save', !con.remote && Cl.cloudState().on && remote().save.profile.name === 'Device' && remote().by === 'app');
+    Cl.startCloudSync({});
+    await Cl.cloudSync();
+    elsewhere(s => { s.profile.name = 'From Agent'; });
+    await Cl.cloudSync();
+    ok('the app picks up what an agent changed', St.S.profile.name === 'From Agent' && !Cl.cloudState().dirty);
+    St.saveProfile({ focusGoal: 200 });
+    elsewhere(s => { s.tracks.cs.hours = 25; });
+    await Cl.cloudSync();
+    ok('changes on both sides at once are merged, and the merge goes back up',
+      St.S.profile.focusGoal === 200 && St.S.tracks.cs.hours === 25 && remote().save.profile.focusGoal === 200 && remote().save.tracks.cs.hours === 25 && !Cl.cloudState().dirty, JSON.stringify(Cl.cloudState()));
+    ok('the token never lands in the save or a backup', !gh.files.get('codify-save.json').text.includes(gh.token) && !St.exportSave().includes(gh.token));
+    const again = await Cl.cloudConnect(gh.token, 'codify-save');
+    ok('connecting a second device to a repo with a save asks before replacing anything', again.remote?.name === 'From Agent' && !Cl.cloudState().on);
+    Cl.cloudDisconnect();
+  } finally {
+    globalThis.fetch = realFetch;
+    St.S.active = null;
+  }
+}
+
 /* ================================ shipping ================================ */
 group('shipping');
 {
@@ -1361,7 +1489,7 @@ group('shipping');
   }
   ok('every import points at a real file', !broken.length, broken.join(', '));
   const all = (await Promise.all(onDisk.map(f => fs.readFile(f, 'utf8')))).join('\n');
-  ok('no tokens or keys in the source', !/ghp_[A-Za-z0-9]{20,}|github_pat_|sk-[A-Za-z0-9]{20,}/.test(all));
+  ok('no tokens or keys in the source', !/ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}/.test(all));
 }
 
 console.log(`\n${fail === 0 ? '\x1b[32m✅' : '\x1b[31m❌'}  ${pass} passed, ${fail} failed\x1b[0m\n`);

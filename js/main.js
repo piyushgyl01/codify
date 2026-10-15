@@ -2,6 +2,7 @@
 import { S, applyTheme, auditStreak, on, onSaveError, today, save } from './state.js';
 import { boot, rerender, go, tickTimerChip } from './router.js';
 import { autoSync } from './sync.js';
+import { startCloudSync } from './cloud.js';
 import { initPwa } from './pwa.js';
 import { closeTop, $, toast } from './ui.js';
 import { openFocus } from './views/focus.js';
@@ -19,6 +20,11 @@ onSaveError(() => toast('⚠ Could not save — storage is full or blocked. Back
 
 /* Pull from Codeforces and GitHub on open when linked and the last pull is stale. */
 autoSync(() => rerender());
+
+/* With a GitHub repo linked: keep the save there, and pick up what an AI app changed. */
+startCloudSync({
+  onPulled: ({ by }) => { if (by && by !== 'app') toast(`↻ Updated by ${by.replace(/^agent:\s*/, '')}`, 3000); },
+});
 
 /* A phone that killed the tab mid-mission comes back to the same question. */
 if (S.profile.onboarded && S.active) resumeSession(rerender);
