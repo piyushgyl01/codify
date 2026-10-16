@@ -36,6 +36,18 @@ const O085 = 'https://ocw.mit.edu/courses/18-085-computational-science-and-engin
 const STEIN = p => `https://wstein.org/books/ant/ant.pdf#page=${p}`;
 const O152 = 'https://ocw.mit.edu/courses/18-152-introduction-to-partial-differential-equations-fall-2011/resources';
 const O433 = 'https://ocw.mit.edu/courses/18-433-combinatorial-optimization-fall-2003/resources';
+const TESCHL = p => `https://www.mat.univie.ac.at/~gerald/ftp/book-ode/ode.pdf#page=${p}`;
+const O385 = 'https://ocw.mit.edu/courses/18-385j-nonlinear-dynamics-and-chaos-fall-2014/resources';
+const O175 = 'https://ocw.mit.edu/courses/18-175-theory-of-probability-spring-2014/resources';
+const O655 = 'https://ocw.mit.edu/courses/18-655-mathematical-statistics-spring-2016/resources';
+const EIM = 'https://ethics-in-mathematics.com/course/lectures';
+const O794 = 'https://ocw.mit.edu/courses/21w-794-graduate-technical-writing-workshop-january-iap-2019/resources';
+const MILNE = p => `https://www.jmilne.org/math/CourseNotes/AG.pdf#page=${p}`;
+const ETINGOF = p => `https://arxiv.org/pdf/0901.0827#page=${p}`;
+const OLVER = p => `https://www-users.cse.umn.edu/~olver/ln_/cv.pdf#page=${p}`;
+const O354 = 'https://ocw.mit.edu/courses/18-354j-nonlinear-dynamics-ii-continuum-systems-spring-2015/resources';
+const O046 = 'https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/resources';
+const O895 = 'https://ocw.mit.edu/courses/6-895-essential-coding-theory-fall-2004/resources';
 
 export const MATH_READINGS = {
   'calculus-1': {
@@ -307,5 +319,75 @@ export const MATH_READINGS = {
     6: r(`${O433}/l4/`, '18.433 Lectures 4 and 12 — polyhedral combinatorics and linear programs'),
     7: r(`${O433}/l2122/`, '18.433 Lectures 21–24 — NP-completeness and approximation algorithms'),
     8: r('https://ocw.mit.edu/courses/18-433-combinatorial-optimization-fall-2003/pages/assignments/', '18.433 problem sets 1–4 — the cumulative practice'),
+  },
+  'dynamical-systems': {
+    1: r(TESCHL(198), 'Teschl, Ordinary Differential Equations and Dynamical Systems, Chapter 6 — flows, orbits, invariant sets, stability (18.385J posts only six handouts)'),
+    2: r(TESCHL(264), 'Teschl Chapter 9 — local behaviour near fixed points: linearisation, Hartman–Grobman, stable manifolds'),
+    3: r(TESCHL(220), 'Teschl Chapter 7 — planar systems, Lyapunov functions, limit cycles and Poincaré–Bendixson'),
+    4: r(TESCHL(290), 'Teschl Chapter 10 — discrete dynamical systems: the logistic map and period doubling'),
+    5: r(`${O385}/mit18_385jf14_babynormlfms/`, '18.385J handouts — Bifurcations: Baby Normal Forms, and Hopf Bifurcations'),
+    6: r(TESCHL(249), 'Teschl §8.3 — Hamiltonian mechanics and conserved quantities'),
+    7: r(TESCHL(302), 'Teschl Chapter 11 — chaos in discrete systems and symbolic dynamics'),
+    8: r(`${O385}/mit18_385jf14_selectedlec/`, '18.385J selected lecture notes — for the cumulative defense'),
+  },
+  'advanced-probability-and-statistics': {
+    1: r(`${O175}/mit18_175s14_lecture1/`, '18.175 Lectures 1–5 — probability spaces, σ-algebras, random variables and integration'),
+    2: r(`${O175}/mit18_175s14_lecture25/`, '18.175 Lectures 25–29 — conditional expectation and martingales'),
+    3: r(`${O655}/mit18_655s16_lecnote14/`, '18.655 Lecture 14 — modes of convergence and probability inequalities, with 18.175 Lectures 12 and 14'),
+    4: r('https://osf.io/prereg/', 'OSF preregistration — register the simulation study before running it'),
+    5: r(`${O175}/mit18_175s14_lecture15/`, '18.175 Lectures 9 and 15–16 — the strong law and the central limit theorem'),
+    6: r(`${O655}/mit18_655s16_lecnote17/`, '18.655 Lectures 13 and 16–18 — the information inequality, consistency, asymptotic normality'),
+    7: r(`${O655}/mit18_655s16_lecnote19/`, '18.655 Lectures 19–25 — Gaussian and generalised linear models'),
+    8: r(`${O655}/mit18_655s16_lecnote26/`, '18.655 Lecture 26 — a case study to model the cumulative defense on'),
+  },
+  'mathematics-society-and-responsible-modeling': {
+    1: r(`${EIM}#financial-mathematics-and-modelling`, 'Ethics for the Working Mathematician, Lectures 1–2 — why ethics in mathematics; financial mathematics and modelling'),
+    2: r('https://arxiv.org/abs/1912.05511', 'Jacobs & Wallach, Measurement and Fairness — constructs, proxies and validity'),
+    3: r(`${EIM}#cryptography-surveillance-and-privacy`, 'Ethics for the Working Mathematician, Lecture 3 — cryptography, surveillance and privacy'),
+    4: r('https://arxiv.org/abs/2001.00973', 'Raji et al., Closing the AI Accountability Gap — an end-to-end framework for auditing a model'),
+    5: r('https://arxiv.org/abs/1609.05807', 'Kleinberg, Mullainathan & Raghavan, Inherent Trade-Offs in the Fair Determination of Risk Scores — with Lecture 4 of the series'),
+    6: r('https://arxiv.org/abs/1706.09847', 'Ensign et al., Runaway Feedback Loops in Predictive Policing'),
+    7: r(`${EIM}#regulation-accountability-and-the-law`, 'Ethics for the Working Mathematician, Lecture 5 — regulation, accountability and the law'),
+    8: r(`${EIM}#looking-into-the-future-what-more-can-mathematicians-do`, 'Ethics for the Working Mathematician, Lecture 8 — what more mathematicians can do'),
+  },
+  'senior-research-thesis': {
+    1: r(`${O794}/mit21w_794iap19_lec1/`, '21W.794 Session 1 — genre, rhetorical situation, abstracts and stasis theory: framing the question'),
+    2: r(`${O794}/mit21w_794iap19_lec2/`, '21W.794 Sessions 2–3 — reasoning with and synthesising sources'),
+    3: r('https://ocw.mit.edu/courses/18-821-project-laboratory-in-mathematics-spring-2013/pages/mathematical-work/', '18.821 Mathematical Work — how a supervised project moves from question to strategy'),
+    4: r(`${O794}/mit21w_794iap19_lec4/`, '21W.794 Session 4 — generating texts: writing the proposal'),
+    5: r('https://ocw.mit.edu/courses/18-821-project-laboratory-in-mathematics-spring-2013/pages/writing/sample-student-papers/', '18.821 sample papers — reporting results, counterexamples and dead ends'),
+    6: r('https://terrytao.wordpress.com/advice-on-writing-papers/', 'Terence Tao, On writing — structure, figures and citation in mathematical papers'),
+    7: r(`${O794}/mit21w_794iap19_lec5/`, '21W.794 Session 5 — revision'),
+    8: r('https://arxiv.org/archive/math', 'arXiv — archive the thesis publicly with its code and data'),
+  },
+  'algebraic-geometry-and-representation-theory': {
+    1: r(MILNE(59), 'Milne, Algebraic Geometry, Chapter 3 — affine algebraic varieties and coordinate rings (the catalogue\'s resource is a research seminar on Hecke algebras)'),
+    2: r(MILNE(39), 'Milne §2d–2e — the Hilbert Nullstellensatz and the algebra–geometry correspondence'),
+    3: r(MILNE(130), 'Milne Chapter 6 — projective varieties, morphisms and rational maps'),
+    4: r(ETINGOF(40), 'Etingof et al., Introduction to Representation Theory §3.8 — character tables to compute with'),
+    5: r(MILNE(81), 'Milne Chapter 4 — tangent spaces, singular points and dimension'),
+    6: r(ETINGOF(33), 'Etingof §3.1 — Maschke\'s theorem and complete reducibility'),
+    7: r(ETINGOF(34), 'Etingof §3.2–3.7 — characters and their orthogonality'),
+    8: r(MILNE(222), 'Milne, solutions to the exercises — check the cumulative dossier against them'),
+  },
+  'calculus-of-variations-and-continuum-models': {
+    1: r(OLVER(9), 'Olver, The Calculus of Variations §3 — the first variation and the Euler–Lagrange equation'),
+    2: r(OLVER(22), 'Olver §4 and §2 — natural boundary conditions; isoperimetric problems and constraints'),
+    3: r(OLVER(30), 'Olver §5 and "A Cautionary Example" — the second variation, and when minimisers fail to exist'),
+    4: r(`${O354}/mit18_354js15_ch9/`, '18.354J Chapter 9 — surface tension: an energy-minimising membrane to simulate'),
+    5: r(`${O354}/mit18_354js15_ch4/`, '18.354J Chapter 4 — Hamiltonian dynamics: symmetries and conserved quantities'),
+    6: r(`${O354}/mit18_354js15_ch11/`, '18.354J Chapters 11–13 — elasticity and the Navier–Stokes equations'),
+    7: r('https://ocw.mit.edu/courses/18-085-computational-science-and-engineering-i-summer-2020/resources/mit18_085summer20_lec_w8/', '18.085 Week 8 — the finite element method'),
+    8: r(`${O354}/mit18_354js15_ch8/`, '18.354J Chapter 8 — variational calculus applied to continuum problems'),
+  },
+  'algorithms-complexity-and-coding': {
+    1: r(`${O046}/lecture-1-course-overview-interval-scheduling/`, '6.046J Lectures 1–2 — greedy and divide-and-conquer, invariants and lower bounds'),
+    2: r(`${O046}/lecture-6-notes/`, '6.046J Lectures 6–8 — randomised algorithms and hashing'),
+    3: r('https://ocw.mit.edu/courses/18-404j-theory-of-computation-fall-2020/resources/mit18_404f20_lec14/', '18.404J Lectures 14–16 — P, NP, reducibility and Cook–Levin'),
+    4: r(`${O895}/lect05/`, '6.895 Lecture 5 — algebraic codes: Reed–Solomon, Reed–Muller, Hadamard'),
+    5: r(`${O046}/lecture-17-complexity-approximation-algorithms/`, '6.046J Lectures 16–17 — NP-completeness and approximation'),
+    6: r(`${O895}/lect02/`, '6.895 Lecture 2 — Shannon\'s theory: the coding theorem and its converse'),
+    7: r(`${O895}/lect03/`, '6.895 Lectures 3 and 6 — linear codes; decoding Reed–Solomon (Welch–Berlekamp)'),
+    8: r(`${O895}/lect04/`, '6.895 Lecture 4 — asymptotically good codes and the volume bound'),
   },
 };
