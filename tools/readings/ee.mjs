@@ -21,6 +21,14 @@ const S096 = `${OCW}/6-s096-introduction-to-c-and-c-january-iap-2013/pages`;
 const A006 = `${OCW}/6-006-introduction-to-algorithms-fall-2011`;
 const C6002 = `${OCW}/6-002-circuits-and-electronics-spring-2007`;
 const SEP = 'https://plato.stanford.edu/entries';
+const LA06 = `${OCW}/18-06sc-linear-algebra-fall-2011/pages`;
+const C1803 = `${OCW}/18-03sc-differential-equations-fall-2011/pages`;
+const D004 = `${OCW}/6-004-computation-structures-spring-2017/pages`;
+const N2T = 'https://www.nand2tetris.org';
+const L6101 = `${OCW}/6-101-introductory-analog-electronics-laboratory-spring-2007`;
+const NIST = 'https://www.itl.nist.gov/div898/handbook';
+const M6012 = `${OCW}/6-012-microelectronic-devices-and-circuits-spring-2009/resources`;
+const S3091 = `${OCW}/3-091sc-introduction-to-solid-state-chemistry-fall-2010/pages`;
 
 export const EE_READINGS = {
   'calculus-i-models-and-change': {
@@ -202,5 +210,95 @@ export const EE_READINGS = {
     14: r('https://openstax.org/books/writing-guide/pages/10-5-writing-process-creating-a-position-argument', 'Writing Guide §10.5 — building the public case'),
     15: r('https://openstax.org/books/writing-guide/pages/19-5-writing-process-writing-to-speak', 'Writing Guide §19.5 — writing testimony to speak'),
     16: r(`${SEP}/public-reason/`, 'SEP, Public Reason — the standard the final defence is held to'),
+  },
+  'linear-algebra-and-differential-equations': {
+    1: r(`${LA06}/ax-b-and-the-four-subspaces/elimination-with-matrices/`, '18.06SC — elimination with matrices'),
+    2: r(`${LA06}/ax-b-and-the-four-subspaces/multiplication-and-inverse-matrices/`, '18.06SC — multiplication, inverses and what a matrix does to vectors'),
+    3: r(`${LA06}/ax-b-and-the-four-subspaces/column-space-and-nullspace/`, '18.06SC — vector spaces, column space and nullspace'),
+    4: r(`${LA06}/ax-b-and-the-four-subspaces/the-four-fundamental-subspaces/`, '18.06SC — the four fundamental subspaces'),
+    5: r(`${LA06}/least-squares-determinants-and-eigenvalues/projection-matrices-and-least-squares/`, '18.06SC — projections and least squares'),
+    6: r(`${LA06}/ax-b-and-the-four-subspaces/exam-1/`, '18.06SC Exam 1 with solutions — the linear-models checkpoint'),
+    7: r(`${LA06}/least-squares-determinants-and-eigenvalues/eigenvalues-and-eigenvectors/`, '18.06SC — eigenvalues, eigenvectors and system modes'),
+    8: r(`${C1803}/unit-i-first-order-differential-equations/first-order-linear-odes/`, '18.03SC Unit I — first-order linear ODEs'),
+    9: r(`${C1803}/unit-ii-second-order-constant-coefficient-linear-equations/applications-lrc-circuits-damping-ratio/`, '18.03SC Unit II — damped oscillators, LRC circuits and the damping ratio'),
+    10: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/laplace-transform-solving-initial-value-problems/`, '18.03SC Unit III — solving initial-value problems with the Laplace transform'),
+    11: r(`${C1803}/unit-ii-second-order-constant-coefficient-linear-equations/exam-2/`, '18.03SC Exam 2 with solutions — for the dynamics practical'),
+    12: r(`${C1803}/unit-iv-first-order-systems/linear-systems-introduction/`, '18.03SC Unit IV — first-order systems: state-space form'),
+    13: r(`${C1803}/unit-iv-first-order-systems/qualitative-behavior-phase-portraits/`, '18.03SC Unit IV — phase portraits and stability'),
+    14: r(`${LA06}/positive-definite-matrices-and-applications/left-and-right-inverses-pseudoinverse/`, '18.06SC — the pseudoinverse: estimating from more measurements than unknowns'),
+    15: r(`${C1803}/unit-iv-first-order-systems/matrix-methods-eigenvalues-and-normal-modes/`, '18.03SC Unit IV — normal modes of coupled systems'),
+    16: r(`${C1803}/final-exam/`, '18.03SC final exam with solutions — the cumulative check'),
+  },
+  'circuit-analysis-ii': {
+    1: r(`${LIEC}/AC/AC_1.html`, 'Lessons in Electric Circuits, Vol. II Chapters 1–2 — AC waveforms, phase and complex numbers'),
+    2: r(`${LIEC}/AC/AC_5.html`, 'Vol. II Chapters 3–5 — reactance and impedance of R, L and C'),
+    3: r(`${LIEC}/AC/AC_11.html`, 'Vol. II Chapter 11 — real, reactive and apparent power; power factor'),
+    4: r(`${C6002}/resources/6002_l16/`, '6.002 Lecture 16 — sinusoidal steady state and frequency response'),
+    5: r(`${LIEC}/AC/AC_6.html`, 'Vol. II Chapter 6 — resonance'),
+    6: r('https://www.falstad.com/circuit/', 'CircuitJS1 — simulate and diagnose the AC fault (LTspice\'s site did not answer link checks)'),
+    7: r(`${LIEC}/AC/AC_8.html`, 'Vol. II Chapter 8 — passive filters'),
+    8: r(`${C6002}/resources/6002_l8/`, '6.002 Lecture 8 — dependent sources and amplifiers'),
+    9: r(`${C6002}/resources/6002_l11/`, '6.002 Lectures 10–11 — small-signal circuits as two-port models'),
+    10: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/poles-amplitude-response-connection-to-erf/`, '18.03SC — poles and the amplitude response'),
+    11: r(`${C6002}/resources/lab3/`, '6.002 Lab 3 — second-order networks, for the filter practical'),
+    12: r(`${LIEC}/Semi/SEMI_8.html`, 'Vol. III Chapter 8 — practical op-amp limits: offset, bias current, bandwidth and slew'),
+    13: r(`${C6002}/resources/6002_l18/`, '6.002 Lecture 18 — filters designed to a specification'),
+    14: r(`${C6002}/resources/lab4/`, '6.002 Lab 4 — an audio playback system: building the network'),
+    15: r('https://phet.colorado.edu/en/simulations/circuit-construction-kit-ac', 'PhET Circuit Construction Kit: AC — sweeps and transients for the demonstration'),
+    16: r(`${C6002}/pages/exams/`, '6.002 quizzes and final — the cumulative check (no solutions are posted)'),
+  },
+  'digital-logic-and-hardware-description': {
+    1: r(`${N2T}/project01`, 'nand2tetris Project 1 — Boolean logic from a single NAND gate'),
+    2: r(`${D004}/c4/`, '6.004 Chapter 4 — combinational logic: gates, adders and multiplexers'),
+    3: r(`${LIEC}/Digital/DIGI_8.html`, 'Lessons in Electric Circuits, Vol. IV Chapter 8 — Karnaugh maps'),
+    4: r(`${D004}/c5/`, '6.004 Chapter 5 — sequential logic: latches, registers and timing'),
+    5: r(`${D004}/c6/`, '6.004 Chapter 6 — finite-state machines'),
+    6: r('https://hdlbits.01xz.net/wiki/Main_Page', 'HDLBits — auto-graded Verilog exercises for the logic-design checkpoint'),
+    7: r(`${D004}/c13/`, '6.004 Chapter 13 — building the Beta datapath'),
+    8: r(`${D004}/c9/`, '6.004 Chapter 9 — designing an instruction set and its control'),
+    9: r(`${D004}/c10/`, '6.004 Chapter 10 — assembly language (with nand2tetris Project 4)'),
+    10: r(`${D004}/c14/`, '6.004 Chapter 14 — caches and the memory hierarchy'),
+    11: r(`${D004}/c15/`, '6.004 Chapter 15 — pipelining the Beta: reading instruction traces'),
+    12: r(`${D004}/c18/`, '6.004 Chapter 18 — devices and interrupts'),
+    13: r('https://verilator.org/guide/latest/', 'Verilator guide — simulating and testing hardware systematically'),
+    14: r(`${N2T}/project05`, 'nand2tetris Project 5 — integrating CPU, memory and I/O into a computer'),
+    15: r(`${D004}/c3/`, '6.004 Chapter 3 — CMOS: what happens at the pin'),
+    16: r(`${N2T}/course`, 'nand2tetris course — every project has test scripts to defend the design against'),
+  },
+  'electronics-and-instrumentation-lab-i': {
+    1: r(`${NIST}/mpc/mpc.htm`, 'NIST/SEMATECH e-Handbook Chapter 2 — characterising a measurement process'),
+    2: r(`${LIEC}/DC/DC_8.html`, 'Lessons in Electric Circuits, Vol. I Chapter 8 — using meters without loading the circuit'),
+    3: r(`${LIEC}/AC/AC_12.html`, 'Vol. II Chapter 12 — AC metering and the oscilloscope'),
+    4: r(`${L6101}/resources/lab2/`, '6.101 Lab 2 — characterising diodes and transistors'),
+    5: r(`${NIST}/mpc/section3/mpc3.htm`, 'NIST/SEMATECH e-Handbook §2.3 — calibration'),
+    6: r('https://www.falstad.com/circuit/', 'CircuitJS1 — the unknown virtual circuit for the instrument practical'),
+    7: r(`${L6101}/resources/lab1/`, '6.101 Lab 1 — tuned circuits, Q and bandwidth: shaping a signal'),
+    8: r(`${L6101}/resources/lab4/`, '6.101 Lab 4 — op-amps: gain, offset, bandwidth and slew rate'),
+    9: r(`${OCW}/8-13-14-experimental-physics-i-ii-junior-lab-fall-2016-spring-2017/resources/mit8_13-14f16-s17exp43/`, 'MIT Junior Lab guide — Johnson and shot noise: where interference comes from and how to reject it'),
+    10: r('https://pyvisa.readthedocs.io/en/latest/', 'PyVISA — controlling instruments from code to automate a test'),
+    11: r(`${LIEC}/Ref/REF_8.html`, 'Vol. V Chapter 8 — troubleshooting strategy for fault isolation'),
+    12: r(`${L6101}/pages/projects/`, '6.101 projects — designing a fixture and test plan for a real circuit'),
+    13: r(`${J1314}/requirements-for-experimental-notebooks/`, 'MIT Junior Lab notebook requirements — evidence another person can audit'),
+    14: r(`${L6101}/resources/lab5/`, '6.101 Lab 5 — a power amplifier to characterise across its range'),
+    15: r('https://www.nist.gov/pml/nist-technical-note-1297', 'NIST Technical Note 1297 — defending an uncertainty'),
+    16: r(`${L6101}/pages/labs/`, '6.101 labs — the record the notebook audit draws on'),
+  },
+  'materials-and-chemistry-for-electronics': {
+    1: r(`${S3091}/bonding-and-molecules/`, '3.091SC — bonding, and how it sets properties'),
+    2: r(`${S3091}/crystalline-materials/`, '3.091SC — crystal structures, defects and X-ray diffraction'),
+    3: r(`${S3091}/electronic-materials/`, '3.091SC — band models of metals, semiconductors and insulators'),
+    4: r(`${M6012}/mit6_012s09_lec02/`, '6.012 Lecture 2 — electrons, holes and doping'),
+    5: r(`${M6012}/mit6_012s09_lec03/`, '6.012 Lecture 3 — drift and diffusion currents'),
+    6: r(`${OCW}/3-091-introduction-to-solid-state-chemistry-fall-2018/pages/exams-and-quizzes/`, '3.091 (2018) quizzes — semiconductors, metals and crystal structure, for the checkpoint'),
+    7: r(`${M6012}/mit6_012s09_lec04/`, '6.012 Lectures 4–5 — the pn junction in equilibrium'),
+    8: r(`${M6012}/mit6_012s09_lec06/`, '6.012 Lecture 6 — the MOS capacitor: choosing a gate dielectric'),
+    9: r(`${OCW}/6-720j-integrated-microelectronic-devices-spring-2007/resources/lecture19/`, '6.720J Lecture 19 — Schottky diodes and ohmic contacts'),
+    10: r(`${S3091}/aqueous-solutions/`, '3.091SC — aqueous solutions and electrochemistry'),
+    11: r(`${OCW}/3-091-introduction-to-solid-state-chemistry-fall-2018/pages/practice-problems/`, '3.091 (2018) practice problems — for the material-selection practical'),
+    12: r(`${M6012}/mit6_012s09_lec01/`, '6.012 Lecture 1 — silicon integrated-circuit technology'),
+    13: r(`${S3091}/reactions-and-kinetics/`, '3.091SC — reaction kinetics and Arrhenius behaviour: predicting degradation'),
+    14: r('https://eplca.jrc.ec.europa.eu/lifecycleassessment.html', 'European Platform on Life Cycle Assessment — counting a product\'s whole life'),
+    15: r(`${OCW}/3-091-introduction-to-solid-state-chemistry-fall-2018/pages/why-this-matters-videos/`, '3.091 (2018) "Why this matters" — materials decisions in real products'),
+    16: r(`${S3091}/final-exam/`, '3.091SC final exam with solution key — the cumulative check'),
   },
 };

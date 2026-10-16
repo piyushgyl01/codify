@@ -112,4 +112,37 @@ export const EECIRCUITS = [
       `P(R_L) = V²R_L/(R_L + R_th)² peaks at R_L = R_th = ${Rth} Ω, giving V²/4R_th = ${r4(P * 1e3)} mW.`,
       `import math\n# golden-section search for the load that maximises V^2 RL / (RL + Rth)^2\nVth, Rth = ${Vth}, ${Rth}\nP = lambda RL: Vth ** 2 * RL / (RL + Rth) ** 2\nlo, hi = 0.0, 100 * Rth; g = (math.sqrt(5) - 1) / 2\nfor _ in range(200):\n    a, b = hi - g * (hi - lo), lo + g * (hi - lo)\n    lo, hi = (a, hi) if P(a) < P(b) else (lo, b)\nprint(P(lo) * 1e3)`);
   }),
+  SKILL('ckt.twoport', 'Two-port networks', 'A T-network\'s impedance parameters are z₁₁ = Z₁ + Z₂, z₁₂ = z₂₁ = Z₂, z₂₂ = Z₃ + Z₂; with a load R_L its gain is z₂₁R_L/(z₁₁(z₂₂ + R_L) − z₁₂z₂₁).', t => {
+    const [Z1, Z2, Z3, RL] = [res(t, 2, 3), res(t, 2, 3), res(t, 2, 3), res(t, 2, 3)], ask = t.pick(['z11', 'z22', 'gain']);
+    const z11 = Z1 + Z2, z22 = Z3 + Z2, z21 = Z2, gain = (z21 * RL) / (z11 * (z22 + RL) - z21 * z21);
+    const ans = ask === 'gain' ? gain : (ask === 'z11' ? z11 : z22) / 1e3;
+    return num(`A resistive T-network has series arm Z₁ = ${ohm(Z1)}, shunt arm Z₂ = ${ohm(Z2)} and series arm Z₃ = ${ohm(Z3)}. ${ask === 'gain' ? `Driven by an ideal source at port 1 and loaded by ${ohm(RL)} at port 2, what is its voltage gain V₂/V₁?` : `What is its ${ask === 'z11' ? 'input' : 'output'} impedance parameter ${ask === 'z11' ? 'z₁₁' : 'z₂₂'}, in kΩ?`} (4 significant figures)`, r4(ans),
+      `z₁₁ = Z₁ + Z₂ = ${r4(z11 / 1e3)} kΩ, z₂₂ = Z₃ + Z₂ = ${r4(z22 / 1e3)} kΩ, z₁₂ = z₂₁ = Z₂.${ask === 'gain' ? ` Gain = z₂₁R_L/(z₁₁(z₂₂ + R_L) − z₁₂z₂₁) = ${r4(gain)}.` : ''}`,
+      `# test the network directly: ${ask === 'gain' ? 'apply 1 V at port 1 with the load fitted and solve the nodes' : 'inject 1 A at the port with the other port open and read the voltage'}\nZ1, Z2, Z3, RL = ${Z1}, ${Z2}, ${Z3}, ${RL}\n# nodes: 1 = port 1, m = middle, 2 = port 2\nif '${ask}' == 'gain':\n    # V1 = 1; KCL at m and at 2\n    a11, a12, b1 = 1 / Z1 + 1 / Z2 + 1 / Z3, -1 / Z3, 1 / Z1\n    a21, a22, b2 = -1 / Z3, 1 / Z3 + 1 / RL, 0.0\n    det = a11 * a22 - a12 * a21\n    print((a11 * b2 - a21 * b1) / det)\nelse:\n    # 1 A into the chosen port with the other port open: solve the three node voltages (port1, middle, port2)\n    inj = [1.0, 0.0, 0.0] if '${ask}' == 'z11' else [0.0, 0.0, 1.0]\n    G = [[1 / Z1, -1 / Z1, 0.0], [-1 / Z1, 1 / Z1 + 1 / Z2 + 1 / Z3, -1 / Z3], [0.0, -1 / Z3, 1 / Z3]]\n    A = [row[:] + [b] for row, b in zip(G, inj)]\n    for c in range(3):\n        p = max(range(c, 3), key=lambda r: abs(A[r][c])); A[c], A[p] = A[p], A[c]\n        for r in range(3):\n            if r != c:\n                f = A[r][c] / A[c][c]; A[r] = [x - f * y for x, y in zip(A[r], A[c])]\n    V = [A[i][3] / A[i][i] for i in range(3)]\n    print((V[0] if '${ask}' == 'z11' else V[2]) / 1e3)`);
+  }),
+
+  SKILL('ckt.depsource', 'Dependent sources', 'A transconductance g_m·v in a node equation makes the system non-reciprocal; write KCL as usual with the controlled current included.', t => {
+    const Vs = 0.01, [Rs, R1, Rf, RL] = [res(t, 2, 3), res(t, 3, 4), res(t, 4, 5), res(t, 3, 4)], gm = t.pick([2, 5, 10, 20]) / 1e3;
+    const a11 = 1 / Rs + 1 / R1 + 1 / Rf, a12 = -1 / Rf, b1 = Vs / Rs, a21 = -1 / Rf + gm, a22 = 1 / Rf + 1 / RL;
+    const det = a11 * a22 - a12 * a21, vB = (a11 * 0 - a21 * b1) / det, gain = vB / Vs;
+    return num(`A small-signal amplifier: a 10 mV source with R_s = ${ohm(Rs)} drives node A, which has R₁ = ${ohm(R1)} to ground. A transconductance g_m = ${gm * 1e3} mA/V draws g_m·v_A from output node B to ground, R_L = ${ohm(RL)} goes from B to ground, and feedback resistor R_f = ${ohm(Rf)} joins A and B. What is the gain v_B/v_s? (4 significant figures)`, r4(gain),
+      `KCL at A: (v_A − v_s)/R_s + v_A/R₁ + (v_A − v_B)/R_f = 0; at B: (v_B − v_A)/R_f + v_B/R_L + g_m v_A = 0. Solving gives v_B/v_s = ${r4(gain)}.`,
+      `# modified nodal analysis: stamp each element into G, stamp the VCCS, and solve by Gaussian elimination\nVs, Rs, R1, Rf, RL, gm = ${Vs}, ${Rs}, ${R1}, ${Rf}, ${RL}, ${gm}\n# unknowns: v_in (node 0, held by the source through a stamp), v_A (1), v_B (2), source current (3)\nN = 4\nG = [[0.0] * N for _ in range(N)]; b = [0.0] * N\ndef res(a, c, R):\n    g = 1 / R\n    for (i, j, s) in [(a, a, g), (c, c, g), (a, c, -g), (c, a, -g)]:\n        if i is not None and j is not None: G[i][j] += s\nres(0, 1, Rs); res(1, None, R1); res(1, 2, Rf); res(2, None, RL)\n# VCCS: current gm*vA leaves node B to ground\nG[2][1] += gm\n# voltage source at node 0\nG[0][3] += 1; G[3][0] += 1; b[3] = Vs\nA = [row[:] + [bb] for row, bb in zip(G, b)]\nfor c in range(N):\n    p = max(range(c, N), key=lambda r: abs(A[r][c])); A[c], A[p] = A[p], A[c]\n    for r in range(N):\n        if r != c:\n            f = A[r][c] / A[c][c]; A[r] = [x - f * y for x, y in zip(A[r], A[c])]\nprint(A[2][N] / A[2][2] / Vs)`);
+  }),
+
+  SKILL('ckt.tolerance', 'Worst-case tolerance', 'With ±tol parts, the extreme output comes from pushing each part to whichever end moves the output the same way.', t => {
+    const tol = t.pick([1, 5, 10]) / 100, kind = t.pick(['divider', 'filter']);
+    if (kind === 'divider') {
+      const Vin = t.pick([5, 12]), [R1, R2] = [res(t, 3, 4), res(t, 3, 4)], hi = t.rng() < 0.5;
+      const v = hi ? (Vin * R2 * (1 + tol)) / (R1 * (1 - tol) + R2 * (1 + tol)) : (Vin * R2 * (1 - tol)) / (R1 * (1 + tol) + R2 * (1 - tol));
+      return num(`A ${Vin} V divider uses R₁ = ${ohm(R1)} (top) and R₂ = ${ohm(R2)} (bottom), both ±${tol * 100}%. What is the worst-case ${hi ? 'highest' : 'lowest'} output voltage? (4 significant figures)`, r4(v),
+        `V_out = V_in·R₂/(R₁ + R₂) rises with R₂ and falls with R₁, so the ${hi ? 'highest' : 'lowest'} output takes R₂ at its ${hi ? 'top' : 'bottom'} and R₁ at its ${hi ? 'bottom' : 'top'}: ${r4(v)} V.`,
+        `# search the whole tolerance box on a grid that includes its edges\nVin, R1, R2, tol = ${Vin}, ${R1}, ${R2}, ${tol}\nvals = []\nfor i in range(101):\n    for j in range(101):\n        a = R1 * (1 - tol + 2 * tol * i / 100); b = R2 * (1 - tol + 2 * tol * j / 100)\n        vals.append(Vin * b / (a + b))\nprint(${hi ? 'max' : 'min'}(vals))`);
+    }
+    const R = res(t, 3, 4), C = t.pick([10, 47, 100]) * 1e-9, hi = t.rng() < 0.5;
+    const f = 1 / (2 * Math.PI * R * (1 + (hi ? -tol : tol)) * C * (1 + (hi ? -tol : tol)));
+    return num(`An RC low-pass uses R = ${ohm(R)} and C = ${C * 1e9} nF, both ±${tol * 100}%. What is the worst-case ${hi ? 'highest' : 'lowest'} cutoff frequency, in Hz? (4 significant figures)`, r4(f),
+      `f_c = 1/(2πRC) falls as either part grows, so the ${hi ? 'highest' : 'lowest'} cutoff takes both at their ${hi ? 'minimum' : 'maximum'}: ${r4(f)} Hz.`,
+      `import math\n# search the tolerance box on a grid that includes its edges\nR, C, tol = ${R}, ${C}, ${tol}\nvals = [1 / (2 * math.pi * R * (1 - tol + 2 * tol * i / 100) * C * (1 - tol + 2 * tol * j / 100)) for i in range(101) for j in range(101)]\nprint(${hi ? 'max' : 'min'}(vals))`);
+  }),
 ];
