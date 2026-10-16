@@ -112,4 +112,48 @@ export const MATHANALYSIS = [
       `f is analytic except at its poles, so the series converges in the largest disc about z₀ that avoids them: distance to the nearest pole = ${r4(d)}.`,
       `import cmath\n# expand the denominator into a polynomial and recover its roots from the coefficients alone\nP = [complex(*p) for p in ${PY(poles)}]\nc = [1 + 0j]\nfor p in P: c = [b - p * a for a, b in zip(c + [0], [0] + c)]\n# c holds coefficients from z^0 upward\nif len(c) == 2: roots = [-c[0] / c[1]]\nelse:\n    a, b, k = c[2], c[1], c[0]\n    d = cmath.sqrt(b * b - 4 * a * k)\n    roots = [(-b + d) / (2 * a), (-b - d) / (2 * a)]\nz0 = complex(${z0[0]}, ${z0[1]})\nprint(min(abs(x - z0) for x in roots))`, { tol: 0.0001, dp: 4 });
   }),
+  SKILL('meas.cantor', 'Measure of Cantor-type sets', 'Remove the open middle fraction at every stage: what remains has measure (1 − r)ⁿ — zero in the limit, yet uncountable.', t => {
+    const r = t.pick([1 / 3, 1 / 5, 1 / 2]), n = t.int(1, 6);
+    const v = (1 - r) ** n, rtxt = { [1 / 3]: '1/3', [1 / 5]: '1/5', [1 / 2]: '1/2' }[r];
+    return num(`Start with [0, 1]. At each stage remove the open middle ${rtxt} of every interval that remains. What is the total length left after ${n} stages? (4 decimal places)`, r4(v),
+      `Each stage keeps a fraction 1 − ${rtxt} of what is there: (1 − ${rtxt})^${n} = ${r4(v)}. As n → ∞ the measure tends to 0.`,
+      `from fractions import Fraction as F\nr = F(${r === 1 / 3 ? '1, 3' : r === 1 / 5 ? '1, 5' : '1, 2'})\nI = [(F(0), F(1))]\nfor _ in range(${n}):\n    J = []\n    for a, b in I:\n        L = b - a; cut = L * r\n        J += [(a, a + (L - cut) / 2), (b - (L - cut) / 2, b)]\n    I = J\nprint(float(sum(b - a for a, b in I)))`);
+  }),
+
+  SKILL('meas.simple', 'Lebesgue integrals of simple functions', '∫ Σ cᵢ 1_{Aᵢ} dμ = Σ cᵢ μ(Aᵢ) — measure the sets, not the intervals of x.', t => {
+    const pieces = Array.from({ length: t.int(2, 3) }, () => { const a = t.int(0, 8) / 10; return [a, Math.min(1, a + t.int(1, 4) / 10), t.int(1, 5)]; });
+    // f = Σ c 1_[a,b) (overlaps add)
+    const v = pieces.reduce((s, [a, b, c]) => s + c * (b - a), 0);
+    return num(`f = ${pieces.map(([a, b, c]) => `${c}·1_[${a}, ${b})`).join(' + ')} on [0, 1] (indicators may overlap, and then add). What is ∫ f dλ? (4 decimal places)`, r4(v),
+      `Linearity: Σ cᵢ λ(Aᵢ) = ${pieces.map(([a, b, c]) => `${c}·${r4(b - a)}`).join(' + ')} = ${r4(v)}.`,
+      `P = ${PY(pieces)}\nN = 1_000_000\nf = lambda x: sum(c for a, b, c in P if a <= x < b)\nprint(sum(f((i + .5) / N) for i in range(N)) / N)`, { tol: 0.0005 });
+  }),
+
+  SKILL('meas.lp', 'Lᵖ norms', '‖f‖_p = (∫|f|ᵖ)^{1/p}; on [0, 1], xᵃ is in Lᵖ exactly when ap > −1.', t => {
+    const a = t.pick([-0.25, 0.5, 1, 2]), pw = t.pick([1, 2, 3]);
+    const v = (1 / (a * pw + 1)) ** (1 / pw);
+    return num(`On [0, 1], what is the L^${pw} norm of f(x) = x^${a}? (4 decimal places)`, r4(v),
+      `∫₀¹ x^${a * pw} dx = 1/(${a * pw} + 1), so ‖f‖_${pw} = (1/${r4(a * pw + 1)})^{1/${pw}} = ${r4(v)}.`,
+      `import math\n# substitute x = e^(-u) to tame the endpoint, then integrate numerically\np, a = ${pw}, ${a}\nN, U = 400000, 60.0\nh = U / N\nI = sum(math.exp(-(a * p + 1) * (i + .5) * h) for i in range(N)) * h\nprint(I ** (1 / p))`);
+  }),
+
+  SKILL('top.euler', 'Euler characteristic and surfaces', 'χ = V − E + F classifies closed surfaces: orientable genus g has χ = 2 − 2g.', t => {
+    const g = t.int(0, 4), ask = t.pick(['chi', 'genus']);
+    const chi = 2 - 2 * g;
+    if (ask === 'chi') return num(`What is the Euler characteristic of a closed orientable surface of genus ${g} (${['a sphere', 'a torus', 'a two-holed torus', 'a three-holed torus', 'a four-holed torus'][g]})?`, chi,
+      `χ = 2 − 2g = ${chi}. A triangulation of it has V − E + F = ${chi} however it is drawn.`,
+      `# glue a 4g-gon as a1 b1 a1^-1 b1^-1 ... (one face); count the vertex and edge classes\ng = ${g}\nif g == 0: print(2)\nelse:\n    V, E, F = 1, 2 * g, 1  # all corners of the standard polygon become one point; edges pair up\n    print(V - E + F)`, { tol: 0, dp: 0 });
+    const V = t.int(6, 12), E = V + 2 * g - 2 + t.int(3, 6), F = E - V + chi;
+    return num(`A triangulated closed orientable surface has ${V} vertices, ${E} edges and ${F} faces. What is its genus?`, g,
+      `χ = ${V} − ${E} + ${F} = ${chi}; genus = (2 − χ)/2 = ${g}.`,
+      `V, E, F = ${V}, ${E}, ${F}\nchi = V - E + F\nprint(next(g for g in range(50) if 2 - 2 * g == chi))`, { tol: 0, dp: 0 });
+  }),
+
+  SKILL('top.count', 'Topologies on finite sets', 'A topology is a family of subsets containing ∅ and X, closed under unions and intersections.', t => {
+    const n = t.int(1, 3), counts = [1, 1, 4, 29], ask = t.pick(['all', 'T0']), T0 = [1, 1, 3, 19];
+    const v = ask === 'all' ? counts[n] : T0[n];
+    return num(`How many ${ask === 'all' ? 'topologies' : 'T₀ topologies (any two points separated by some open set)'} are there on a set with ${n} element${n > 1 ? 's' : ''}?`, v,
+      `Listing the families of subsets closed under union and intersection that contain ∅ and the whole set gives ${counts[n]}${ask === 'T0' ? `, of which ${T0[n]} are T₀` : ''}.`,
+      `from itertools import combinations\nn = ${n}\nX = frozenset(range(n))\nsubsets = [frozenset(c) for k in range(n + 1) for c in combinations(range(n), k)]\nrest = [s for s in subsets if s and s != X]\ncount = t0 = 0\nfor k in range(len(rest) + 1):\n    for extra in combinations(rest, k):\n        T = set(extra) | {frozenset(), X}\n        if all(a | b in T and a & b in T for a in T for b in T):\n            count += 1\n            if all(any((x in U) != (y in U) for U in T) for x in range(n) for y in range(x + 1, n)): t0 += 1\nprint(${ask === 'all' ? 'count' : 't0'})`, { tol: 0, dp: 0 });
+  }),
 ];

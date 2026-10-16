@@ -20,6 +20,14 @@ const O330 = 'https://ocw.mit.edu/courses/18-330-introduction-to-numerical-analy
 const O335 = 'https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/pages';
 // The SIAM M3 handbook's PDF pages run 3 ahead of its printed numbers.
 const M3 = p => `https://m3challenge.siam.org/sites/default/files/uploads/siam-guidebook-final-press.pdf#page=${p + 3}`;
+const MIRA = p => `https://measure.axler.net/MIRA.pdf#page=${p}`;
+// Goodman's PDF pages run 12 ahead of the printed numbers.
+const GOOD = p => `https://homepage.math.uiowa.edu/~goodman/algebrabook.dir/book.2.6.pdf#page=${p + 12}`;
+const TOPN = p => `https://pi.math.cornell.edu/~hatcher/Top/TopNotes.pdf#page=${p}`;
+// Hatcher's Algebraic Topology: PDF pages run 9 ahead of the printed numbers.
+const AT = p => `https://pi.math.cornell.edu/~hatcher/AT/AT.pdf#page=${p + 9}`;
+const BOYD = p => `https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf#page=${p}`;
+const PC = 'https://www.probabilitycourse.com';
 
 export const MATH_READINGS = {
   'calculus-1': {
@@ -171,5 +179,55 @@ export const MATH_READINGS = {
     6: r('https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd44.htm', 'NIST/SEMATECH e-Handbook §4.4.4 — how to tell if a model fits: residuals, not just R²'),
     7: r(M3(32), 'SIAM M3 handbook, Chapters 6–7 — analysis, model assessment, and putting it all together'),
     8: r(M3(40), 'SIAM M3 handbook, Chapter 7 and appendices — assembling and defending the full report'),
+  },
+  'real-analysis-2-measure-and-integration': {
+    1: r(MIRA(29), 'Axler, Measure, Integration & Real Analysis §2A–2D — outer measure, σ-algebras, measures, Lebesgue measure'),
+    2: r(MIRA(40), 'Axler MIRA §2B and §2E — measurable functions; convergence of measurable functions (Egorov, Luzin)'),
+    3: r(MIRA(89), 'Axler MIRA §3A, with Chapter 1 — the integral with respect to a measure, against the Riemann integral'),
+    4: r(MIRA(77), 'Axler MIRA §2E and the examples in §3B — where limits and integrals fail to commute'),
+    5: r(MIRA(103), 'Axler MIRA §3B — the monotone and dominated convergence theorems, Fatou\'s lemma'),
+    6: r(MIRA(209), 'Axler MIRA Chapter 7 — Lᵖ spaces, Hölder and Minkowski, completeness'),
+    7: r(MIRA(132), 'Axler MIRA §5A–5B — product measures, Tonelli and Fubini; §9B for the Radon–Nikodym theorem'),
+    8: r('https://leanprover-community.github.io/mathematics_in_lean/C13_Integration_and_Measure_Theory.html', 'Mathematics in Lean Chapter 13 — integration and measure theory, checked by Lean'),
+  },
+  'abstract-algebra-2': {
+    1: r(GOOD(350), 'Goodman §8.1–8.2 — modules, homomorphisms and quotient modules'),
+    2: r(GOOD(374), 'Goodman §8.4–8.5 — finitely generated modules over a PID'),
+    3: r(GOOD(300), 'Goodman §6.5 and §6.7 — Euclidean domains, PIDs and UFDs; Noetherian rings'),
+    4: r('https://judsonbooks.org/aata-files/aata-html/finite.html', 'Judson Chapter 22 — finite fields: construction, structure, computation (Goodman has no chapter on them)'),
+    5: r(GOOD(426), 'Goodman §9.1 — finite and algebraic extensions'),
+    6: r(GOOD(428), 'Goodman §9.2–9.4 — splitting fields, separability and automorphisms'),
+    7: r(GOOD(441), 'Goodman §9.5 and §10.6 — the Galois correspondence; solvability by radicals'),
+    8: r('https://judsonbooks.org/aata-files/aata-html/galois.html', 'Judson Chapter 23 — Galois theory, a second treatment to test the portfolio against'),
+  },
+  'topology': {
+    1: r(TOPN(2), 'Hatcher, Notes on Introductory Point-Set Topology, Chapter 1 — topological spaces, bases, subspaces (18.901\'s text, Munkres, is not free)'),
+    2: r(TOPN(12), 'Hatcher\'s point-set notes — continuity and homeomorphisms, product spaces'),
+    3: r(TOPN(41), 'Hatcher\'s point-set notes Chapter 4 — quotient spaces'),
+    4: r(AT(1), 'Hatcher, Algebraic Topology, Chapter 0 — the standard spaces and constructions, for an atlas of examples'),
+    5: r(TOPN(28), 'Hatcher\'s point-set notes Chapter 3 — compactness, with 18.901 Notes C'),
+    6: r(TOPN(17), 'Hatcher\'s point-set notes Chapter 2 — connectedness and path-connectedness'),
+    7: r(AT(21), 'Hatcher, Algebraic Topology, Chapter 1 — homotopy, the fundamental group, the circle (18.901 does not cover it)'),
+    8: r('https://leanprover-community.github.io/mathematics_in_lean/C11_Topology.html', 'Mathematics in Lean Chapter 11 — topology, checked by Lean'),
+  },
+  'optimization': {
+    1: r(BOYD(160), 'Boyd & Vandenberghe §4.3, in Chapter 4 — formulations and linear programs'),
+    2: r(BOYD(35), 'Boyd & Vandenberghe Chapters 2–3 — convex sets and convex functions'),
+    3: r(BOYD(229), 'Boyd & Vandenberghe Chapter 5 — Lagrange duality and certificates, with §2.5 on separating hyperplanes'),
+    4: r(BOYD(263), 'Boyd & Vandenberghe §5.6 — perturbation and sensitivity analysis'),
+    5: r(BOYD(255), 'Boyd & Vandenberghe §5.5 — optimality conditions (KKT)'),
+    6: r(BOYD(471), 'Boyd & Vandenberghe Chapter 9 — gradient and Newton methods; Parikh & Boyd, Proximal Algorithms, for proximal methods'),
+    7: r('https://web.mit.edu/15.053/www/AMP-Chapter-09.pdf', 'Bradley, Hax & Magnanti, Applied Mathematical Programming, Chapter 9 — integer programming; Boyd §6.4 for robustness'),
+    8: r('https://www.cvxpy.org/examples/index.html', 'CVXPY worked examples — solve, then read off and check the dual certificate'),
+  },
+  'stochastic-processes-and-statistical-inference': {
+    1: r(`${PC}/chapter11/11_2_1_introduction.php`, 'Pishro-Nik §11.2 — discrete-time Markov chains and the classification of states'),
+    2: r(`${PC}/chapter11/11_2_6_stationary_and_limiting_distributions.php`, 'Pishro-Nik §11.2.6 — stationary and limiting distributions'),
+    3: r(`${PC}/chapter11/11_1_2_basic_concepts_of_the_poisson_process.php`, 'Pishro-Nik §11.1 — counting processes and the Poisson process'),
+    4: r(`${PC}/chapter10/10_1_0_basic_concepts.php`, 'Pishro-Nik Chapter 10 — random processes: mean, correlation, stationarity'),
+    5: r(`${PC}/chapter8/8_2_3_max_likelihood_estimation.php`, 'Pishro-Nik §8.2 — point estimation and maximum likelihood'),
+    6: r(`${PC}/chapter8/8_3_0_interval_estimation.php`, 'Pishro-Nik §8.3–8.4 — confidence intervals and hypothesis tests'),
+    7: r(`${PC}/chapter9/9_1_0_bayesian_inference.php`, 'Pishro-Nik §9.1 — Bayesian inference: prior, posterior, estimates'),
+    8: r('https://ocw.mit.edu/courses/18-445-introduction-to-stochastic-processes-spring-2015/pages/assignments/', 'MIT 18.445 homework with solutions — the cumulative check'),
   },
 };

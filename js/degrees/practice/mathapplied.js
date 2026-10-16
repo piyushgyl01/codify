@@ -109,4 +109,70 @@ export const MATHAPPLIED = [
       `ρ = λ/μ = ${rho}. L = ρ/(1 − ρ) = ${L.toFixed(2)}; by Little's law W = L/λ = ${(W * 60).toFixed(2)} minutes.`,
       `import random\nrandom.seed(1)\nlam, mu = ${lam}, ${mu}\n# simulate customers through a single server\nt = free = 0.0; total = 0.0; n = 400000\nfor _ in range(n):\n    t += random.expovariate(lam)\n    start = max(t, free); free = start + random.expovariate(mu)\n    total += free - t\nW = total / n\nprint(${ask === 'L' ? 'lam * W' : 'W * 60'})`, { rtol: 0.06, dp: 2 });
   }),
+  SKILL('opt.lp', 'Linear programming', 'A bounded feasible LP attains its optimum at a vertex of the feasible polygon.', t => {
+    const c = [t.int(1, 6), t.int(1, 6)], cons = Array.from({ length: 3 }, () => [t.int(1, 4), t.int(1, 4), t.int(8, 24)]);
+    const lines = [...cons.map(([a, b, r]) => [a, b, r]), [1, 0, 0], [0, 1, 0]]; // a x + b y = r (last two: x = 0, y = 0)
+    const ok = (x, y) => x >= -1e-9 && y >= -1e-9 && cons.every(([a, b, r]) => a * x + b * y <= r + 1e-9);
+    let best = -Infinity;
+    for (let i = 0; i < lines.length; i++) for (let j = i + 1; j < lines.length; j++) {
+      const [a1, b1, r1] = lines[i], [a2, b2, r2] = lines[j], d = a1 * b2 - a2 * b1; if (d === 0) continue;
+      const x = (r1 * b2 - r2 * b1) / d, y = (a1 * r2 - a2 * r1) / d; if (ok(x, y)) best = Math.max(best, c[0] * x + c[1] * y);
+    }
+    return num(`Maximise ${c[0]}x + ${c[1]}y subject to ${cons.map(([a, b, r]) => `${a}x + ${b}y ≤ ${r}`).join(', ')}, x, y ≥ 0. (4 decimal places)`, r4(best),
+      `Check the objective at every vertex of the feasible polygon (intersections of pairs of constraint lines that satisfy all constraints): the maximum is ${r4(best)}.`,
+      `c, cons = ${PY(c)}, ${PY(cons)}\n# brute force on a fine grid, then refine around the best point\nbest, arg = -1, None\nN = 500\nxmax = max(r / a for a, b, r in cons); ymax = max(r / b for a, b, r in cons)\nok = lambda x, y: x >= 0 and y >= 0 and all(a * x + b * y <= r + 1e-12 for a, b, r in cons)\nfor i in range(N + 1):\n    for j in range(N + 1):\n        x, y = xmax * i / N, ymax * j / N\n        if ok(x, y) and c[0] * x + c[1] * y > best: best, arg = c[0] * x + c[1] * y, (x, y)\n# the optimum is at a vertex; snap to the vertex of tight constraints near arg\nfrom itertools import combinations\nlines = [(a, b, r) for a, b, r in cons] + [(1, 0, 0), (0, 1, 0)]\ncand = []\nfor (a1, b1, r1), (a2, b2, r2) in combinations(lines, 2):\n    d = a1 * b2 - a2 * b1\n    if d: cand.append(((r1 * b2 - r2 * b1) / d, (a1 * r2 - a2 * r1) / d))\nv = max(c[0] * x + c[1] * y for x, y in cand if ok(x, y) and abs(x - arg[0]) + abs(y - arg[1]) < 0.1 * (xmax + ymax))\nprint(v)`);
+  }),
+
+  SKILL('opt.gd', 'Gradient descent on a quadratic', 'With step 1/L, error falls at least as fast as (1 − μ/L)ᵏ; the condition number κ = L/μ sets the pace.', t => {
+    const mu = t.pick([1, 2]), L = mu * t.pick([2, 5, 10, 20]), x0 = [t.int(1, 5), t.int(1, 5)], k = t.int(1, 6), step = t.pick(['1/L', '2/(L+μ)']);
+    const h = step === '1/L' ? 1 / L : 2 / (L + mu);
+    const x = [x0[0] * (1 - h * mu) ** k, x0[1] * (1 - h * L) ** k];
+    const f = 0.5 * (mu * x[0] ** 2 + L * x[1] ** 2);
+    return num(`Minimise f(x, y) = ½(${mu}x² + ${L}y²) by gradient descent from (${x0.join(', ')}) with step ${step === '1/L' ? `1/L = 1/${L}` : `2/(L + μ) = ${r4(h)}`}. What is f after ${k} step${k > 1 ? 's' : ''}? (4 decimal places)`, r4(f),
+      `Each coordinate contracts independently: x by (1 − h·${mu}) = ${r4(1 - h * mu)}, y by (1 − h·${L}) = ${r4(1 - h * L)}. After ${k} steps f = ${r4(f)}. The slow direction is the one with the small curvature μ = ${mu}; κ = ${L / mu}.`,
+      `from fractions import Fraction as F\nmu, L = ${mu}, ${L}\nh = ${step === '1/L' ? 'F(1, L)' : 'F(2, L + mu)'}\nx, y = F(${x0[0]}), F(${x0[1]})\nfor _ in range(${k}):\n    gx, gy = mu * x, L * y\n    x, y = x - h * gx, y - h * gy\nprint(float((mu * x * x + L * y * y) / 2))`);
+  }),
+
+  SKILL('opt.convex', 'Convexity', 'A twice-differentiable function is convex exactly where its Hessian is positive semidefinite.', t => {
+    const a = t.int(-2, 4), b = t.int(-3, 3), c = t.int(-2, 4);
+    // f(x, y) = a x² + b x y + c y² : Hessian [[2a, b], [b, 2c]]
+    const tr = 2 * a + 2 * c, det = 4 * a * c - b * b;
+    const kind = det > 0 && tr > 0 ? 'Strictly convex' : det >= 0 && tr >= 0 && (a >= 0 && c >= 0) ? 'Convex but not strictly' : 'Not convex';
+    return { kind: 'mc', q: `Is f(x, y) = ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}xy ${c < 0 ? '−' : '+'} ${Math.abs(c)}y² convex on ℝ²?`, options: [kind, ...['Strictly convex', 'Convex but not strictly', 'Not convex'].filter(o => o !== kind)], correct: 0,
+      explain: `Hessian [[${2 * a}, ${b}], [${b}, ${2 * c}]]: trace ${tr}, determinant ${det}. ${kind === 'Strictly convex' ? 'Both eigenvalues positive.' : kind === 'Not convex' ? 'A negative eigenvalue: some line through the origin bends down.' : 'Eigenvalues ≥ 0 with one zero: flat along a direction.'}`,
+      python: `import math\na, b, c = ${a}, ${b}, ${c}\n# f along every direction (cos t, sin t): f is a multiple of the quadratic form q(t)\nq = [a * math.cos(t) ** 2 + b * math.cos(t) * math.sin(t) + c * math.sin(t) ** 2 for t in [k * math.pi / 3600 for k in range(3600)]]\nm = min(q)\nprint('Strictly convex' if m > 1e-9 else 'Convex but not strictly' if m > -1e-9 else 'Not convex')` };
+  }),
+
+  SKILL('stoch.poisson', 'Poisson processes', 'Counts in disjoint intervals are independent Poisson(λt); waiting times are exponential.', t => {
+    const lam = t.pick([0.5, 1, 2, 3]), T = t.pick([1, 2, 4]), k = t.int(0, 5), ask = t.pick(['pk', 'wait']);
+    if (ask === 'pk') {
+      const m = lam * T; let f = 1; for (let i = 2; i <= k; i++) f *= i;
+      const v = Math.exp(-m) * m ** k / f;
+      return num(`Arrivals form a Poisson process with rate ${lam} per minute. What is the probability of exactly ${k} arrivals in ${T} minutes? (4 decimal places)`, r4(v),
+        `N(${T}) ~ Poisson(${r4(m)}): e^{−${r4(m)}}·${r4(m)}^${k}/${k}! = ${r4(v)}.`,
+        `import random\nrandom.seed(3)\nlam, T, k, n = ${lam}, ${T}, ${k}, 400000\nhits = 0\nfor _ in range(n):\n    t, c = random.expovariate(lam), 0\n    while t <= T: c += 1; t += random.expovariate(lam)\n    hits += c == k\nprint(hits / n)`, { tol: 0.004 });
+    }
+    const v = Math.exp(-lam * T);
+    return num(`Arrivals form a Poisson process with rate ${lam} per minute. What is the probability that no one arrives for at least ${T} minutes after you start watching? (4 decimal places)`, r4(v),
+      `The first arrival time is exponential with rate ${lam}: P(T₁ > ${T}) = e^{−${lam}·${T}} = ${r4(v)} — memoryless, whenever you start watching.`,
+      `import random\nrandom.seed(4)\nprint(sum(1 for _ in range(400000) if random.expovariate(${lam}) > ${T}) / 400000)`, { tol: 0.004 });
+  }),
+
+  SKILL('stoch.ruin', "Gambler's ruin", 'A random walk absorbed at 0 and N: with p ≠ ½, P(reach N from i) = (1 − (q/p)ⁱ)/(1 − (q/p)ᴺ).', t => {
+    const N = t.int(5, 12), i = t.int(1, N - 1), p = t.pick([0.4, 0.45, 0.5, 0.55, 0.6]);
+    const r = (1 - p) / p, v = p === 0.5 ? i / N : (1 - r ** i) / (1 - r ** N);
+    return num(`A gambler with $${i} bets $1 at a time, winning each bet with probability ${p}, and stops at $0 or $${N}. What is the probability of reaching $${N}? (4 decimal places)`, r4(v),
+      p === 0.5 ? `A fair game: the probability is i/N = ${i}/${N} = ${r4(v)}.` : `With r = q/p = ${r4(r)}: (1 − r^${i})/(1 − r^${N}) = ${r4(v)}.`,
+      `# solve h(k) = p h(k+1) + q h(k-1) with h(0) = 0, h(N) = 1 by Gauss-Seidel sweeps\nN, i, p = ${N}, ${i}, ${p}\nh = [0.0] * N + [1.0]\nfor _ in range(20000):\n    for k in range(1, N): h[k] = p * h[k + 1] + (1 - p) * h[k - 1]\nprint(h[i])`, { tol: 0.0002 });
+  }),
+
+  SKILL('stoch.mle', 'Maximum likelihood', 'Choose the parameter that makes the observed data most probable.', t => {
+    const kind = t.pick(['exponential', 'poisson', 'bernoulli']);
+    const data = kind === 'exponential' ? Array.from({ length: t.int(4, 7) }, () => t.int(1, 9) / 2) : kind === 'poisson' ? Array.from({ length: t.int(4, 7) }, () => t.int(0, 6)) : Array.from({ length: t.int(6, 12) }, () => (t.rng() < 0.4 ? 1 : 0));
+    const mean = data.reduce((a, b) => a + b, 0) / data.length;
+    const v = kind === 'exponential' ? 1 / mean : mean;
+    return num(`Observations ${data.join(', ')} are modelled as i.i.d. ${kind === 'exponential' ? 'Exponential(λ)' : kind === 'poisson' ? 'Poisson(λ)' : 'Bernoulli(p)'}. What is the maximum-likelihood estimate of ${kind === 'bernoulli' ? 'p' : 'λ'}? (4 decimal places)`, r4(v),
+      kind === 'exponential' ? `Log-likelihood n log λ − λΣx is maximised at λ̂ = n/Σx = 1/x̄ = ${r4(v)}.` : `The log-likelihood is maximised at the sample mean, ${r4(v)}.`,
+      `import math\nx = ${PY(data)}\ndef ll(t):\n    ${kind === 'exponential' ? 'return sum(math.log(t) - t * v for v in x)' : kind === 'poisson' ? 'return sum(v * math.log(t) - t - math.lgamma(v + 1) for v in x)' : 'return sum(math.log(t) if v else math.log(1 - t) for v in x)'}\nlo, hi = 1e-6, ${kind === 'bernoulli' ? '1 - 1e-6' : '20.0'}\nfor _ in range(200):\n    m1, m2 = lo + (hi - lo) / 3, hi - (hi - lo) / 3\n    if ll(m1) < ll(m2): lo = m1\n    else: hi = m2\nprint((lo + hi) / 2)`);
+  }),
 ];

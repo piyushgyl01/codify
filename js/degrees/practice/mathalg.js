@@ -139,4 +139,44 @@ export const MATHALG = [
       ask === 'order2' ? `All ${n} reflections have order 2${n % 2 ? '' : `, and so does the half-turn r^${n / 2}`}: ${v}.` : `${n % 2 ? 'Only the identity commutes with everything.' : `The identity and the half-turn r^${n / 2}.`}`,
       `n = ${n}\n# realise D_n as permutations of the polygon's vertices\nrot = [tuple((i + k) % n for i in range(n)) for k in range(n)]\nref = [tuple((k - i) % n for i in range(n)) for k in range(n)]\nG = rot + ref\nI = tuple(range(n))\nc = lambda a, b: tuple(a[b[i]] for i in range(n))\n${ask === 'order2' ? 'print(sum(1 for g in G if g != I and c(g, g) == I))' : 'print(sum(1 for g in G if all(c(g, h) == c(h, g) for h in G)))'}`);
   }),
+  SKILL('alg2.gf', 'Finite fields', 'GF(2ᵏ) = 𝔽₂[x]/(p(x)) for an irreducible p: every non-zero element has an inverse.', t => {
+    const k = t.pick([3, 4]), poly = k === 3 ? 0b1011 : 0b10011, a = t.int(2, (1 << k) - 1);
+    const mulGF = (x, y) => { let r = 0; while (y) { if (y & 1) r ^= x; y >>= 1; x <<= 1; if (x & (1 << k)) x ^= poly; } return r; };
+    let inv = 1; for (let c = 1; c < 1 << k; c++) if (mulGF(a, c) === 1) inv = c;
+    const bits = v => v.toString(2).padStart(k, '0'), polyTxt = k === 3 ? 'x³ + x + 1' : 'x⁴ + x + 1';
+    return num(`In GF(2^${k}) = 𝔽₂[x]/(${polyTxt}), elements are bit strings of coefficients (highest power first). What is the inverse of ${bits(a)}, as an integer (its bits read in binary)?`, inv,
+      `Extended Euclid on polynomials over 𝔽₂ (or a search, since the field has ${(1 << k) - 1} non-zero elements) gives ${bits(inv)} = ${inv}: ${bits(a)} · ${bits(inv)} ≡ 1 mod ${polyTxt}.`,
+      `# a^(2^k - 2) is the inverse in a field of 2^k elements (Lagrange on the multiplicative group)\nk, poly, a = ${k}, ${poly}, ${a}\ndef mul(x, y):\n    r = 0\n    for i in range(k):\n        if (y >> i) & 1: r ^= x << i\n    for i in range(2 * k - 2, k - 1, -1):\n        if (r >> i) & 1: r ^= poly << (i - k)\n    return r\nr, b, e = 1, a, 2 ** k - 2\nwhile e:\n    if e & 1: r = mul(r, b)\n    b = mul(b, b); e >>= 1\nprint(r)`);
+  }),
+
+  SKILL('alg2.irred', 'Irreducibility mod p', 'A quadratic or cubic over 𝔽ₚ is irreducible exactly when it has no root there.', t => {
+    const p = t.pick([2, 3, 5, 7]), deg = t.pick([2, 3]), c = Array.from({ length: deg }, () => t.int(0, p - 1));
+    const f = x => { let v = 1; for (let i = deg - 1; i >= 0; i--) v = (v * x + c[i]) % p; return v; };
+    // monic: x^deg + c[deg-1] x^(deg-1) + … + c[0]; evaluate by Horner from the leading 1
+    const ev = x => { let v = 1; for (let i = deg - 1; i >= 0; i--) v = (v * x + c[i]) % p; return v; };
+    const roots = [...Array(p).keys()].filter(x => ev(x) === 0).length, irr = roots === 0;
+    const txt = `x${deg === 3 ? '³' : '²'}${c.slice().reverse().map((v, i) => { const e = deg - 1 - i; return v ? ` + ${v}${e ? `x${e > 1 ? '²' : ''}` : ''}` : ''; }).join('')}`;
+    return { kind: 'mc', q: `Is ${txt} irreducible over 𝔽_${p}?`, options: irr ? ['Yes', 'No'] : ['No', 'Yes'], correct: 0,
+      explain: irr ? `It has no root in 𝔽_${p}; a reducible polynomial of degree ${deg} would have a linear factor, hence a root.` : `It has ${roots} root${roots > 1 ? 's' : ''} in 𝔽_${p}, so it has a linear factor.`,
+      python: `from itertools import product\np, c = ${p}, ${PY(c)}\nf = [*c, 1]  # coefficients from x^0 up, monic\ndef mulpoly(a, b):\n    r = [0] * (len(a) + len(b) - 1)\n    for i, x in enumerate(a):\n        for j, y in enumerate(b): r[i + j] = (r[i + j] + x * y) % p\n    return r\n# try every product of two monic factors of positive degree\nn = len(f) - 1\nfactors = any(mulpoly([*a, 1], [*b, 1]) == f for d in range(1, n) for a in product(range(p), repeat=d) for b in product(range(p), repeat=n - d))\nprint('No' if factors else 'Yes')` };
+  }),
+
+  SKILL('alg2.degree', 'Degrees of field extensions', '[ℚ(√a, √b) : ℚ] is 4 unless √b already lies in ℚ(√a); the tower law multiplies degrees.', t => {
+    const sqfree = [2, 3, 5, 6, 7, 10, 11, 13, 14, 15];
+    const a = t.pick(sqfree), b = t.rng() < 0.3 ? a * t.pick([4, 9]) : t.pick(sqfree.filter(x => x !== a));
+    const core = n => { let m = n; for (const q of [2, 3, 5, 7, 11, 13]) while (m % (q * q) === 0) m /= q * q; return m; };
+    const same = core(a) === core(b) || core(a * b) === 1;
+    const deg = same ? 2 : 4;
+    return num(`What is the degree [ℚ(√${a}, √${b}) : ℚ]?`, deg,
+      same ? `√${b} = ${core(b) === core(a) ? `${Math.sqrt(b / a)}√${a}` : '…'} already lies in ℚ(√${a}), so the degree is 2.` : `√${b} ∉ ℚ(√${a}) (${a}·${b} is not a square), so by the tower law the degree is 2·2 = 4, with basis 1, √${a}, √${b}, √${a * b}.`,
+      `from fractions import Fraction as F\nfrom itertools import product\na, b = ${a}, ${b}\n# √b lies in Q(√a) iff b = (p + q√a)^2 for rationals p, q, i.e. 2pq = 0 and p² + a q² = b\nsq = lambda n: int(round(n ** 0.5)) ** 2 == n\ninside = sq(b) or (b % a == 0 and sq(b // a)) or sq(a * b)\nprint(2 if inside else 4)`, { tol: 0, dp: 0 });
+  }),
+
+  SKILL('alg2.cyclotomic', 'Cyclotomic fields', 'ℚ(ζₙ) has degree φ(n): its Galois group is (ℤ/nℤ)ˣ, one automorphism per primitive n-th root of unity.', t => {
+    const n = t.pick([5, 7, 8, 9, 10, 12, 15, 16, 18, 20]);
+    const phi = [...Array(n).keys()].filter(k => gcd(k, n) === 1).length;
+    return num(`What is the order of the Galois group of ℚ(ζ_${n}) over ℚ, where ζ_${n} is a primitive ${n}th root of unity?`, phi,
+      `Each automorphism sends ζ to another primitive ${n}th root, ζᵏ with gcd(k, ${n}) = 1; there are φ(${n}) = ${phi}, and the group is (ℤ/${n}ℤ)ˣ.`,
+      `import cmath, math\nn = ${n}\n# count the n-th roots of unity whose powers reach 1 first at exactly n\nroots = [cmath.exp(2j * math.pi * k / n) for k in range(n)]\nprimitive = sum(1 for z in roots if all(abs(z ** m - 1) > 1e-9 for m in range(1, n)))\nprint(primitive)`);
+  }),
 ];
