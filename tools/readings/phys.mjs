@@ -28,6 +28,17 @@ const TONGSP = p => `${TONG}/statistical-physics/statphys.pdf#page=${p + 6}`;
 const SETHNA = p => `https://www.lassp.cornell.edu/sethna/StatMech/EntropyOrderParametersComplexity20.pdf#page=${p + 24}`;
 const N2215 = `${OCW}/22-15-essential-numerical-methods-fall-2014`;
 const O335 = `${OCW}/18-335j-introduction-to-numerical-methods-spring-2019/pages`;
+const B309 = `${OCW}/20-309-biological-engineering-ii-instrumentation-and-measurement-fall-2006`;
+const J1314 = `${OCW}/8-13-14-experimental-physics-i-ii-junior-lab-fall-2016-spring-2017`;
+const O6002 = `${OCW}/6-002-circuits-and-electronics-spring-2007/resources`;
+const R8033 = `${OCW}/8-033-relativity-fall-2006`;
+const M3024 = `${OCW}/3-024-electronic-optical-and-magnetic-properties-of-materials-spring-2013/resources`;
+const THT = `${OCW}/22-tht-undergraduate-thesis-tutorial-fall-2015`;
+const ASTRO = 'https://openstax.org/books/astronomy-2e/pages';
+const PRESKILL = 'https://www.preskill.caltech.edu';
+const N2201 = `${OCW}/22-01-introduction-to-nuclear-engineering-and-ionizing-radiation-fall-2016`;
+const N2202 = `${OCW}/22-02-introduction-to-applied-nuclear-physics-spring-2012/resources`;
+const PDG = 'https://pdg.lbl.gov/2024/reviews';
 
 export const PHYS_READINGS = {
   'calculus-1-physical-modeling': {
@@ -229,5 +240,75 @@ export const PHYS_READINGS = {
     6: r(`${N2215}/resources/mit22_15f14_ex09/`, '22.15 notes Chapters 11–12 and Exercise 9 — random sampling, Monte Carlo transport and statistical error'),
     7: r(`${O335}/week-9/`, '18.335J Lectures 25–26 — optimisation and adjoint differentiation (fitting as an inverse problem: 22.15 Chapter 1)'),
     8: r(`${N2215}/pages/exams/`, '22.15 final exams (2013 and an example) — the cumulative check'),
+  },
+  'advanced-experimental-physics-1-electronics-optics': {
+    1: r(`${B309}/resources/module1/`, '20.309 Module 1 — an instrument built end to end: optics, photodiode readout and calibration'),
+    2: r(`${O6002}/6002_l19/`, '6.002 Lectures 17 and 19–20 — impedance, the op-amp abstraction and feedback circuits (20.309\'s textbook is not free)'),
+    3: r(`${J1314}/resources/mit8_13-14f16-s17exp43/`, 'MIT Junior Lab guide — Johnson noise and shot noise: noise sources, spectra and filtering'),
+    4: r(`${B309}/resources/module0/`, '20.309 Module 0 — DC measurements, dividers, impedance and loading, photodiode characterisation'),
+    5: r(`${B309}/resources/module2_5/`, '20.309 lab exercise — sampling, aliasing and digital data (Tutorial 2 for sampling in Fourier space)'),
+    6: r('https://www.thinksrs.com/downloads/pdfs/applicationnotes/AboutLIAs.pdf', 'Stanford Research Systems, About Lock-In Amplifiers — modulation and phase-sensitive detection (20.309 posts no notes on them)'),
+    7: r(`${B309}/resources/lec16/`, '20.309 optics lectures — geometric optics and ray tracing, then interference, diffraction and resolution (lec17); detectors in lec14'),
+    8: r(`${B309}/pages/labs/`, '20.309 Modules 3–4 — the fluorescence microscope and optical trap, models for an independent instrument'),
+  },
+  'relativity-and-gravitation': {
+    1: r(`${R8033}/resources/lecture4_kinem1/`, '8.033 kinematics slides — Lorentz transformations, four-vectors, time dilation and Doppler'),
+    2: r(`${R8033}/resources/lecture13_part2/`, '8.033 dynamics slides — four-momentum, collisions and thresholds; how E and B transform (the lecture14–15 slides)'),
+    3: r(`${TONG}/general-relativity/gr1.pdf`, 'Tong, General Relativity Chapter 1 — geodesics, the equivalence principle and a first look at the Schwarzschild metric'),
+    4: r(`${R8033}/resources/lecture23_bh3/`, '8.033 slides — Kepler\'s third law and perihelion precession in the Schwarzschild metric (GPS: the gravitational-redshift slides)'),
+    5: r(`${TONG}/general-relativity/gr3.pdf`, 'Tong, General Relativity Chapter 3 — connections, parallel transport, the Riemann tensor and geodesic deviation (8.033 does not cover them)'),
+    6: r(`${TONG}/general-relativity/gr4.pdf`, 'Tong, General Relativity Chapter 4 — the Einstein equations and simple solutions (weak gravity: Chapter 5)'),
+    7: r(`${R8033}/resources/lecture24_bh4/`, '8.033 black-hole slides — radial infall, orbits and photon trajectories (Tong Chapter 6 for the full solution)'),
+    8: r(`${R8033}/pages/exams/`, '8.033 Quizzes 1–2 with solutions — the cumulative check'),
+  },
+  'condensed-matter-and-amo-foundations': {
+    1: r(`${TONG}/solid-state-physics/solidstate2.pdf`, 'Tong, Solid State Physics Chapter 2 §§2.2 and 2.4 — lattices, the reciprocal lattice and X-ray diffraction (3.024 does not cover crystal structure)'),
+    2: r(`${M3024}/mit3_024s13_2012lec10/`, '3.024 Lectures 10–15 — waves in periodic potentials, band gaps, band diagrams, the free-electron gas and Fermi–Dirac statistics'),
+    3: r(`${M3024}/mit3_024s13_2012lec16/`, '3.024 Lectures 16–18 — intrinsic and doped semiconductors and the p–n junction'),
+    4: r(`${M3024}/mit3_024s13_2012lec19-20/`, '3.024 Lectures 19–20 — light-emitting diodes: from band structure to an optical spectrum'),
+    5: r(`${M3024}/mit3_024s13_2012lec24/`, '3.024 Lectures 24–26 — the origins of magnetisation, hysteresis and domains (phonons: Lectures 2–3)'),
+    6: r(`${TONG}/topics-in-quantum-mechanics/topicsinqm3.pdf`, 'Tong, Topics in Quantum Mechanics Chapter 3 — hydrogen, fine structure and atomic structure (3.024 has no AMO)'),
+    7: r(`${TONG}/topics-in-quantum-mechanics/topicsinqm4.pdf`, 'Tong, Topics in Quantum Mechanics Chapter 4 — Stark and Zeeman effects, atoms in light, selection rules and Rabi oscillations'),
+    8: r(`${OCW}/3-024-electronic-optical-and-magnetic-properties-of-materials-spring-2013/pages/exams/`, '3.024 midterms and finals, 2012–2013 — the cumulative practice'),
+  },
+  'research-methods-scientific-communication-proposal': {
+    1: r(`${THT}/pages/assignments/`, '22.THT assignments — thesis topic, elevator pitch and a central hypothesis'),
+    2: r(`${THT}/pages/guides-templates-and-tools/`, '22.THT guides — reference managers, evaluating publishers, and sample prospectuses'),
+    3: r('https://book.the-turing-way.org/reproducible-research/reproducible-research', 'The Turing Way — reproducible research: version control, environments, data and code sharing'),
+    4: r('https://www.cos.io/initiatives/prereg', 'Center for Open Science — what preregistration is and how to write one'),
+    5: r(`${NIST}/pri/pri.htm`, 'NIST/SEMATECH e-Handbook Chapter 5 — designing experiments: controls, randomisation, blocking and sample size'),
+    6: r(`${J1314}/pages/syllabus/ethics/`, 'MIT Junior Lab — ethics in experimental physics: data, attribution and conduct'),
+    7: r('https://book.the-turing-way.org/project-design/project-design', 'The Turing Way — project design: planning, milestones, resources and risk'),
+    8: r(`${THT}/resources/mit22_thtf15_prosp_ex1/`, '22.THT sample thesis prospectus — a model for the written proposal (oral: Junior Lab\'s report resources)'),
+  },
+  'astrophysics-stars-galaxies-high-energy-universe': {
+    1: r(`${ASTRO}/17-1-the-brightness-of-stars`, 'Astronomy 2e §17.1 and Chapter 19 — flux, luminosity, magnitudes and the distance ladder'),
+    2: r(`${ASTRO}/5-3-spectroscopy-in-astronomy`, 'Astronomy 2e Chapters 5–6 — radiation, spectra and telescopes'),
+    3: r('https://www.astro.ru.nl/~onnop/education/stev_utrecht_notes/chapter1-4.pdf', 'Pols, Stellar Structure and Evolution Chapters 2–4 — hydrostatic equilibrium, the virial theorem, equation of state and energy transport (Astronomy 2e is algebra-based)'),
+    4: r(`${ASTRO}/22-3-checking-out-the-theory`, 'Astronomy 2e §§22.2–22.3 — star clusters and reading their ages from H–R diagrams'),
+    5: r(`${ASTRO}/23-1-the-death-of-low-mass-stars`, 'Astronomy 2e Chapters 23–24 — white dwarfs, supernovae, neutron stars and black holes'),
+    6: r(`${ASTRO}/20-1-the-interstellar-medium`, 'Astronomy 2e Chapters 20–21 — the interstellar medium and star formation'),
+    7: r(`${ASTRO}/28-4-the-challenge-of-dark-matter`, 'Astronomy 2e §25.3, §27.2 and §28.4 — galaxy masses, supermassive black holes and the evidence for dark matter'),
+    8: r(`${OCW}/8-282j-introduction-to-astronomy-spring-2006/pages/exams/`, 'MIT 8.282J quizzes and finals with solutions — the cumulative check'),
+  },
+  'quantum-information-and-amo': {
+    1: r(`${PRESKILL}/ph219/chap2_15.pdf`, 'Preskill, Quantum Computation notes Chapter 2 — qubits, the Bloch sphere, density operators and measurement (8.370x on OCW only points to edX)'),
+    2: r(`${PRESKILL}/ph229/notes/chap4_01.pdf`, 'Preskill Chapter 4 — entanglement, Bell inequalities and reduced states'),
+    3: r(`${PRESKILL}/ph219/chap5_15.pdf`, 'Preskill Chapter 5 — classical and quantum circuits, universal gates and the cost of simulation'),
+    4: r('https://arxiv.org/pdf/1907.09415#page=22', 'de Wolf, Quantum Computing: Lecture Notes §1.5 — teleportation, the protocol to benchmark under noise'),
+    5: r(`${PRESKILL}/ph219/chap3_15.pdf`, 'Preskill Chapter 3 — generalised measurement, channels, Kraus operators and decoherence'),
+    6: r(`${PRESKILL}/ph219/chap10_6A_2025.pdf`, 'Preskill Chapter 10 — entropy, distinguishability and quantum coding'),
+    7: r(`${J1314}/resources/mit8_13-14f16-s17exp49/`, 'MIT Junior Lab guide — quantum information processing with NMR: control and spectroscopy on a real architecture'),
+    8: r('https://arxiv.org/pdf/1907.09415#page=215', 'de Wolf, exercises with hints (Appendix C) — the cumulative practice'),
+  },
+  'nuclear-physics-radiation-and-detectors': {
+    1: r(`${N2202}/mit22_02s12_lec_ch5/`, '22.02 Chapter 5 — nuclear structure: the nuclear force, the shell model and spin–orbit coupling (the liquid drop: Chapter 1)'),
+    2: r(`${N2202}/mit22_02s12_lec_ch1/`, '22.02 Chapter 1 — binding energy, the semi-empirical mass formula and the decay law (chains: 22.01 Problem Sets 3–4)'),
+    3: r(`${PDG}/rpp2024-rev-passage-particles-matter.pdf`, 'Particle Data Group review — passage of particles through matter: stopping power, range and photon attenuation (22.01\'s textbook is not free)'),
+    4: r(`${J1314}/resources/mit8_13-14f16-s17exp1/`, 'MIT Junior Lab guide — Compton scattering: calibrating a gamma spectrometer and identifying lines'),
+    5: r(`${PDG}/rpp2024-rev-particle-detectors-accel.pdf`, 'Particle Data Group review — particle detectors: gas, scintillator, semiconductor and calorimeter'),
+    6: r(`${J1314}/resources/mit8_13-14f16-s17expii/`, 'MIT Junior Lab guide — Poisson statistics: counting, backgrounds and dead time'),
+    7: r(`${N2202}/mit22_02s12_lec_ch8/`, '22.02 Chapter 8 — cross sections, interactions with matter, fusion and fission (dose: 22.01 Problem Set 8)'),
+    8: r(`${N2201}/pages/exams/`, '22.01 Quizzes 1–2 with solutions and study sheets — the cumulative check'),
   },
 };

@@ -44,6 +44,7 @@ import { PHYSMECH } from './physmech.js';
 import { PHYSLAB } from './physlab.js';
 import { PHYSEM } from './physem.js';
 import { PHYSADV } from './physadv.js';
+import { PHYSFRONT } from './physfront.js';
 import { auditedCourses } from '../curriculum/index.js';
 
 /** A Course Atlas question, in Codify's shape. Multiple choice puts the right answer first. */
@@ -67,7 +68,7 @@ export const PYTHON_SKILLS = PYTHON_FUNDAMENTALS.map(adapt);
 const PY = PYTHON_SKILLS.map(s => s.id);
 
 /** Every skill written for the degrees, beyond the ones they borrow from Codify's tracks. */
-export const DEGREE_SKILLS = [...PYTHON_SKILLS, ...PYTHON_EXTRA, ...DISCRETE, ...CALCULUS, ...CSYSTEMS, ...WRITING, ...DATASTRUCTS, ...ARCH, ...LINALG, ...PROB, ...WEB, ...ALGOS, ...OS, ...DB, ...NET, ...PL, ...SE, ...THEORY, ...COMPILERS, ...SECURITY, ...HCI, ...AIPLAN, ...DISTSYS, ...INFERENCE, ...GRAPHICS, ...SYSTEMS6, ...MATHFOUND, ...MATHCALC, ...MATHALG, ...MATHCOMB, ...MATHANALYSIS, ...MATHAPPLIED, ...PHYSMECH, ...PHYSLAB, ...PHYSEM, ...PHYSADV];
+export const DEGREE_SKILLS = [...PYTHON_SKILLS, ...PYTHON_EXTRA, ...DISCRETE, ...CALCULUS, ...CSYSTEMS, ...WRITING, ...DATASTRUCTS, ...ARCH, ...LINALG, ...PROB, ...WEB, ...ALGOS, ...OS, ...DB, ...NET, ...PL, ...SE, ...THEORY, ...COMPILERS, ...SECURITY, ...HCI, ...AIPLAN, ...DISTSYS, ...INFERENCE, ...GRAPHICS, ...SYSTEMS6, ...MATHFOUND, ...MATHCALC, ...MATHALG, ...MATHCOMB, ...MATHANALYSIS, ...MATHAPPLIED, ...PHYSMECH, ...PHYSLAB, ...PHYSEM, ...PHYSADV, ...PHYSFRONT];
 
 /** Programming I (CS 1.2), unit by unit, as Course Atlas mapped it. */
 export const UNIT_PRACTICE = {

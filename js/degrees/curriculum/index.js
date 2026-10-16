@@ -20,6 +20,7 @@ import { PHYS_TERM0 } from './phys-term0.js';
 import { PHYS_TERM1 } from './phys-term1.js';
 import { PHYS_TERM2 } from './phys-term2.js';
 import { PHYS_TERM3 } from './phys-term3.js';
+import { PHYS_TERM4 } from './phys-term4.js';
 
 /**
  * Courses outside CS have no rubric in the catalog, so their design carries one
@@ -33,7 +34,7 @@ const anchored = courses => Object.fromEntries(Object.entries(courses).map(([key
 export const CURRICULUM = {
   cs: { ...CS_TERM1, ...CS_TERM2, ...CS_TERM3, ...CS_TERM4, ...CS_TERM5, ...CS_TERM6 },
   math: anchored({ ...MATH_TERM0, ...MATH_TERM1, ...MATH_TERM2, ...MATH_TERM3, ...MATH_TERM4, ...MATH_TERM5 }),
-  phys: anchored({ ...PHYS_TERM0, ...PHYS_TERM1, ...PHYS_TERM2, ...PHYS_TERM3 }),
+  phys: anchored({ ...PHYS_TERM0, ...PHYS_TERM1, ...PHYS_TERM2, ...PHYS_TERM3, ...PHYS_TERM4 }),
 };
 
 export const curriculumFor = (degreeId, courseKey) => CURRICULUM[degreeId]?.[courseKey] || null;
