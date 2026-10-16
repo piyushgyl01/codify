@@ -39,6 +39,14 @@ const PRESKILL = 'https://www.preskill.caltech.edu';
 const N2201 = `${OCW}/22-01-introduction-to-nuclear-engineering-and-ionizing-radiation-fall-2016`;
 const N2202 = `${OCW}/22-02-introduction-to-applied-nuclear-physics-spring-2012/resources`;
 const PDG = 'https://pdg.lbl.gov/2024/reviews';
+const S650 = `${OCW}/18-650-statistics-for-applications-fall-2016/resources`;
+const BDA = p => `https://sites.stat.columbia.edu/gelman/book/BDA3.pdf#page=${p + 10}`;
+const THA = `${OCW}/2-tha-undergraduate-thesis-for-course-2-a-january-iap-2007`;
+const R8962 = `${OCW}/8-962-general-relativity-spring-2020`;
+const S511 = `${OCW}/8-511-theory-of-solids-i-fall-2004/resources`;
+const S512 = `${OCW}/8-512-theory-of-solids-ii-spring-2009/resources`;
+const P701 = `${OCW}/8-701-introduction-to-nuclear-and-particle-physics-fall-2020/resources`;
+const GUM = 'https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf';
 
 export const PHYS_READINGS = {
   'calculus-1-physical-modeling': {
@@ -310,5 +318,75 @@ export const PHYS_READINGS = {
     6: r(`${J1314}/resources/mit8_13-14f16-s17expii/`, 'MIT Junior Lab guide — Poisson statistics: counting, backgrounds and dead time'),
     7: r(`${N2202}/mit22_02s12_lec_ch8/`, '22.02 Chapter 8 — cross sections, interactions with matter, fusion and fission (dose: 22.01 Problem Set 8)'),
     8: r(`${N2201}/pages/exams/`, '22.01 Quizzes 1–2 with solutions and study sheets — the cumulative check'),
+  },
+  'advanced-experimental-physics-2-independent-investigation': {
+    1: r(`${J1314}/pages/syllabus/expectations-and-grading-policy/`, 'MIT Junior Lab expectations — roles, preparation and the readiness standard for each experiment'),
+    2: r(`${NIST}/mpc/mpc.htm`, 'NIST/SEMATECH e-Handbook Chapter 2 — characterising a measurement process: calibration, check standards and traceability'),
+    3: r(`${J1314}/resources/mit8_13-14f16-s17exp14/`, 'Junior Lab guide — cosmic-ray muons: backgrounds, accidental coincidences and systematic checks'),
+    4: r(`${PDG}/rpp2024-rev-statistics.pdf`, 'Particle Data Group statistics review — the tests and intervals to fix before a blind pilot'),
+    5: r(`${J1314}/pages/requirements-for-experimental-notebooks/`, 'Junior Lab notebook requirements — recording data, metadata and provenance'),
+    6: r(GUM, 'JCGM Guide to the Expression of Uncertainty in Measurement — building an uncertainty budget'),
+    7: r(`${J1314}/pages/written-and-oral-report-resources/`, 'Junior Lab written and oral report resources — technical writing and comparing with published values'),
+    8: r(`${J1314}/pages/experiments/`, 'Junior Lab\'s twenty experiments — candidates to replicate, write up and defend'),
+  },
+  'data-intensive-and-bayesian-physics': {
+    1: r(`${S650}/mit18_650f16_bayesian_statistics_pdf/`, '18.650 Bayesian statistics slides — priors, posteriors, conjugacy and credible sets'),
+    2: r(BDA(275), 'Gelman et al., Bayesian Data Analysis Chapter 11 — Gibbs and Metropolis sampling, convergence and effective sample size (18.650 has no computation)'),
+    3: r(BDA(101), 'Bayesian Data Analysis Chapter 5 — hierarchical models and partial pooling'),
+    4: r(BDA(141), 'Bayesian Data Analysis Chapter 6 — posterior predictive checks'),
+    5: r('https://gwosc.org/tutorials/', 'Gravitational Wave Open Science Center tutorials — spectra, whitening and matched filtering in real detector noise'),
+    6: r(`${S650}/lecture-10-generalized-linear-models-glms/`, '18.650 GLM slides — logistic regression for classification (selection effects: Bayesian Data Analysis Chapter 8)'),
+    7: r(`${PDG}/rpp2024-rev-statistics.pdf`, 'Particle Data Group statistics review — unfolding, systematic uncertainties and how to report results'),
+    8: r('https://sites.stat.columbia.edu/gelman/book/solutions3.pdf', 'Bayesian Data Analysis solutions to selected exercises — the cumulative practice'),
+  },
+  'physics-society-ethics-and-professional-practice': {
+    1: r('https://www.aps.org/about/governance/statements/ethics', 'American Physical Society, Guidelines on Ethics — research results, publication, peer review and conduct (the NPTEL course\'s syllabus loads only in a browser)'),
+    2: r('https://nap.nationalacademies.org/catalog/12192/on-being-a-scientist-a-guide-to-responsible-conduct-in', 'National Academies, On Being a Scientist — authorship, peer review, conflicts of interest and correcting errors'),
+    3: r(`${J1314}/pages/laboratory-safety-and-regulations-in-junior-lab/`, 'MIT Junior Lab safety and regulations — radiation, lasers, high voltage and cryogens in practice'),
+    4: r('https://www.atomicarchive.com/resources/documents/manhattan-project/franck-report.html', 'The Franck Report (1945) — physicists\' memo on a dual-use technology, the model for a stakeholder decision memo'),
+    5: r('https://www.ipcc.ch/site/assets/uploads/2017/08/AR5_Uncertainty_Guidance_Note.pdf', 'IPCC guidance on communicating uncertainty — calibrated language for confidence and likelihood'),
+    6: r('https://www.withouthotair.com/', 'MacKay, Sustainable Energy — Without the Hot Air: energy and climate by the numbers'),
+    7: r('https://www.compadre.org/jtupp/report.cfm', 'Phys21 report (APS/AAPT) — careers, skills, collaboration and inclusion for physics graduates'),
+    8: r('https://nptel.ac.in/courses/110105097', 'NPTEL, Ethics in Engineering Practice (the catalogue\'s course) — lecture videos for the hearing'),
+  },
+  'senior-research-thesis-and-defense': {
+    1: r(`${THA}/pages/assignments/`, '2.ThA sessions 1–3 — revising the proposal, settling scope and the thesis agreement'),
+    2: r('https://rescience.github.io/', 'ReScience C — how reproductions of published results are written and reviewed: the model for reproducing a baseline'),
+    3: r(`${NIST}/mpc/mpc.htm`, 'NIST/SEMATECH e-Handbook Chapter 2 — characterising a method before trusting it: the readiness evidence'),
+    4: r('https://book.the-turing-way.org/project-design/project-design', 'The Turing Way — project design: milestones, risk registers and rescoping'),
+    5: r(GUM, 'JCGM Guide to the Expression of Uncertainty in Measurement — evaluating and combining uncertainties'),
+    6: r(`${PDG}/rpp2024-rev-statistics.pdf`, 'Particle Data Group statistics review — tests, intervals and systematic checks for adversarial review'),
+    7: r(`${THA}/resources/thesis_structure/`, '2.ThA thesis-structure handout (and its reviewer checklist) — writing the thesis and answering reviewers'),
+    8: r(`${J1314}/pages/student-presentations/`, 'MIT Junior Lab student presentations — examples for the public defence (2.ThA\'s oral assessment form sets the criteria)'),
+  },
+  'cosmology-and-gravitational-waves': {
+    1: r(`${TONG}/cosmology/cosmo1.pdf`, 'Tong, Cosmology Chapter 1 — the FRW metric, redshift and cosmological distances (8.962 is graduate GR with two cosmology lectures)'),
+    2: r(`${R8962}/pages/lecture-summaries/`, '8.962 Lectures 18–19 — cosmological spacetimes and the Friedmann equations (videos from the summaries)'),
+    3: r(`${TONG}/cosmology/cosmo2.pdf`, 'Tong, Cosmology Chapter 2 — the hot universe: thermal history, nucleosynthesis, recombination and the CMB'),
+    4: r('https://github.com/PantheonPlusSH0ES/DataRelease', 'Pantheon+ data release — Type Ia supernova distances with their covariance, for the expansion fit'),
+    5: r(`${TONG}/cosmology/cosmo3.pdf`, 'Tong, Cosmology Chapter 3 — structure formation: perturbations, growth and dark matter'),
+    6: r(`${TONG}/general-relativity/gr5.pdf`, 'Tong, General Relativity Chapter 5 — linearised gravity, gravitational waves and how they are made (8.962 Lectures 14–17)'),
+    7: r('https://arxiv.org/abs/1602.03837', 'LIGO and Virgo, Observation of Gravitational Waves from a Binary Black Hole Merger — signal, detectors and significance'),
+    8: r(`${R8962}/pages/assignments/`, '8.962 problem sets with hints — the cumulative practice (graduate level)'),
+  },
+  'quantum-materials-and-many-body-physics': {
+    1: r(`${TONG}/quantum-field-theory/qft2.pdf`, 'Tong, Quantum Field Theory Chapter 2 — creation and annihilation operators and Fock space (8.511 assumes them)'),
+    2: r(`${S511}/lec9/`, '8.511 Lecture 9 (graduate) — tight binding and van Hove singularities (lattice symmetry: Lectures 2 and 4)'),
+    3: r(`${S512}/mit8_512s09_lec23_24/`, '8.512 Lectures 23–24 — Fermi-liquid theory, quasiparticles and Landau parameters (8.511 stops before them)'),
+    4: r(`${S511}/lec18/`, '8.511 Lecture 18 — the Hubbard model, screening and plasmons: the model to diagonalise'),
+    5: r(`${S512}/mit8_512s09_lec14_15/`, '8.512 Lectures 14–19 — local moments, exchange, spin waves and Stoner magnetism'),
+    6: r(`${S511}/lec22/`, '8.511 Lectures 21–24 — phonon-mediated attraction, the Cooper instability, BCS and Bogoliubov quasiparticles'),
+    7: r('https://topocondmat.org/w1-topointro/d-1', 'Topology in Condensed Matter (TU Delft, free) — bulk–edge correspondence in a one-dimensional chain (quantum Hall edges: 8.511 Lecture 14)'),
+    8: r(`${OCW}/8-511-theory-of-solids-i-fall-2004/pages/assignments/`, '8.511 Problem Sets 1–11 — the cumulative practice (graduate; no solutions posted)'),
+  },
+  'particle-physics-and-the-standard-model': {
+    1: r(`${P701}/mit8_701f20_lec0-8/`, '8.701 slides 0.8, 1.4–1.5 and 4.8 — relativistic kinematics, decays, reactions and cross sections'),
+    2: r(`${P701}/mit8_701f20_lec2-1/`, '8.701 Chapter 2 — symmetries: flavour, parity, C and CP (Feynman reasoning: Chapters 1 and 3)'),
+    3: r(`${P701}/mit8_701f20_lec5-5/`, '8.701 Chapter 5 — QCD: hadron production, deep inelastic scattering, asymptotic freedom and confinement'),
+    4: r('https://opendata.cern.ch/record/700', 'CERN Open Data — CMS dimuon events from 2010, ready for reconstructing the J/ψ, Υ and Z peaks'),
+    5: r(`${P701}/mit8_701f20_lec6-2/`, '8.701 Chapters 6 and 8 — weak interactions, electroweak unification, neutrino masses and mixing'),
+    6: r(`${P701}/mit8_701f20_lec7-1/`, '8.701 Chapter 7 — the Higgs mechanism, fermion masses, production and decay'),
+    7: r(`${PDG}/rpp2024-rev-statistics.pdf`, 'Particle Data Group statistics review — likelihoods, limits and discovery thresholds (detectors: 8.701 Chapter 10)'),
+    8: r(`${OCW}/8-701-introduction-to-nuclear-and-particle-physics-fall-2020/pages/assignments/`, '8.701 Problem Sets 1–6 with solutions — the cumulative check'),
   },
 };
