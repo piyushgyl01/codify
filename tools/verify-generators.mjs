@@ -10,6 +10,7 @@
  *   memcheck the same program under a memory checker: Guard Malloc and lldb on
  *            macOS (AddressSanitizer hangs there), AddressSanitizer elsewhere
  *   sql      a script run by sqlite3
+ *   node     a JavaScript program run by Node (event-loop order, URL rules)
  *
  * Questions with none of these are right by construction and are counted, not
  * run. A missing tool skips its questions instead of failing them.
@@ -77,6 +78,8 @@ export function verifyQuestion(q, dir) {
     if (q.python) {
       if (!t.python || (q.needs === 'markdown_it' && !t.markdown_it)) return { status: 'skipped', detail: q.needs || 'python3' };
       got = execFileSync('python3', ['-c', q.python], { encoding: 'utf8', timeout: 120000 }).trim();
+    } else if (q.node) {
+      got = execFileSync(process.execPath, ['-e', q.node], { encoding: 'utf8', timeout: 20000 }).trim();
     } else if (q.sql) {
       if (!t.sqlite3) return { status: 'skipped', detail: 'sqlite3' };
       got = execFileSync('sqlite3', [':memory:'], { input: q.sql, encoding: 'utf8', timeout: 20000 }).trim();

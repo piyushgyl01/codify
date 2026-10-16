@@ -1232,12 +1232,13 @@ group('degrees: practice the app marks');
   ok('due and new skills come first', E.pickCheck('cs', DP.coursePractice('cs', 'programming-1')).every(id => !ids.includes(id)));
 }
 
-group('degrees: CS Term 1, audited against its sources');
+group('degrees: audited courses (CS Terms 1 and 2), against their sources');
 {
   const CT = await import('../js/degrees/curriculum/cs-term1.js');
-  const D = DL.degreeData('cs'), problems = [];
-  for (const [key, cur] of Object.entries(CT.CS_TERM1)) {
-    const c = DM.courseByKey(D, key);
+  const CI = await import('../js/degrees/curriculum/index.js');
+  const problems = [];
+  for (const [id, key, cur] of CI.auditedCourses()) {
+    const D = DL.degreeData(id), c = DM.courseByKey(D, key);
     if (!c) { problems.push(`${key}: no such course`); continue; }
     const orders = new Set(c.units.map(u => u.order)), stages = new Set(c.assessments.map(a => a.stage));
     for (const o of cur.outcomes) {
@@ -1252,10 +1253,14 @@ group('degrees: CS Term 1, audited against its sources');
     for (const k of lines) if (!cur.anchors?.[k]) problems.push(`${key}: rubric line ${k} has no anchors`);
     for (const s of Object.keys(cur.keyChecks || {})) if (!stages.has(s)) problems.push(`${key}: key checks for ${s}`);
     for (const b of cur.benchmarks || []) if (!/^https:\/\//.test(b.url) || !(b.max > 0)) problems.push(`${key}: benchmark ${b.id}`);
-    if (!c.units.every(u => DP.unitPractice(u.id, key, u.order).length || !cur.outcomes.some(o => o.units.includes(u.order) && o.skills.length))) problems.push(`${key}: a unit lost its practice`);
+    if (!c.units.every(u => DP.unitPractice(u.id, key, u.order, id).length || !cur.outcomes.some(o => o.units.includes(u.order) && o.skills.length))) problems.push(`${key}: a unit lost its practice`);
+    if (cur.outcomes.length < 6) problems.push(`${key}: only ${cur.outcomes.length} outcomes`);
+    if (!cur.gaps?.length || !cur.benchmarks?.length) problems.push(`${key}: no gaps or benchmarks recorded`);
   }
-  ok('Term 1: five courses, every outcome, unit, rubric line and benchmark resolves', Object.keys(CT.CS_TERM1).length === 5 && !problems.length, problems.slice(0, 4).join(' | '));
-  ok('every outcome the app can check is in its course practice', Object.entries(CT.CS_TERM1).every(([k, cur]) => cur.outcomes.flatMap(o => o.skills).every(s => DP.coursePractice('cs', k).includes(s))));
+  const audited = CI.auditedCourses();
+  ok(`${audited.length} audited courses: every outcome, unit, rubric line and benchmark resolves`, audited.length === 10 && !problems.length, problems.slice(0, 4).join(' | '));
+  ok('every outcome the app can check is in its course practice', audited.every(([id, k, cur]) => cur.outcomes.flatMap(o => o.skills).every(s => DP.coursePractice(id, k).includes(s))));
+  ok('benchmark and answer-check ids are unique across courses', (() => { const b = audited.flatMap(([, , c]) => (c.benchmarks || []).map(x => x.id)), k = audited.flatMap(([, , c]) => Object.values(c.keyChecks || {}).flat().map(x => x.id)); return new Set(b).size === b.length && new Set(k).size === k.length; })());
   const fs = await import('node:fs/promises');
   const CO = await import('../js/degrees/curriculum/corrections.js');
   let stale = [], placed = 0, misplaced = [];
@@ -1278,11 +1283,18 @@ group('degrees: CS Term 1, audited against its sources');
   const v = VG.verifySkills(term1, { perSkill: 2, rng: Q.seeded(31), toolkit: Q.toolkit });
   ok(`Term 1 answers agree with an independent check (${v.agree} run in Python, C or SQLite, ${v.construction} by construction${v.skipped ? `, ${v.skipped} skipped: ${v.skippedFor.join(', ')}` : ''})`,
     !v.disagree && !v.error, v.problems.slice(0, 2).join(' | '));
+  // Term 2: the new generators, and every skill borrowed from the Programming and AI tracks.
+  const T2 = await Promise.all(['datastructs', 'arch', 'linalg', 'prob', 'web'].map(f => import(`../js/degrees/practice/${f}.js`)));
+  const term2New = T2.flatMap(m => Object.values(m).flat());
+  const borrowed = [...new Set(audited.flatMap(([, , c]) => c.outcomes.flatMap(o => o.skills)))].map(SB.skillById).filter(s => s.track !== 'degrees');
+  const v2 = VG.verifySkills([...term2New, ...borrowed], { perSkill: 2, rng: Q.seeded(32), toolkit: Q.toolkit });
+  ok(`Term 2 and every borrowed skill agree with an independent check (${v2.agree} run in Python, Node or SQLite, ${v2.construction} right by construction)`,
+    !v2.disagree && !v2.error && v2.construction <= 2 * 2, v2.problems.slice(0, 2).join(' | ') || `${v2.construction} by construction`);
 
   let keyRan = 0; const keyBad = [];
   if (VG.availableTools().python) {
     const { execFileSync } = await import('node:child_process');
-    for (const cur of Object.values(CT.CS_TERM1)) for (const k of Object.values(cur.keyChecks || {}).flat()) {
+    for (const [, , cur] of audited) for (const k of Object.values(cur.keyChecks || {}).flat()) {
       if (!k.python) continue;
       keyRan++;
       const got = Number(execFileSync('python3', ['-c', k.python], { encoding: 'utf8', timeout: 60000 }).trim());
@@ -1293,7 +1305,7 @@ group('degrees: CS Term 1, audited against its sources');
 
   St.S.active = null;
   St.S.tracks.cs = DM.freshDegree(G.dayKey());
-  const cur = CT.curriculumFor('cs', 'programming-1');
+  const cur = CI.curriculumFor('cs', 'programming-1');
   const items = cur.outcomes.filter(o => o.skills.length).map(o => ({ outcome: o.id, text: o.text, skill: o.skills[0] }));
   const levels0 = items.map(it => E.skillLevel('cs', it.skill)), log0 = St.S.log.length;
   const a = E.startCourseTest('cs', 'programming-1', 'placement', items, { label: 'CS101 placement test' }, G.dayKey(), Q.seeded(8));

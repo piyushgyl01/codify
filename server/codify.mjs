@@ -32,7 +32,7 @@ const DL = await import('../js/degrees/load.js');
 const DM = await import('../js/degrees/model.js');
 const DA = await import('../js/degrees/actions.js');
 const DP = await import('../js/degrees/practice/index.js');
-const CT = await import('../js/degrees/curriculum/cs-term1.js');
+const CT = await import('../js/degrees/curriculum/index.js');
 const SB = await import('../js/skillbook.js');
 const CR = await import('../js/career/model.js');
 await import('../js/degrees/engine.js');
@@ -289,11 +289,11 @@ export const TOOLS = [
         case 'start': return DA.setStart(id, args.date) ? { start: r.start } : fail('Give the date as YYYY-MM-DD.');
         case 'waive': { const c = courseOf(id, args.course); DA.waive(id, c.key, args.on !== false); return { course: c.key, waived: !!r.waived?.[c.key] }; }
         case 'benchmark': {
-          const b = Object.values(CT.CS_TERM1).flatMap(c => c.benchmarks || []).find(x => x.id === args.benchmark) || fail(`No benchmark "${args.benchmark}".`);
+          const b = CT.benchmarkById(args.benchmark) || fail(`No benchmark "${args.benchmark}".`);
           return DA.recordBenchmark(id, b.id, args.score, b.max) || fail(`Give a score from 0 to ${b.max}.`);
         }
         case 'answer_check': {
-          const k = Object.values(CT.CS_TERM1).flatMap(c => Object.values(c.keyChecks || {}).flat()).find(x => x.id === args.check) || fail(`No answer check "${args.check}".`);
+          const k = CT.keyCheckById(args.check) || fail(`No answer check "${args.check}".`);
           return DA.answerKeyCheck(id, k, args.value) || fail('Give a number.');
         }
         case 'import_atlas': { const res = DA.importAtlas(need(args.backup, 'Give the backup file text.')); return res.ok ? res : fail(res.error); }

@@ -11,7 +11,10 @@
 const num = (q, answer, explain, extra = {}) => ({ kind:'num', q, answer, unit:'', dp:0, tol:0, explain, ...extra });
 const dec = (q, answer, explain, dp = 3, extra = {}) => num(q, answer, explain, { dp, tol: 0.5 * 10 ** -dp + 1e-9, ...extra });
 const rel = (q, answer, explain, rtol = 0.02, dp = 2) => num(q, answer, explain, { dp, tol: undefined, rtol });
-const choice = (q, a, wrong, explain) => ({ kind:'mc', q, options:[a, ...wrong], correct:0, explain });
+const choice = (q, a, wrong, explain, extra = {}) => ({ kind:'mc', q, options:[a, ...wrong], correct:0, explain, ...extra });
+/** An independent check: a Python program that prints the answer (run by tools/verify-generators.mjs). */
+const py = code => ({ python: code });
+const PY = JSON.stringify;
 const csv = a => a.join(', ');
 const sum = a => a.reduce((n, x) => n + x, 0);
 const f = (x, dp = 3) => Number(x.toFixed(dp)).toLocaleString('en-US', { maximumFractionDigits: dp });
@@ -31,26 +34,29 @@ const dot = t => {
   if (!norm(b)) b[0] = 2;
   const v = t.int(0, 2);
   if (v === 0) return num(`What is the dot product of ${vec(a)} and ${vec(b)}?`, dotp(a, b),
-    `Multiply matching entries and add: ${a.map((x, i) => `${x}×${b[i]}`).join(' + ')} = ${dotp(a, b)}.`);
+    `Multiply matching entries and add: ${a.map((x, i) => `${x}×${b[i]}`).join(' + ')} = ${dotp(a, b)}.`, py(`print(sum(x * y for x, y in zip(${PY(a)}, ${PY(b)})))`));
   if (v === 1) {
     const c = dotp(a, b) / (norm(a) * norm(b));
     return dec(`What is the cosine similarity of ${vec(a)} and ${vec(b)}? (Three decimals.)`, c,
-      `cos = a·b / (|a||b|) = ${dotp(a, b)} / (${f(norm(a))} × ${f(norm(b))}) = ${f(c)}. It is how embeddings are compared.`);
+      `cos = a·b / (|a||b|) = ${dotp(a, b)} / (${f(norm(a))} × ${f(norm(b))}) = ${f(c)}. It is how embeddings are compared.`, 3,
+      py(`import math\na, b = ${PY(a)}, ${PY(b)}\nprint(sum(x * y for x, y in zip(a, b)) / (math.hypot(*a) * math.hypot(*b)))`));
   }
   return dec(`What is the length (L2 norm) of ${vec(a)}? (Three decimals.)`, norm(a),
-    `√(${a.map(x => `${x}²`).join(' + ')}) = √${dotp(a, a)} = ${f(norm(a))}.`);
+    `√(${a.map(x => `${x}²`).join(' + ')}) = √${dotp(a, a)} = ${f(norm(a))}.`, 3, py(`import math\nprint(math.hypot(*${PY(a)}))`));
 };
 
 const matmul = t => {
   if (t.int(0, 3) === 0) {
     const [m, k, n] = [t.pick([8, 32, 64]), t.pick([512, 768, 1024]), t.pick([2048, 3072, 4096])];
     return choice(`A is ${m}×${k} and B is ${k}×${n}. What shape is A·B?`, `${m}×${n}`, [`${k}×${n}`, `${m}×${k}`, `${n}×${m}`],
-      `The inner sizes (${k}) must match and disappear: (${m}×${k})(${k}×${n}) is ${m}×${n}.`);
+      `The inner sizes (${k}) must match and disappear: (${m}×${k})(${k}×${n}) is ${m}×${n}.`,
+      py(`A = [[0] * ${k} for _ in range(${m})]\nB = [[0] * ${n} for _ in range(${k})]\nC = [[sum(A[i][x] * B[x][j] for x in range(${k})) for j in range(len(B[0]))] for i in range(len(A))]\nprint(f'{len(C)}×{len(C[0])}')`));
   }
   const A = [0, 1].map(() => [0, 1, 2].map(() => t.int(-3, 4))), B = [0, 1, 2].map(() => [0, 1].map(() => t.int(-3, 4)));
   const i = t.int(0, 1), j = t.int(0, 1), c = sum([0, 1, 2].map(k => A[i][k] * B[k][j]));
   return num(`A = [${A.map(r => `[${csv(r)}]`).join(', ')}] and B = [${B.map(r => `[${csv(r)}]`).join(', ')}]. What is (AB) at row ${i + 1}, column ${j + 1}?`, c,
-    `Row ${i + 1} of A dotted with column ${j + 1} of B: ${[0, 1, 2].map(k => `${A[i][k]}×${B[k][j]}`).join(' + ')} = ${c}.`);
+    `Row ${i + 1} of A dotted with column ${j + 1} of B: ${[0, 1, 2].map(k => `${A[i][k]}×${B[k][j]}`).join(' + ')} = ${c}.`,
+    py(`A, B = ${PY(A)}, ${PY(B)}\nprint(sum(A[${i}][k] * B[k][${j}] for k in range(3)))`));
 };
 
 const eigen = t => {
@@ -59,11 +65,14 @@ const eigen = t => {
   if (v === 0) {
     const l = (a + d) / 2 + Math.sqrt(((a - d) / 2) ** 2 + b * b);
     return dec(`What is the largest eigenvalue of the symmetric matrix ${M}? (Three decimals.)`, l,
-      `For [[a, b], [b, d]]: λ = (a+d)/2 ± √(((a−d)/2)² + b²) = ${f((a + d) / 2)} + ${f(Math.sqrt(((a - d) / 2) ** 2 + b * b))} = ${f(l)}.`);
+      `For [[a, b], [b, d]]: λ = (a+d)/2 ± √(((a−d)/2)² + b²) = ${f((a + d) / 2)} + ${f(Math.sqrt(((a - d) / 2) ** 2 + b * b))} = ${f(l)}.`, 3,
+      py(`M = [[${a}, ${b}], [${b}, ${d}]]\nv = [1.0, 0.5]\nfor _ in range(5000):\n    w = [M[0][0] * v[0] + M[0][1] * v[1], M[1][0] * v[0] + M[1][1] * v[1]]\n    n = (w[0] ** 2 + w[1] ** 2) ** 0.5\n    v = [w[0] / n, w[1] / n]\nprint(v[0] * (M[0][0] * v[0] + M[0][1] * v[1]) + v[1] * (M[1][0] * v[0] + M[1][1] * v[1]))`));
   }
   if (v === 1) return num(`What is the product of the eigenvalues of ${M}?`, a * d - b * b,
-    `The product of the eigenvalues is the determinant: ${a}×${d} − ${b}×${b} = ${a * d - b * b}.`);
-  return num(`What is the sum of the eigenvalues of ${M}?`, a + d, `The sum of the eigenvalues is the trace: ${a} + ${d} = ${a + d}.`);
+    `The product of the eigenvalues is the determinant: ${a}×${d} − ${b}×${b} = ${a * d - b * b}.`,
+    py(`import math\ntr, dt = ${a} + ${d}, ${a} * ${d} - ${b} * ${b}\nr = math.sqrt(tr * tr - 4 * dt)\nprint(round(((tr + r) / 2) * ((tr - r) / 2), 6))`));
+  return num(`What is the sum of the eigenvalues of ${M}?`, a + d, `The sum of the eigenvalues is the trace: ${a} + ${d} = ${a + d}.`,
+    py(`import math\ntr, dt = ${a} + ${d}, ${a} * ${d} - ${b} * ${b}\nr = math.sqrt(tr * tr - 4 * dt)\nprint(round((tr + r) / 2 + (tr - r) / 2, 6))`));
 };
 
 const deriv = t => {
@@ -71,17 +80,20 @@ const deriv = t => {
   if (v === 0) {
     const a = t.int(2, 4), b = t.int(-3, 3), n = t.int(2, 4), x = t.int(-1, 2), g = n * a * (a * x + b) ** (n - 1);
     return num(`f(x) = (${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)})^${n}. What is f′(${x})?`, g,
-      `Chain rule: f′(x) = ${n}·(${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)})^${n - 1}·${a}. At x = ${x}: ${n} × ${(a * x + b)}^${n - 1} × ${a} = ${g}.`);
+      `Chain rule: f′(x) = ${n}·(${a}x ${b < 0 ? '−' : '+'} ${Math.abs(b)})^${n - 1}·${a}. At x = ${x}: ${n} × ${(a * x + b)}^${n - 1} × ${a} = ${g}.`,
+      py(`from fractions import Fraction as F\nf = lambda x: (${a} * x + ${b}) ** ${n}\nh = F(1, 10 ** 6)\nprint(round(float((f(F(${x}) + h) - f(F(${x}) - h)) / (2 * h))))`));
   }
   const x = t.pick([-2, -1, -0.5, 0, 0.5, 1, 2]);
   if (v === 1) {
     const s = sigmoid(x);
     return dec(`What is the derivative of the sigmoid σ(x) at x = ${x}? (Three decimals.)`, s * (1 - s),
-      `σ′(x) = σ(x)(1 − σ(x)). σ(${x}) = ${f(s)}, so σ′ = ${f(s)} × ${f(1 - s)} = ${f(s * (1 - s))}. It peaks at 0.25 — one reason deep sigmoid nets learned slowly.`);
+      `σ′(x) = σ(x)(1 − σ(x)). σ(${x}) = ${f(s)}, so σ′ = ${f(s)} × ${f(1 - s)} = ${f(s * (1 - s))}. It peaks at 0.25 — one reason deep sigmoid nets learned slowly.`, 3,
+      py(`import math\ns = lambda x: 1 / (1 + math.exp(-x))\nh = 1e-6\nprint((s(${x} + h) - s(${x} - h)) / (2 * h))`));
   }
   const th = Math.tanh(x);
   return dec(`What is the derivative of tanh(x) at x = ${x}? (Three decimals.)`, 1 - th * th,
-    `tanh′(x) = 1 − tanh²(x). tanh(${x}) = ${f(th)}, so 1 − ${f(th * th)} = ${f(1 - th * th)}.`);
+    `tanh′(x) = 1 − tanh²(x). tanh(${x}) = ${f(th)}, so 1 − ${f(th * th)} = ${f(1 - th * th)}.`, 3,
+    py(`import math\nh = 1e-6\nprint((math.tanh(${x} + h) - math.tanh(${x} - h)) / (2 * h))`));
 };
 
 const grad = t => {
@@ -99,17 +111,19 @@ const expvar = t => {
   const E = sum(xs.map((x, i) => x * ps[i])), V = sum(xs.map((x, i) => ps[i] * (x - E) ** 2));
   const d = `X is ${xs.map((x, i) => `${x} with probability ${ps[i]}`).join(', ')}.`;
   const v = t.int(0, 2);
-  if (v === 0) return dec(`${d} What is E[X]?`, E, `E[X] = Σ x·p = ${xs.map((x, i) => `${x}×${ps[i]}`).join(' + ')} = ${f(E)}.`);
-  if (v === 1) return dec(`${d} What is Var[X]?`, V, `Var = Σ p·(x − E[X])² with E[X] = ${f(E)}: ${f(V)}.`);
+  if (v === 0) return dec(`${d} What is E[X]?`, E, `E[X] = Σ x·p = ${xs.map((x, i) => `${x}×${ps[i]}`).join(' + ')} = ${f(E)}.`, 3, py(`from fractions import Fraction as F\nxs, ps = ${PY(xs)}, [F(str(p)) for p in ${PY(ps)}]\nE = sum(x * p for x, p in zip(xs, ps))\nV = sum(p * (x - E) ** 2 for x, p in zip(xs, ps))\nprint(float(E))`));
+  if (v === 1) return dec(`${d} What is Var[X]?`, V, `Var = Σ p·(x − E[X])² with E[X] = ${f(E)}: ${f(V)}.`, 3, py(`from fractions import Fraction as F\nxs, ps = ${PY(xs)}, [F(str(p)) for p in ${PY(ps)}]\nE = sum(x * p for x, p in zip(xs, ps))\nV = sum(p * (x - E) ** 2 for x, p in zip(xs, ps))\nprint(float(V))`));
   const a = t.int(2, 4), b = t.int(-3, 5);
-  return dec(`${d} What is Var[${a}X + ${b}]?`, a * a * V, `Adding a constant does not change variance; scaling by ${a} multiplies it by ${a * a}: ${a * a} × ${f(V)} = ${f(a * a * V)}.`);
+  return dec(`${d} What is Var[${a}X + ${b}]?`, a * a * V, `Adding a constant does not change variance; scaling by ${a} multiplies it by ${a * a}: ${a * a} × ${f(V)} = ${f(a * a * V)}.`, 3,
+    py(`from fractions import Fraction as F\nys, ps = [${a} * x + ${b} for x in ${PY(xs)}], [F(str(p)) for p in ${PY(ps)}]\nE = sum(y * p for y, p in zip(ys, ps))\nprint(float(sum(p * (y - E) ** 2 for y, p in zip(ys, ps))))`));
 };
 
 const bayes = t => {
   const base = t.pick([0.001, 0.005, 0.01, 0.02, 0.05]), sens = t.pick([0.9, 0.95, 0.99]), spec = t.pick([0.9, 0.95, 0.99, 0.999]);
   const post = (sens * base) / (sens * base + (1 - spec) * (1 - base)), dp = post < 0.05 ? 2 : 1;
   return dec(`A condition affects ${f(base * 100, 1)}% of people. A test catches ${sens * 100}% of real cases and wrongly flags ${f((1 - spec) * 100, 1)}% of healthy people. If someone tests positive, what is the chance, in %, that they have it? (${dp === 2 ? 'Two decimals' : 'One decimal'}.)`,
-    post * 100, `P(D|+) = P(+|D)P(D) / P(+) = ${sens}×${base} / (${sens}×${base} + ${f(1 - spec, 3)}×${f(1 - base, 3)}) = ${f(post * 100, dp)}%. Rare conditions make most positives false — the base rate dominates.`, dp);
+    post * 100, `P(D|+) = P(+|D)P(D) / P(+) = ${sens}×${base} / (${sens}×${base} + ${f(1 - spec, 3)}×${f(1 - base, 3)}) = ${f(post * 100, dp)}%. Rare conditions make most positives false — the base rate dominates.`, dp,
+    py(`from fractions import Fraction as F\nb, se, sp = F('${base}'), F('${sens}'), F('${spec}')\nprint(float(100 * se * b / (se * b + (1 - sp) * (1 - b))))`));
 };
 
 const entropy = t => {
@@ -118,17 +132,18 @@ const entropy = t => {
     const p = t.pick([[0.5, 0.5], [0.5, 0.25, 0.25], [0.25, 0.25, 0.25, 0.25], [0.7, 0.2, 0.1], [0.9, 0.1], [0.125, 0.125, 0.25, 0.5]]);
     const h = -sum(p.map(x => x * Math.log2(x)));
     return dec(`What is the entropy, in bits, of a distribution with probabilities ${csv(p)}? (Three decimals.)`, h,
-      `H = −Σ p·log₂ p = ${f(h)} bits. A fair coin is 1 bit; certainty is 0.`);
+      `H = −Σ p·log₂ p = ${f(h)} bits. A fair coin is 1 bit; certainty is 0.`, 3, py(`import math\nprint(-sum(p * math.log2(p) for p in ${PY(p)}))`));
   }
   if (v === 1) {
     const p = t.pick([0.9, 0.7, 0.5, 0.25, 0.1, 0.01]);
     return dec(`A classifier gives the true class probability ${p}. What is its cross-entropy loss for this example, in nats? (Three decimals.)`, -Math.log(p),
-      `Loss = −ln(${p}) = ${f(-Math.log(p))}. Confident and wrong is punished hard: −ln(0.01) ≈ 4.6.`);
+      `Loss = −ln(${p}) = ${f(-Math.log(p))}. Confident and wrong is punished hard: −ln(0.01) ≈ 4.6.`, 3, py(`import math\nprint(-math.log(${p}))`));
   }
   const p = t.pick([0.5, 0.6, 0.8, 0.9]), q = t.pick([0.5, 0.3, 0.7, 0.2].filter(x => x !== p));
   const kl = p * Math.log(p / q) + (1 - p) * Math.log((1 - p) / (1 - q));
   return dec(`P is a coin with P(heads) = ${p}; Q has P(heads) = ${q}. What is KL(P‖Q) in nats? (Three decimals.)`, kl,
-    `KL = ${p}·ln(${p}/${q}) + ${f(1 - p, 2)}·ln(${f(1 - p, 2)}/${f(1 - q, 2)}) = ${f(kl)}. It is not symmetric: KL(Q‖P) differs.`);
+    `KL = ${p}·ln(${p}/${q}) + ${f(1 - p, 2)}·ln(${f(1 - p, 2)}/${f(1 - q, 2)}) = ${f(kl)}. It is not symmetric: KL(Q‖P) differs.`, 3,
+    py(`import math\nP, Q = [${p}, 1 - ${p}], [${q}, 1 - ${q}]\nprint(sum(a * math.log(a / b) for a, b in zip(P, Q)))`));
 };
 
 /* ========================= part 2 — classic ML =========================== */

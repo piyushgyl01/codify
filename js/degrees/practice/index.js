@@ -14,7 +14,12 @@ import { DISCRETE } from './discrete.js';
 import { CALCULUS } from './calculus.js';
 import { CSYSTEMS } from './csystems.js';
 import { WRITING } from './writing.js';
-import { CS_TERM1 } from '../curriculum/cs-term1.js';
+import { DATASTRUCTS } from './datastructs.js';
+import { ARCH } from './arch.js';
+import { LINALG } from './linalg.js';
+import { PROB } from './prob.js';
+import { WEB } from './web.js';
+import { auditedCourses } from '../curriculum/index.js';
 
 /** A Course Atlas question, in Codify's shape. Multiple choice puts the right answer first. */
 function adapt(skill) {
@@ -37,7 +42,7 @@ export const PYTHON_SKILLS = PYTHON_FUNDAMENTALS.map(adapt);
 const PY = PYTHON_SKILLS.map(s => s.id);
 
 /** Every skill written for the degrees, beyond the ones they borrow from Codify's tracks. */
-export const DEGREE_SKILLS = [...PYTHON_SKILLS, ...PYTHON_EXTRA, ...DISCRETE, ...CALCULUS, ...CSYSTEMS, ...WRITING];
+export const DEGREE_SKILLS = [...PYTHON_SKILLS, ...PYTHON_EXTRA, ...DISCRETE, ...CALCULUS, ...CSYSTEMS, ...WRITING, ...DATASTRUCTS, ...ARCH, ...LINALG, ...PROB, ...WEB];
 
 /** Programming I (CS 1.2), unit by unit, as Course Atlas mapped it. */
 export const UNIT_PRACTICE = {
@@ -159,18 +164,20 @@ export const COURSE_PRACTICE = {
 };
 
 /*
- * Computer Science Term 1 was audited: its practice is now whatever its
- * outcomes are checked by (js/degrees/curriculum/cs-term1.js), course by
- * course and unit by unit.
+ * An audited course's practice is whatever its outcomes are checked by
+ * (js/degrees/curriculum/), course by course and unit by unit.
  */
-for (const [key, c] of Object.entries(CS_TERM1)) COURSE_PRACTICE[`cs/${key}`] = [...new Set(c.outcomes.flatMap(o => o.skills))];
-const TERM1_UNITS = Object.fromEntries(Object.entries(CS_TERM1).map(([key, c]) => [key, c.outcomes]));
+const AUDITED_UNITS = {};
+for (const [id, key, c] of auditedCourses()) {
+  COURSE_PRACTICE[`${id}/${key}`] = [...new Set(c.outcomes.flatMap(o => o.skills))];
+  AUDITED_UNITS[`${id}/${key}`] = c.outcomes;
+}
 
 export const coursePractice = (degreeId, courseKey) => COURSE_PRACTICE[`${degreeId}/${courseKey}`] || [];
 
 /** A unit's practice: the audited outcomes that unit teaches, else Course Atlas's own mapping. */
-export function unitPractice(unitId, courseKey = null, order = null) {
-  const outcomes = courseKey && TERM1_UNITS[courseKey];
+export function unitPractice(unitId, courseKey = null, order = null, degreeId = 'cs') {
+  const outcomes = courseKey && AUDITED_UNITS[`${degreeId}/${courseKey}`];
   if (outcomes && order != null) {
     const ids = [...new Set(outcomes.filter(o => o.units.includes(order)).flatMap(o => o.skills))];
     if (ids.length) return ids;

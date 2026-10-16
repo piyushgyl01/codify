@@ -225,4 +225,3 @@ export const CS_TERM1 = {
 /** The link fixes now live with every other catalogue correction. */
 export { LINK_FIXES } from './corrections.js';
 
-export const curriculumFor = (degreeId, courseKey) => (degreeId === 'cs' ? CS_TERM1[courseKey] || null : null);

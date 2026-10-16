@@ -10,7 +10,10 @@
  */
 
 const num = (q, answer, explain, extra = {}) => ({ kind:'num', q, answer, unit:'', dp:0, tol:0, explain, ...extra });
-const choice = (q, a, wrong, explain) => ({ kind:'mc', q, options:[a, ...wrong], correct:0, explain });
+const choice = (q, a, wrong, explain, extra = {}) => ({ kind:'mc', q, options:[a, ...wrong], correct:0, explain, ...extra });
+/** An independent check: a Python program that prints the answer (run by tools/verify-generators.mjs). */
+const py = code => ({ python: code });
+const PY = JSON.stringify;
 const csv = a => a.join(', ');
 const sum = a => a.reduce((n, x) => n + x, 0);
 const gcd2 = (a, b) => (b ? gcd2(b, a % b) : Math.abs(a));
@@ -113,7 +116,8 @@ const inversions = t => {
   const a = t.pickN(range(1, 9), t.int(5, 7));
   const per = a.map((x, i) => a.slice(i + 1).filter(y => y < x).length);
   return num(`How many pairs i < j have a[i] > a[j] in [${csv(a)}]? It is also how many swaps bubble sort makes.`, sum(per),
-    `For each element, count the smaller ones to its right: ${per.join(' + ')} = ${sum(per)}.`);
+    `For each element, count the smaller ones to its right: ${per.join(' + ')} = ${sum(per)}.`,
+    py(`a = ${PY(a)}\nswaps = 0\nfor i in range(len(a)):\n    for j in range(len(a) - 1 - i):\n        if a[j] > a[j + 1]:\n            a[j], a[j + 1] = a[j + 1], a[j]; swaps += 1\nprint(swaps)`));
 };
 
 const prefix = t => {
@@ -121,7 +125,8 @@ const prefix = t => {
   const l = t.int(1, 6), r = t.int(l + 1, 8);
   const p = [0]; a.forEach(x => p.push(p[p.length - 1] + x));
   return num(`a = [${csv(a)}], positions 1 to 8. What is a[${l}] + … + a[${r}]?`, p[r] - p[l - 1],
-    `With prefix sums p[i] = a[1] + … + a[i]: p[${r}] − p[${l - 1}] = ${p[r]} − ${p[l - 1]} = ${p[r] - p[l - 1]}. One subtraction, however long the range.`);
+    `With prefix sums p[i] = a[1] + … + a[i]: p[${r}] − p[${l - 1}] = ${p[r]} − ${p[l - 1]} = ${p[r] - p[l - 1]}. One subtraction, however long the range.`,
+    py(`print(sum(${PY(a)}[${l - 1}:${r}]))`));
 };
 
 const diffarr = t => {
@@ -186,10 +191,10 @@ const gcd = t => {
     const g = t.int(2, 30), a = g * t.int(2, 40), b = g * t.int(2, 40);
     const steps = []; let x = Math.max(a, b), y = Math.min(a, b);
     while (y) { steps.push(`gcd(${x}, ${y})`); [x, y] = [y, x % y]; }
-    return num(`What is gcd(${a}, ${b})?`, x, `Euclid: ${steps.join(' → ')} → ${x}. Each step replaces (x, y) with (y, x mod y).`);
+    return num(`What is gcd(${a}, ${b})?`, x, `Euclid: ${steps.join(' → ')} → ${x}. Each step replaces (x, y) with (y, x mod y).`, py(`import math\nprint(math.gcd(${a}, ${b}))`));
   }
   const a = t.int(4, 60), b = t.int(4, 60), g = gcd2(a, b), l = (a * b) / g;
-  return num(`What is lcm(${a}, ${b})?`, l, `lcm(a, b) = a × b / gcd(a, b) = ${a} × ${b} / ${g} = ${l}.`);
+  return num(`What is lcm(${a}, ${b})?`, l, `lcm(a, b) = a × b / gcd(a, b) = ${a} × ${b} / ${g} = ${l}.`, py(`print(min(k for k in range(1, ${a * b} + 1) if k % ${a} == 0 and k % ${b} == 0))`));
 };
 
 const PRIMES = range(2, 200).filter(n => range(2, Math.floor(Math.sqrt(n))).every(d => n % d));
@@ -217,11 +222,11 @@ const modpow = t => {
   if (t.int(0, 2) > 0) {
     const m = t.pick([7, 11, 13, 17, 19, 23, 29, 31]), a = t.int(2, 9), e = t.int(10, 60), r = e % (m - 1);
     return num(`What is ${a}^${e} mod ${m}?`, powmod(a, e, m),
-      `${m} is prime and does not divide ${a}, so ${a}^${m - 1} ≡ 1 and only ${e} mod ${m - 1} = ${r} matters: ${a}^${r} mod ${m} = ${powmod(a, e, m)}. In code, square-and-multiply does it in log e steps.`);
+      `${m} is prime and does not divide ${a}, so ${a}^${m - 1} ≡ 1 and only ${e} mod ${m - 1} = ${r} matters: ${a}^${r} mod ${m} = ${powmod(a, e, m)}. In code, square-and-multiply does it in log e steps.`, py(`print(${a} ** ${e} % ${m})`));
   }
   const m = t.int(5, 13), a = t.int(1, 20), b = t.int(a + 1, 40), ans = (((a - b) % m) + m) % m;
   return num(`In C++, (${a} − ${b}) % ${m} is negative. What is the proper non-negative value of (${a} − ${b}) mod ${m}?`, ans,
-    `${a} − ${b} = ${a - b}; C++ gives ${(a - b) % m}. Add ${m} once more: (x % m + m) % m = ${ans}.`);
+    `${a} − ${b} = ${a - b}; C++ gives ${(a - b) % m}. Add ${m} once more: (x % m + m) % m = ${ans}.`, py(`print((${a} - ${b}) % ${m})`));
 };
 
 const modinv = t => {
@@ -233,15 +238,15 @@ const modinv = t => {
 const bits = t => {
   const x = t.int(1, 255), y = t.int(1, 255), v = t.int(0, 4);
   const q = s => `x = ${x} (binary ${bin(x)})${s}`;
-  if (v === 0) return num(q('. What is popcount(x), the number of 1 bits?'), popcount(x), `${bin(x)} has ${popcount(x)} ones.`);
+  if (v === 0) return num(q('. What is popcount(x), the number of 1 bits?'), popcount(x), `${bin(x)} has ${popcount(x)} ones.`, py(`print(bin(${x}).count('1'))`));
   if (v === 1) return num(q('. What is x & (x − 1)?'), x & (x - 1),
-    `x − 1 flips the lowest 1 bit and everything below it, so x & (x − 1) clears the lowest 1 bit: ${bin(x)} → ${bin(x & (x - 1)) || '0'} = ${x & (x - 1)}.`);
+    `x − 1 flips the lowest 1 bit and everything below it, so x & (x − 1) clears the lowest 1 bit: ${bin(x)} → ${bin(x & (x - 1)) || '0'} = ${x & (x - 1)}.`, py(`print(${x} & (${x} - 1))`));
   if (v === 2) return num(q('. What is x & −x?'), x & -x,
-    `x & −x keeps only the lowest 1 bit: ${bin(x)} → ${bin(x & -x)} = ${x & -x}. Fenwick trees are built on this.`);
+    `x & −x keeps only the lowest 1 bit: ${bin(x)} → ${bin(x & -x)} = ${x & -x}. Fenwick trees are built on this.`, py(`print(${x} & -${x})`));
   if (v === 3) return num(q(` and y = ${y} (binary ${bin(y)}). What is x XOR y?`), x ^ y,
-    `XOR sets a bit where exactly one of them has it: ${bin(x)} ^ ${bin(y)} = ${bin(x ^ y)} = ${x ^ y}.`);
+    `XOR sets a bit where exactly one of them has it: ${bin(x)} ^ ${bin(y)} = ${bin(x ^ y)} = ${x ^ y}.`, py(`print(${x} ^ ${y})`));
   const k = t.int(1, 4);
-  return num(q(`. What is x >> ${k}?`), x >> k, `Shifting right by ${k} divides by 2^${k} and drops the remainder: ⌊${x} / ${2 ** k}⌋ = ${x >> k}.`);
+  return num(q(`. What is x >> ${k}?`), x >> k, `Shifting right by ${k} divides by 2^${k} and drops the remainder: ⌊${x} / ${2 ** k}⌋ = ${x >> k}.`, py(`print(${x} // ${2 ** k})`));
 };
 
 /* ================================ month 2 ================================ */
@@ -251,7 +256,8 @@ const nextgreater = t => {
   const j = a.findIndex((y, k) => k > i - 1 && y > a[i - 1]), ans = j < 0 ? -1 : a[j];
   return num(`a = [${csv(a)}]. Position ${i} holds ${a[i - 1]}. What is the next greater element to its right? Answer −1 if there is none.`, ans,
     ans < 0 ? `Nothing to the right of position ${i} is bigger than ${a[i - 1]}, so −1.`
-      : `The first value to the right bigger than ${a[i - 1]} is ${ans}, at position ${j + 1}. A monotonic stack finds every one of these in one pass.`);
+      : `The first value to the right bigger than ${a[i - 1]} is ${ans}, at position ${j + 1}. A monotonic stack finds every one of these in one pass.`,
+    py(`a = ${PY(a)}\nnge = [-1] * len(a); st = []\nfor k, x in enumerate(a):\n    while st and a[st[-1]] < x:\n        nge[st.pop()] = x\n    st.append(k)\nprint(nge[${i - 1}])`));
 };
 
 const slidingmax = t => {
@@ -267,12 +273,14 @@ const freq = t => {
   if (t.int(0, 1) === 0) {
     const c = Object.values(f).reduce((n, k) => n + (k * (k - 1)) / 2, 0);
     return num(`a = [${csv(a)}]. How many pairs i < j have a[i] = a[j]?`, c,
-      `Count each value, then add k·(k−1)/2 for each count k: ${Object.entries(f).map(([v, k]) => `${v}×${k}`).join(', ')} → ${c}.`);
+      `Count each value, then add k·(k−1)/2 for each count k: ${Object.entries(f).map(([v, k]) => `${v}×${k}`).join(', ')} → ${c}.`,
+      py(`from itertools import combinations\nprint(sum(1 for x, y in combinations(${PY(a)}, 2) if x == y))`));
   }
   const T = t.int(4, 9); let c = 0;
   for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) if (a[i] + a[j] === T) c++;
   return num(`a = [${csv(a)}]. How many pairs i < j have a[i] + a[j] = ${T}?`, c,
-    `Scan left to right keeping a map of counts seen so far; for each x add count[${T} − x]. Total: ${c}.`);
+    `Scan left to right keeping a map of counts seen so far; for each x add count[${T} − x]. Total: ${c}.`,
+    py(`from itertools import combinations\nprint(sum(1 for x, y in combinations(${PY(a)}, 2) if x + y == ${T}))`));
 };
 
 const heap = t => {
@@ -280,11 +288,13 @@ const heap = t => {
   if (t.int(0, 1) === 0) {
     const k = t.int(1, 4);
     return num(`Push ${csv(a)} into a min-heap, then pop ${k} time${k > 1 ? 's' : ''}. What is at the top now?`, s[k],
-      `A min-heap always has the smallest at the top. Popping removes ${csv(s.slice(0, k))}, leaving ${s[k]} on top.`);
+      `A min-heap always has the smallest at the top. Popping removes ${csv(s.slice(0, k))}, leaving ${s[k]} on top.`,
+      py(`import heapq\nh = []\nfor x in ${PY(a)}:\n    heapq.heappush(h, x)\nfor _ in range(${k}):\n    heapq.heappop(h)\nprint(h[0])`));
   }
   const k = t.int(2, 4), d = [...s].reverse();
   return num(`Scan ${csv(a)} keeping a min-heap of size ${k}: push each value, and pop whenever it holds more than ${k}. What is on top at the end?`, d[k - 1],
-    `The heap ends holding the ${k} largest (${csv(d.slice(0, k))}), and its top is the smallest of them — the ${k}th largest, ${d[k - 1]}.`);
+    `The heap ends holding the ${k} largest (${csv(d.slice(0, k))}), and its top is the smallest of them — the ${k}th largest, ${d[k - 1]}.`,
+    py(`import heapq\nh = []\nfor x in ${PY(a)}:\n    heapq.heappush(h, x)\n    if len(h) > ${k}:\n        heapq.heappop(h)\nprint(h[0])`));
 };
 
 const components = (n, edges) => {
@@ -304,10 +314,12 @@ const dfs = t => {
   if (order.length >= 4 && t.int(0, 1) === 0) {
     const k = t.int(2, order.length);
     return num(`Undirected graph on 1..8. Edges: ${edgeText(edges)}. A DFS starts at 1 and always tries the smallest unvisited neighbour first. Which node is visited ${k}th?`, order[k - 1],
-      `The visiting order is ${order.join(' → ')}, so the ${k}th is ${order[k - 1]}.`);
+      `The visiting order is ${order.join(' → ')}, so the ${k}th is ${order[k - 1]}.`,
+      py(`n = ${n}\nadj = {v: [] for v in range(1, n + 1)}\nfor u, v in ${PY(edges.map(e => [e[0], e[1]]))}:\n    adj[u].append(v); adj[v].append(u)\nfor v in adj: adj[v].sort()\norder, stack, seen = [], [1], set()\nwhile stack:\n    u = stack.pop()\n    if u in seen: continue\n    seen.add(u); order.append(u)\n    stack.extend(reversed([v for v in adj[u] if v not in seen]))\nprint(order[${k - 1}])`));
   }
   return num(`Undirected graph on nodes 1 to 8. Edges: ${edgeText(edges)}. How many connected components are there? (A node with no edges is one on its own.)`, comps.length,
-    `Run a DFS from every unvisited node: ${comps.map(c => `{${csv(c)}}`).join(', ')} — ${comps.length}.`);
+    `Run a DFS from every unvisited node: ${comps.map(c => `{${csv(c)}}`).join(', ')} — ${comps.length}.`,
+    py(`n = ${n}\nadj = {v: [] for v in range(1, n + 1)}\nfor u, v in ${PY(edges.map(e => [e[0], e[1]]))}:\n    adj[u].append(v); adj[v].append(u)\nfor v in adj: adj[v].sort()\nseen, comps = set(), 0\nfor s in range(1, n + 1):\n    if s in seen: continue\n    comps += 1; todo = [s]\n    while todo:\n        u = todo.pop()\n        if u in seen: continue\n        seen.add(u); todo.extend(adj[u])\nprint(comps)`));
 };
 
 const bfsDist = (n, edges, s) => {
@@ -323,7 +335,8 @@ const bfs = t => {
   const n = t.int(7, 8), edges = graph(t, n, t.int(1, 3)).sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   const { d, layers } = bfsDist(n, edges, 1);
   return num(`Undirected graph on 1..${n}. Edges: ${edgeText(edges)}. What is the fewest number of edges on a path from 1 to ${n}?`, d[n],
-    `BFS goes layer by layer: ${layers.map((l, i) => `${i}: {${csv(l)}}`).join(', ')}. Node ${n} is in layer ${d[n]}.`);
+    `BFS goes layer by layer: ${layers.map((l, i) => `${i}: {${csv(l)}}`).join(', ')}. Node ${n} is in layer ${d[n]}.`,
+    py(`from collections import deque\nn = ${n}\nadj = {v: [] for v in range(1, n + 1)}\nfor u, v in ${PY(edges.map(e => [e[0], e[1]]))}:\n    adj[u].append(v); adj[v].append(u)\nfor v in adj: adj[v].sort()\ndist = {1: 0}; q = deque([1])\nwhile q:\n    u = q.popleft()\n    for v in adj[u]:\n        if v not in dist:\n            dist[v] = dist[u] + 1; q.append(v)\nprint(dist.get(n, -1))`));
 };
 
 const topo = t => {
@@ -345,7 +358,8 @@ const topo = t => {
   const bad = [...wrong][0].split(' → ').map(Number), broken = edges.find(([a, b]) => bad.indexOf(a) > bad.indexOf(b));
   return choice(`Directed edges: ${edges.map(([a, b]) => `${a} → ${b}`).join(', ')}. Which order is a valid topological order?`,
     fmt(out), [...wrong],
-    `Every edge must point forward in the order. Kahn's algorithm — keep taking a node with no incoming edges left — gives ${fmt(out)}. For example ${fmt(bad)} breaks ${broken[0]} → ${broken[1]}.`);
+    `Every edge must point forward in the order. Kahn's algorithm — keep taking a node with no incoming edges left — gives ${fmt(out)}. For example ${fmt(bad)} breaks ${broken[0]} → ${broken[1]}.`,
+    py(`import heapq\nedges = ${PY(edges)}\nindeg = {v: 0 for v in range(1, ${n} + 1)}\nfor a, b in edges: indeg[b] += 1\nready = [v for v in indeg if indeg[v] == 0]; heapq.heapify(ready); out = []\nwhile ready:\n    u = heapq.heappop(ready); out.append(u)\n    for a, b in edges:\n        if a == u:\n            indeg[b] -= 1\n            if indeg[b] == 0: heapq.heappush(ready, b)\nprint(' → '.join(map(str, out)))`));
 };
 
 const dsu = t => {
@@ -353,11 +367,13 @@ const dsu = t => {
   const comps = components(8, ops);
   if (t.int(0, 1) === 0) {
     return num(`Eight nodes, 1 to 8, each in its own set. Then union(${ops.map(([a, b]) => `${a}, ${b}`).join('), union(')}). How many sets are left?`, comps.length,
-      `After the unions the sets are ${comps.map(c => `{${csv(c)}}`).join(', ')} — ${comps.length}.`);
+      `After the unions the sets are ${comps.map(c => `{${csv(c)}}`).join(', ')} — ${comps.length}.`,
+      py(`p = list(range(9))\ndef f(x):\n    while p[x] != x: x = p[x]\n    return x\nfor a, b in ${PY(ops)}:\n    p[f(a)] = f(b)\nprint(len({f(v) for v in range(1, 9)}))`));
   }
   const x = t.pick(ops)[0], c = comps.find(g => g.includes(x));
   return num(`Eight nodes, each in its own set. Then union(${ops.map(([a, b]) => `${a}, ${b}`).join('), union(')}). How big is the set containing ${x}?`, c.length,
-    `${x} ends up in {${csv(c)}} — size ${c.length}. Union by size keeps these trees shallow.`);
+    `${x} ends up in {${csv(c)}} — size ${c.length}. Union by size keeps these trees shallow.`,
+    py(`p = list(range(9))\ndef f(x):\n    while p[x] != x: x = p[x]\n    return x\nfor a, b in ${PY(ops)}:\n    p[f(a)] = f(b)\nprint(sum(1 for v in range(1, 9) if f(v) == f(${x})))`));
 };
 
 const dijkstraRun = (n, edges, s) => {
@@ -489,12 +505,13 @@ const fenwick = t => {
   if (v === 0) {
     const idx = []; for (let j = i; j > 0; j -= j & -j) idx.push(j);
     return num(`How many tree cells does a Fenwick-tree prefix query at index ${i} add up?`, idx.length,
-      `The query jumps j → j − (j & −j): ${idx.join(', ')}. That is one cell per 1 bit of ${i} (${bin(i)}): ${idx.length}.`);
+      `The query jumps j → j − (j & −j): ${idx.join(', ')}. That is one cell per 1 bit of ${i} (${bin(i)}): ${idx.length}.`,
+      py(`j, n = ${i}, 0\nwhile j > 0:\n    n += 1; j -= j & -j\nprint(n)`));
   }
   if (v === 1) return num(`A Fenwick-tree update at index ${i} (size 64) touches which index next?`, i + low,
-    `An update jumps j → j + (j & −j): ${i} + ${low} = ${i + low}.`);
+    `An update jumps j → j + (j & −j): ${i} + ${low} = ${i + low}.`, py(`print(${i} + (${i} & -${i}))`));
   return num(`In a Fenwick tree, cell ${i} stores the sum of how many array positions?`, low,
-    `Cell i covers the ${low} positions ending at i, where ${low} = i & −i (${bin(i)} → ${bin(low)}).`);
+    `Cell i covers the ${low} positions ending at i, where ${low} = i & −i (${bin(i)} → ${bin(low)}).`, py(`print(${i} & -${i})`));
 };
 
 const rangeadd = t => {
@@ -544,16 +561,18 @@ const ncr = t => {
   if (v === 0) {
     const n = t.int(5, 20), k = t.int(2, n - 2);
     return num(`What is C(${n}, ${k}), the number of ways to choose ${k} of ${n}?`, C(n, k),
-      `C(n, k) = n! / (k!(n−k)!) = ${C(n, k).toLocaleString('en-US')}. Pascal's rule C(n, k) = C(n−1, k−1) + C(n−1, k) builds a whole table.`);
+      `C(n, k) = n! / (k!(n−k)!) = ${C(n, k).toLocaleString('en-US')}. Pascal's rule C(n, k) = C(n−1, k−1) + C(n−1, k) builds a whole table.`, py(`from math import comb\nprint(comb(${n}, ${k}))`));
   }
   if (v === 1) {
     const n = t.int(3, 10), k = t.int(2, 4);
     return num(`In how many ways can ${n} identical sweets be shared among ${k} children, if some may get none?`, C(n + k - 1, k - 1),
-      `Stars and bars: ${n} stars and ${k - 1} bars, C(${n + k - 1}, ${k - 1}) = ${C(n + k - 1, k - 1)}.`);
+      `Stars and bars: ${n} stars and ${k - 1} bars, C(${n + k - 1}, ${k - 1}) = ${C(n + k - 1, k - 1)}.`,
+      py(`from itertools import product\nprint(sum(1 for xs in product(range(${n} + 1), repeat=${k}) if sum(xs) == ${n}))`));
   }
   const a = t.int(2, 6), b = t.int(2, 6);
   return num(`Moving only right or up, how many paths go from (0, 0) to (${a}, ${b})?`, C(a + b, a),
-    `Every path is ${a + b} moves, ${a} of them right: C(${a + b}, ${a}) = ${C(a + b, a)}.`);
+    `Every path is ${a + b} moves, ${a} of them right: C(${a + b}, ${a}) = ${C(a + b, a)}.`,
+    py(`from functools import lru_cache\n@lru_cache(None)\ndef paths(x, y):\n    return 1 if x == 0 or y == 0 else paths(x - 1, y) + paths(x, y - 1)\nprint(paths(${a}, ${b}))`));
 };
 
 const lcm = (a, b) => (a * b) / gcd2(a, b);
@@ -575,16 +594,19 @@ const expect = t => {
   if (v === 0) {
     const s = t.pick([4, 6, 8, 10, 12, 20]);
     return num(`You roll a fair ${s}-sided die until it shows a 1. On average, how many rolls does that take?`, s,
-      `Each roll succeeds with probability 1/${s}. The expected wait for something with probability p is 1/p = ${s}.`, { dp: 2, tol: 0.01 });
+      `Each roll succeeds with probability 1/${s}. The expected wait for something with probability p is 1/p = ${s}.`, { dp: 2, tol: 0.01,
+      ...py(`from fractions import Fraction as F\np = F(1, ${s})\nprint(float(sum(k * (1 - p) ** (k - 1) * p for k in range(1, 4000))))`) });
   }
   if (v === 1) {
     const k = t.int(2, 5), s = t.pick([4, 6, 8, 10]), e = (k * (s + 1)) / 2;
     return num(`What is the expected total of ${k} fair ${s}-sided dice?`, e,
-      `Expectation adds up: each die averages (1 + ${s}) / 2 = ${(s + 1) / 2}, so ${k} of them average ${e}.`, { dp: 2, tol: 0.01 });
+      `Expectation adds up: each die averages (1 + ${s}) / 2 = ${(s + 1) / 2}, so ${k} of them average ${e}.`, { dp: 2, tol: 0.01,
+      ...py(`from itertools import product\nfrom fractions import Fraction as F\nrolls = list(product(range(1, ${s} + 1), repeat=${k}))\nprint(float(F(sum(map(sum, rolls)), len(rolls))))`) });
   }
   const s = t.int(4, 8), e = sum(range(1, s).map(m => m * (2 * m - 1))) / (s * s);
   return num(`Roll two fair ${s}-sided dice. What is the expected value of the larger one? (Two decimals.)`, e,
-    `P(max = m) = (2m − 1) / ${s * s}. Adding m × P(max = m) for m = 1..${s} gives ${e.toFixed(2)}.`, { dp: 2, tol: 0.01 });
+    `P(max = m) = (2m − 1) / ${s * s}. Adding m × P(max = m) for m = 1..${s} gives ${e.toFixed(2)}.`, { dp: 2, tol: 0.01,
+    ...py(`from fractions import Fraction as F\nprint(float(F(sum(max(a, b) for a in range(1, ${s} + 1) for b in range(1, ${s} + 1)), ${s * s})))`) });
 };
 
 const nim = t => {

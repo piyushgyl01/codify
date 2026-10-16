@@ -11,7 +11,7 @@ import { degreeData, degreeMeta, loadDegree, DEGREES } from './load.js';
 import * as M from './model.js';
 import * as A from './actions.js';
 import { coursePractice, unitPractice } from './practice/index.js';
-import { curriculumFor } from './curriculum/cs-term1.js';
+import { curriculumFor } from './curriculum/index.js';
 import { projectsTab, mountProjects, projectCard } from '../career/view.js';
 import { currentFlagship, FLAGSHIPS } from '../career/model.js';
 import { skillById } from '../skillbook.js';
@@ -204,11 +204,12 @@ function unitBlock(id, D, r, c, u) {
       <div class="grow"><div class="chk-label">${w.url ? link(w.url, weekTitle(w)) : esc(weekTitle(w))} <span class="tiny">· ${w.hours} h</span></div>
         <div class="tiny">${esc(w.activity)}</div><div class="tiny deg-produce"><b>Produce:</b> ${esc(w.deliverable)}</div></div></div>`;
   }).join('')}</div>` : `<button class="btn ${done ? '' : 'primary'} sm" style="margin-top:10px" data-unit="${u.id}">${done ? '✓ Done — untick' : 'Tick the unit as done'}</button>`;
-  const practice = unitPractice(u.id, c.key, u.order), assessments = c.assessments.filter(a => a.unit === u.id);
-  const sets = curriculumFor(id, c.key)?.problemSets?.[u.order] || [];
-  const psets = sets.length ? `<div class="deg-psets"><div class="h3">Problem sets — marked by check50</div>
-      <div class="tiny">Solve each, then run its command in a terminal with CS50's check50 installed. That is CS50's own grader, not this app.</div>
-      ${sets.map(p => `<div class="deg-pset"><span class="grow">${link(p.url, p.name)}</span><code>${esc(p.cmd)}</code></div>`).join('')}</div>` : '';
+  const practice = unitPractice(u.id, c.key, u.order, id), assessments = c.assessments.filter(a => a.unit === u.id);
+  const cur = curriculumFor(id, c.key), sets = cur?.problemSets?.[u.order] || [];
+  const grader = cur?.grader || 'CS50\'s check50 — run each command in a terminal with check50 installed. That is CS50\'s own grader, not this app.';
+  const psets = sets.length ? `<div class="deg-psets"><div class="h3">Problem sets</div>
+      <div class="tiny">Checked by ${esc(grader)}</div>
+      ${sets.map(p => `<div class="deg-pset"><span class="grow">${link(p.url, p.name)}</span>${p.cmd ? `<code>${esc(p.cmd)}</code>` : ''}</div>`).join('')}</div>` : '';
   return `<details class="card flush topic deg-unit ${done ? 'done' : ''}" data-unit-block="${u.id}" ${open ? 'open' : ''}>
     <summary class="between" style="padding:12px 14px"><span class="deg-tick ${done ? 'on' : ''}">${done ? '✓' : u.order}</span>
       <div class="grow"><div class="tiny">${esc(u.label)} · ${esc(u.kind)} · ${u.hours} h</div><div class="h3">${esc(u.title)}</div></div>
@@ -362,7 +363,7 @@ function auditCard(id, c) {
   if (!cur?.gaps?.length) return '';
   return `<details class="card sunk flush explain"><summary><span class="h3 grow">What the October 2026 audit changed</span><span class="chev">${icon('chevron', 16).value}</span></summary>
     <div class="topic-bd">${cur.gaps.map(g => `<p class="sub" style="margin-top:6px"><b>${esc(g.what)}.</b> ${esc(g.why)} ${esc(g.fix)} ${g.url ? link(g.url, 'Source') : ''}</p>`).join('')}
-      <p class="tiny" style="margin-top:8px">The full audit, with its evidence, is in docs/cs-term1-audit.md.</p></div></details>`;
+      <p class="tiny" style="margin-top:8px">The full audit, with its evidence, is in ${esc(cur.doc || 'docs/cs-term1-audit.md')}.</p></div></details>`;
 }
 
 /* ---------------------------------- hub ----------------------------------- */
@@ -416,7 +417,7 @@ export function mountDegree(id, root, rerender) {
   });
   on('[data-ucheck]', b => {
     const hit = M.unitById(D, b.dataset.ucheck);
-    openCheck(id, unitPractice(b.dataset.ucheck, hit.course.key, hit.unit.order), { key: `unit:${b.dataset.ucheck}`, label: `${hit.course.code} · ${hit.unit.title}` }, rerender);
+    openCheck(id, unitPractice(b.dataset.ucheck, hit.course.key, hit.unit.order, id), { key: `unit:${b.dataset.ucheck}`, label: `${hit.course.code} · ${hit.unit.title}` }, rerender);
   });
   on('[data-practice]', b => openPractice(id, b.dataset.practice, rerender));
   mountProjects(root, rerender);
