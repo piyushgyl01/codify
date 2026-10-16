@@ -4,8 +4,20 @@
     {
       "name": "codify",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["dev-server.mjs", "5179"],
+      "runtimeArgs": [
+        "dev-server.mjs",
+        "5179"
+      ],
       "port": 5179
+    },
+    {
+      "name": "drawify",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "/Users/piyushehe/Documents/code/drawify/dev-server.mjs",
+        "5181"
+      ],
+      "port": 5181
     }
   ]
 }
