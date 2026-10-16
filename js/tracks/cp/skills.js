@@ -83,21 +83,21 @@ const ops = t => {
   if (v === 0) {
     const k = t.pick([10, 12, 14, 16, 17, 18, 20]), n = 2 ** k;
     return num(`n = 2^${k} = ${n.toLocaleString('en-US')}. Roughly how many steps is n · log₂ n?`, n * k,
-      `log₂ n = ${k}, so n · log₂ n = ${n.toLocaleString('en-US')} × ${k} = ${(n * k).toLocaleString('en-US')}.`, { tol: undefined, rtol: 0.02 });
+      `log₂ n = ${k}, so n · log₂ n = ${n.toLocaleString('en-US')} × ${k} = ${(n * k).toLocaleString('en-US')}.`, { tol: undefined, rtol: 0.02, ...py(`n = 2 ** ${k}\nprint(n * (n.bit_length() - 1))`) });
   }
   if (v === 1) {
     const s = t.pick([1, 2, 4]), n = Math.round(Math.sqrt(s * 1e8));
     return num(`A judge runs about 10⁸ simple steps a second. With a ${s}-second limit, roughly the largest n an O(n²) solution can handle?`, n,
-      `n² ≤ ${s} × 10⁸ gives n ≤ √(${s} × 10⁸) ≈ ${n.toLocaleString('en-US')}.`, { tol: undefined, rtol: 0.05 });
+      `n² ≤ ${s} × 10⁸ gives n ≤ √(${s} × 10⁸) ≈ ${n.toLocaleString('en-US')}.`, { tol: undefined, rtol: 0.05, ...py(`import math\nprint(math.isqrt(${s} * 10 ** 8))`) });
   }
   if (v === 2) {
     const n = t.int(10, 20);
     return num(`How many subsets does a set of ${n} elements have?`, 2 ** n,
-      `Each element is in or out: 2^${n} = ${(2 ** n).toLocaleString('en-US')}. Past about n = 25 this is too many to try.`);
+      `Each element is in or out: 2^${n} = ${(2 ** n).toLocaleString('en-US')}. Past about n = 25 this is too many to try.`, py(`from itertools import combinations\nprint(sum(1 for k in range(${n} + 1) for _ in combinations(range(${n}), k)))`));
   }
   const n = t.int(5, 10), f = range(1, n).reduce((a, b) => a * b, 1);
   return num(`How many different orders can ${n} distinct items be put in?`, f,
-    `n! = ${range(1, n).join(' × ')} = ${f.toLocaleString('en-US')}. Past about n = 11, trying every order is too slow.`);
+    `n! = ${range(1, n).join(' × ')} = ${f.toLocaleString('en-US')}. Past about n = 11, trying every order is too slow.`, py(`import math\nprint(math.factorial(${n}))`));
 };
 
 const subsets = t => {
@@ -143,19 +143,20 @@ const bsearch = t => {
     const a = Array.from({ length: 10 }, () => t.int(1, 30)).sort((x, y) => x - y);
     const x = t.int(1, 32), i = a.findIndex(y => y >= x), ans = i < 0 ? a.length : i;
     return num(`a = [${csv(a)}], indexed from 0. lower_bound(${x}) is the first index with a[i] ≥ ${x} (or 10 if none). Which index?`, ans,
-      ans === a.length ? `Nothing is ≥ ${x}, so it returns the end: 10.` : `a[${ans}] = ${a[ans]} is the first value ≥ ${x}${ans ? `; a[${ans - 1}] = ${a[ans - 1]} is smaller` : ''}.`);
+      ans === a.length ? `Nothing is ≥ ${x}, so it returns the end: 10.` : `a[${ans}] = ${a[ans]} is the first value ≥ ${x}${ans ? `; a[${ans - 1}] = ${a[ans - 1]} is smaller` : ''}.`,
+      py(`import bisect\nprint(bisect.bisect_left(${PY(a)}, ${x}))`));
   }
   if (v === 1) {
     const n = t.pick([1000, 100000, 1000000, 2 ** 20, 1e9]), k = Math.floor(Math.log2(n)) + 1;
     return num(`Binary search over ${n.toLocaleString('en-US')} sorted items. At most how many middle elements does it look at?`, k,
-      `Each look halves what is left, so the worst case is ⌊log₂ n⌋ + 1 = ${k}.`);
+      `Each look halves what is left, so the worst case is ⌊log₂ n⌋ + 1 = ${k}.`, py(`n, looks = ${n}, 0\nwhile n > 0:\n    looks += 1; n //= 2\nprint(looks)`));
   }
   const N = t.int(50, 1000000);
   let k = Math.ceil(Math.sqrt(N));
   while ((k - 1) * (k - 1) >= N) k--;
   while (k * k < N) k++;
   return num(`What is the smallest integer k with k² ≥ ${N.toLocaleString('en-US')}?`, k,
-    `"k² ≥ N" is false and then true as k grows, so you can binary search for the first true. ${k - 1}² = ${((k - 1) ** 2).toLocaleString('en-US')} and ${k}² = ${(k * k).toLocaleString('en-US')}, so k = ${k}.`);
+    `"k² ≥ N" is false and then true as k grows, so you can binary search for the first true. ${k - 1}² = ${((k - 1) ** 2).toLocaleString('en-US')} and ${k}² = ${(k * k).toLocaleString('en-US')}, so k = ${k}.`, py(`import math\nprint(math.isqrt(${N} - 1) + 1)`));
 };
 
 const twoptr = t => {
@@ -164,7 +165,8 @@ const twoptr = t => {
     let c = 0;
     for (let i = 0; i < 8; i++) for (let j = i + 1; j < 8; j++) if (a[i] + a[j] <= K) c++;
     return num(`a = [${csv(a)}] is sorted. How many pairs i < j have a[i] + a[j] ≤ ${K}?`, c,
-      `Put a pointer at each end. If a[l] + a[r] ≤ ${K}, a[l] pairs with everything up to r: add r − l and move l right. Otherwise move r left. Total: ${c}.`);
+      `Put a pointer at each end. If a[l] + a[r] ≤ ${K}, a[l] pairs with everything up to r: add r − l and move l right. Otherwise move r left. Total: ${c}.`,
+      py(`from itertools import combinations\nprint(sum(1 for x, y in combinations(${PY(a)}, 2) if x + y <= ${K}))`));
   }
   const a = Array.from({ length: 9 }, () => t.int(1, 9)), S = t.int(10, 20);
   let best = 0, bl = 0;
@@ -174,7 +176,8 @@ const twoptr = t => {
     if (r - l + 1 > best) { best = r - l + 1; bl = l; }
   }
   return num(`a = [${csv(a)}], all positive. How long is the longest run of consecutive elements with sum ≤ ${S}?`, best,
-    `A sliding window: grow on the right, shrink from the left while the sum is over ${S}. Best: [${csv(a.slice(bl, bl + best))}], length ${best}.`);
+    `A sliding window: grow on the right, shrink from the left while the sum is over ${S}. Best: [${csv(a.slice(bl, bl + best))}], length ${best}.`,
+    py(`a = ${PY(a)}\nprint(max([j - i for i in range(len(a)) for j in range(i + 1, len(a) + 1) if sum(a[i:j]) <= ${S}] or [0]))`));
 };
 
 const intervals = t => {
@@ -183,7 +186,8 @@ const intervals = t => {
   const took = []; let end = -Infinity;
   for (const [s, e] of sorted) if (s >= end) { took.push([s, e]); end = e; }
   return num(`Intervals: ${iv.map(([s, e]) => `[${s}, ${e}]`).join(', ')}. Pick as many as you can with no two overlapping — touching ends is fine. How many?`, took.length,
-    `Sort by end and take each one that starts after the last one you took ends: ${took.map(([s, e]) => `[${s}, ${e}]`).join(', ')}.`);
+    `Sort by end and take each one that starts after the last one you took ends: ${took.map(([s, e]) => `[${s}, ${e}]`).join(', ')}.`,
+    py(`from itertools import combinations\niv = ${PY(iv)}\ndef ok(c):\n    c = sorted(c)\n    return all(c[i][1] <= c[i + 1][0] for i in range(len(c) - 1))\nprint(max(k for k in range(len(iv) + 1) for c in combinations(iv, k) if ok(c)))`));
 };
 
 const gcd = t => {
@@ -391,7 +395,8 @@ const dijkstra = t => {
   const { d, prev } = dijkstraRun(n, edges, 1);
   const path = [n]; while (path[0] !== 1) path.unshift(prev[path[0]]);
   return num(`Undirected weighted graph on 1..6. Edges (weight): ${edgeText(edges)}. What is the shortest distance from 1 to 6?`, d[n],
-    `Dijkstra settles the nearest unsettled node each time. The best path is ${path.join(' → ')}, total ${d[n]}.`);
+    `Dijkstra settles the nearest unsettled node each time. The best path is ${path.join(' → ')}, total ${d[n]}.`,
+    py(`import heapq\nadj = {v: [] for v in range(1, ${n} + 1)}\nfor u, v, w in ${PY(edges)}:\n    adj[u].append((v, w)); adj[v].append((u, w))\ndist = {1: 0}; pq = [(0, 1)]\nwhile pq:\n    d, u = heapq.heappop(pq)\n    if d > dist.get(u, float('inf')): continue\n    for v, w in adj[u]:\n        if d + w < dist.get(v, float('inf')):\n            dist[v] = d + w; heapq.heappush(pq, (d + w, v))\nprint(dist[${n}])`));
 };
 
 const mst = t => {
@@ -401,7 +406,8 @@ const mst = t => {
   for (const e of edges) if (f(e[0]) !== f(e[1])) { p[f(e[0])] = f(e[1]); took.push(e); }
   const shown = [...edges].sort((a, b) => a[0] - b[0] || a[1] - b[1]);
   return num(`Undirected weighted graph on 1..${n}. Edges (weight): ${edgeText(shown)}. What is the total weight of a minimum spanning tree?`, sum(took.map(e => e[2])),
-    `Kruskal: take edges cheapest first, skipping any that would close a cycle: ${edgeText(took)} — total ${sum(took.map(e => e[2]))}.`);
+    `Kruskal: take edges cheapest first, skipping any that would close a cycle: ${edgeText(took)} — total ${sum(took.map(e => e[2]))}.`,
+    py(`import heapq\nadj = {v: [] for v in range(1, ${n} + 1)}\nfor u, v, w in ${PY(edges)}:\n    adj[u].append((w, v)); adj[v].append((w, u))\nseen, total, pq = {1}, 0, list(adj[1])\nheapq.heapify(pq)\nwhile pq and len(seen) < ${n}:\n    w, v = heapq.heappop(pq)\n    if v in seen: continue\n    seen.add(v); total += w\n    for e in adj[v]: heapq.heappush(pq, e)\nprint(total)`));
 };
 
 const tree = (t, n) => { const p = [0, 0]; for (let v = 2; v <= n; v++) p.push(t.int(1, v - 1)); return p; };
@@ -457,7 +463,8 @@ const knapsack = t => {
   }
   const took = items.map((x, i) => [i + 1, ...x]).filter((_, i) => bm >> i & 1);
   return num(`Knapsack of capacity ${W}. Items (weight, value): ${items.map(([w, v]) => `(${w}, ${v})`).join(', ')}. Each at most once. Best total value?`, best,
-    `dp[c] = max(dp[c], dp[c − w] + v), looping capacity downwards for each item. Best: ${took.length ? took.map(([i, w, v]) => `item ${i} (${w}, ${v})`).join(' + ') : 'nothing fits'} = ${best}.`);
+    `dp[c] = max(dp[c], dp[c − w] + v), looping capacity downwards for each item. Best: ${took.length ? took.map(([i, w, v]) => `item ${i} (${w}, ${v})`).join(' + ') : 'nothing fits'} = ${best}.`,
+    py(`dp = [0] * (${W} + 1)\nfor w, v in ${PY(items)}:\n    for c in range(${W}, w - 1, -1):\n        dp[c] = max(dp[c], dp[c - w] + v)\nprint(dp[${W}])`));
 };
 
 const lis = t => {
@@ -467,7 +474,8 @@ const lis = t => {
   let e = L.indexOf(Math.max(...L)); const seq = [];
   while (e >= 0) { seq.unshift(a[e]); e = from[e]; }
   return num(`a = [${csv(a)}]. How long is the longest strictly increasing subsequence?`, seq.length,
-    `One longest: ${csv(seq)}. The O(n log n) version keeps, for each length, the smallest possible last value.`);
+    `One longest: ${csv(seq)}. The O(n log n) version keeps, for each length, the smallest possible last value.`,
+    py(`import bisect\ntails = []\nfor x in ${PY(a)}:\n    i = bisect.bisect_left(tails, x)\n    if i == len(tails): tails.append(x)\n    else: tails[i] = x\nprint(len(tails))`));
 };
 
 const gridpaths = t => {
@@ -491,13 +499,15 @@ const lcs = t => {
     const L = Array.from({ length: a.length + 1 }, () => Array(b.length + 1).fill(0));
     for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) L[i][j] = a[i - 1] === b[j - 1] ? L[i - 1][j - 1] + 1 : Math.max(L[i - 1][j], L[i][j - 1]);
     return num(`What is the length of the longest common subsequence of "${a}" and "${b}"?`, L[a.length][b.length],
-      `L[i][j] = L[i−1][j−1] + 1 when the letters match, otherwise max(L[i−1][j], L[i][j−1]). The table ends at ${L[a.length][b.length]}.`);
+      `L[i][j] = L[i−1][j−1] + 1 when the letters match, otherwise max(L[i−1][j], L[i][j−1]). The table ends at ${L[a.length][b.length]}.`,
+      py(`from functools import lru_cache\na, b = ${PY(a)}, ${PY(b)}\n@lru_cache(None)\ndef L(i, j):\n    if i == len(a) or j == len(b): return 0\n    return 1 + L(i + 1, j + 1) if a[i] == b[j] else max(L(i + 1, j), L(i, j + 1))\nprint(L(0, 0))`));
   }
   const a = s(t.int(3, 6), ['a', 'b', 'c']), b = s(t.int(3, 6), ['a', 'b', 'c']);
   const E = Array.from({ length: a.length + 1 }, (_, i) => Array.from({ length: b.length + 1 }, (_, j) => (i ? (j ? 0 : i) : j)));
   for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) E[i][j] = Math.min(E[i - 1][j] + 1, E[i][j - 1] + 1, E[i - 1][j - 1] + (a[i - 1] !== b[j - 1]));
   return num(`Edit distance: the fewest single-letter inserts, deletes or replacements turning "${a}" into "${b}"?`, E[a.length][b.length],
-    `E[i][j] = min(delete, insert, replace-or-keep) from the three neighbouring cells. The table ends at ${E[a.length][b.length]}.`);
+    `E[i][j] = min(delete, insert, replace-or-keep) from the three neighbouring cells. The table ends at ${E[a.length][b.length]}.`,
+    py(`from functools import lru_cache\na, b = ${PY(a)}, ${PY(b)}\n@lru_cache(None)\ndef E(i, j):\n    if i == len(a): return len(b) - j\n    if j == len(b): return len(a) - i\n    return min(E(i + 1, j) + 1, E(i, j + 1) + 1, E(i + 1, j + 1) + (a[i] != b[j]))\nprint(E(0, 0))`));
 };
 
 const fenwick = t => {

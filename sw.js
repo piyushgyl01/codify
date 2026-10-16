@@ -7,7 +7,7 @@
  * serving the old copy indefinitely.
  */
 
-const CACHE_VERSION = 'v18';
+const CACHE_VERSION = 'v19';
 const CACHE = `codify-${CACHE_VERSION}`;
 
 /**
@@ -34,6 +34,12 @@ const CORE = [
   './js/degrees/curriculum/corrections.js',
   './js/degrees/curriculum/cs-term2.js',
   './js/degrees/curriculum/index.js',
+  './js/degrees/curriculum/cs-term3.js',
+  './js/degrees/practice/algos.js',
+  './js/degrees/practice/os.js',
+  './js/degrees/practice/db.js',
+  './js/degrees/practice/net.js',
+  './js/degrees/practice/pl.js',
   './js/degrees/practice/datastructs.js',
   './js/degrees/practice/arch.js',
   './js/degrees/practice/linalg.js',

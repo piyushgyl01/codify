@@ -6,9 +6,10 @@
  */
 import { CS_TERM1 } from './cs-term1.js';
 import { CS_TERM2 } from './cs-term2.js';
+import { CS_TERM3 } from './cs-term3.js';
 
 export const CURRICULUM = {
-  cs: { ...CS_TERM1, ...CS_TERM2 },
+  cs: { ...CS_TERM1, ...CS_TERM2, ...CS_TERM3 },
 };
 
 export const curriculumFor = (degreeId, courseKey) => CURRICULUM[degreeId]?.[courseKey] || null;
