@@ -8,7 +8,9 @@
  *   READINGS[degree-slug][course-key][unit order] = { url, where }
  */
 import { MATH_READINGS } from './math.mjs';
+import { PHYS_READINGS } from './phys.mjs';
 
 export const READINGS = {
   mathematics: MATH_READINGS,
+  physics: PHYS_READINGS,
 };
