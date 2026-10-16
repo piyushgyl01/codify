@@ -179,4 +179,72 @@ export const MATHALG = [
       `Each automorphism sends ζ to another primitive ${n}th root, ζᵏ with gcd(k, ${n}) = 1; there are φ(${n}) = ${phi}, and the group is (ℤ/${n}ℤ)ˣ.`,
       `import cmath, math\nn = ${n}\n# count the n-th roots of unity whose powers reach 1 first at exactly n\nroots = [cmath.exp(2j * math.pi * k / n) for k in range(n)]\nprimitive = sum(1 for z in roots if all(abs(z ** m - 1) > 1e-9 for m in range(1, n)))\nprint(primitive)`);
   }),
+  SKILL('nt.legendre', 'Quadratic residues', 'The Legendre symbol (a/p) is 1 when a is a non-zero square mod p, −1 when it is not — and Euler\'s criterion computes it as a^{(p−1)/2}.', t => {
+    const p = t.pick([7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43]), a = t.int(2, p - 1);
+    let e = 1; for (let i = 0; i < (p - 1) / 2; i++) e = (e * a) % p;
+    const v = e === 1 ? 1 : -1;
+    return num(`What is the Legendre symbol (${a}/${p})? Answer 1 or −1.`, v,
+      `Euler's criterion: ${a}^${(p - 1) / 2} ≡ ${e === 1 ? 1 : p - 1} (mod ${p}), so (${a}/${p}) = ${v}. ${v === 1 ? `${a} is a square mod ${p}.` : `${a} is not a square mod ${p}.`}`,
+      `p, a = ${p}, ${a}\nprint(1 if any(x * x % p == a for x in range(1, p)) else -1)`);
+  }),
+
+  SKILL('nt.twosquares', 'Sums of two squares', 'A prime p is a sum of two squares exactly when p = 2 or p ≡ 1 (mod 4) — it splits in the Gaussian integers.', t => {
+    const p = t.pick([5, 13, 17, 29, 37, 41, 53, 61, 73, 89, 97, 101, 7, 11, 19, 23, 31, 43]);
+    let a = 0; for (let x = 1; x * x < p; x++) { const y2 = p - x * x, y = Math.round(Math.sqrt(y2)); if (y * y === y2 && x <= y) { a = x; break; } }
+    if (!a) return num(`The prime ${p} is ${p % 4} mod 4. In how many ways can it be written as x² + y² with 0 < x ≤ y?`, 0,
+      `p ≡ 3 (mod 4): squares are 0 or 1 mod 4, so a sum of two squares is never 3 mod 4. It stays prime in ℤ[i].`,
+      `p = ${p}\nprint(sum(1 for x in range(1, p) for y in range(x, p) if x * x + y * y == p))`);
+    return num(`The prime ${p} ≡ 1 (mod 4) is a sum of two squares x² + y² with 0 < x ≤ y. What is x?`, a,
+      `${p} = ${a}² + ${Math.round(Math.sqrt(p - a * a))}², so it factors in ℤ[i] as (${a} + ${Math.round(Math.sqrt(p - a * a))}i)(${a} − ${Math.round(Math.sqrt(p - a * a))}i). By Fermat's theorem the representation is unique.`,
+      `p = ${p}\nprint(next(x for x in range(1, p) for y in range(x, p) if x * x + y * y == p))`);
+  }),
+
+  SKILL('nt.pell', "Pell's equation", 'x² − d y² = 1 has infinitely many solutions, all powers of the smallest one — the fundamental unit of ℤ[√d].', t => {
+    const d = t.pick([2, 3, 5, 6, 7, 8, 10, 11, 12, 13]);
+    let x = 0, y = 0; for (y = 1; ; y++) { const x2 = 1 + d * y * y, r = Math.round(Math.sqrt(x2)); if (r * r === x2) { x = r; break; } }
+    return num(`What is the smallest x > 1 in a solution of x² − ${d}y² = 1 with y > 0?`, x,
+      `Searching y = 1, 2, … (or expanding √${d} as a continued fraction) gives ${x}² − ${d}·${y}² = 1. Every other solution comes from powers of ${x} + ${y}√${d}.`,
+      `from fractions import Fraction as F\nimport math\nd = ${d}\n# continued fraction of sqrt(d); the convergents p/q eventually satisfy p^2 - d q^2 = 1\nm, dd, a0 = 0, 1, math.isqrt(d)\na = a0; p0, p1, q0, q1 = 1, a0, 0, 1\nwhile p1 * p1 - d * q1 * q1 != 1:\n    m = dd * a - m; dd = (d - m * m) // dd; a = (a0 + m) // dd\n    p0, p1 = p1, a * p1 + p0; q0, q1 = q1, a * q1 + q0\nprint(p1)`);
+  }),
+
+  SKILL('nt.disc', 'Discriminants of quadratic fields', 'The ring of integers of ℚ(√d), d square-free, has discriminant d if d ≡ 1 (mod 4) and 4d otherwise.', t => {
+    const d = t.pick([-1, -2, -3, -5, -7, -11, 2, 3, 5, 6, 7, 10, 13, 17, 21]);
+    const v = ((d % 4) + 4) % 4 === 1 ? d : 4 * d;
+    return num(`What is the discriminant of the ring of integers of ℚ(√${d})?`, v,
+      ((d % 4) + 4) % 4 === 1 ? `${d} ≡ 1 (mod 4), so the integers are ℤ[(1 + √${d})/2], with discriminant ${d}.` : `${d} ≢ 1 (mod 4), so the integers are ℤ[√${d}], with discriminant 4·${d} = ${v}.`,
+      `d = ${d}\n# is (1 + √d)/2 an algebraic integer? its minimal polynomial is x^2 - x + (1 - d)/4\nhalf_integral = (1 - d) % 4 == 0\n# discriminant = det of the trace form on the integral basis\nimport fractions\nif half_integral:\n    # basis 1, w with w = (1+√d)/2: Tr(1)=2, Tr(w)=1, Tr(w^2)=(1+d)/2\n    print(int(2 * fractions.Fraction(1 + d, 2) - 1))\nelse:\n    # basis 1, √d: Tr(1)=2, Tr(√d)=0, Tr(d)=2d\n    print(2 * 2 * d - 0)`);
+  }),
+
+  SKILL('rep.classes', 'Conjugacy classes and representations', 'A finite group has as many irreducible complex representations as conjugacy classes; for Sₙ that is the number of partitions of n.', t => {
+    const n = t.int(2, 6), part = [1, 1, 2, 3, 5, 7, 11][n];
+    return num(`How many irreducible complex representations does the symmetric group S_${n} have?`, part,
+      `Conjugacy classes of S_${n} are cycle types — partitions of ${n} — and there are p(${n}) = ${part}. The number of irreducibles equals the number of classes.`,
+      `from itertools import permutations\nn = ${n}\nG = list(permutations(range(n)))\ncomp = lambda a, b: tuple(a[b[i]] for i in range(n))\ninv = lambda a: tuple(sorted(range(n), key=lambda i: a[i]))\nseen, classes = set(), 0\nfor g in G:\n    if g in seen: continue\n    classes += 1\n    seen |= {comp(comp(h, g), inv(h)) for h in G}\nprint(classes)`);
+  }),
+
+  SKILL('rep.dims', 'Dimensions of irreducible representations', 'The squares of the irreducible dimensions add up to the order of the group.', t => {
+    const groups = [['S₃', 6, [1, 1, 2]], ['D₄ (order 8)', 8, [1, 1, 1, 1, 2]], ['Q₈', 8, [1, 1, 1, 1, 2]], ['A₄', 12, [1, 1, 1, 3]], ['S₄', 24, [1, 1, 2, 3, 3]], ['D₅ (order 10)', 10, [1, 1, 2, 2]]];
+    const [name, order, dims] = t.pick(groups), hide = t.int(0, dims.length - 1), known = dims.filter((_, i) => i !== hide);
+    return num(`${name} has order ${order} and ${dims.length} irreducible complex representations. ${dims.length - 1} of them have dimensions ${known.join(', ')}. What is the dimension of the last?`, dims[hide],
+      `Σ dᵢ² = |G|: ${order} − (${known.map(x => `${x}²`).join(' + ')}) = ${dims[hide] ** 2}, so the missing dimension is ${dims[hide]}.`,
+      `import math\nprint(math.isqrt(${order} - sum(x * x for x in ${PY(known)})))`);
+  }),
+
+  SKILL('ag.bezout', 'Bézout\'s theorem', 'Two conics meet in 4 points over ℂ counted with multiplicity; how many you see over ℝ depends on the shapes.', t => {
+    let a, b; do { a = t.int(1, 4); b = t.int(1, 4); } while (a === b);
+    const r = t.int(1, 4);
+    // u = x², v = y² solve u + v = r², u/a² + v/b² = 1
+    const det = 1 / (b * b) - 1 / (a * a), v = (1 - (r * r) / (a * a)) / det, u = r * r - v;
+    const eps = 1e-9, real = u > eps && v > eps ? 4 : (Math.abs(u) <= eps && v > eps) || (Math.abs(v) <= eps && u > eps) ? 2 : 0;
+    return num(`How many real points do the circle x² + y² = ${r * r} and the ellipse x²/${a * a} + y²/${b * b} = 1 have in common?`, real,
+      `Put u = x², v = y²: u + v = ${r * r} and u/${a * a} + v/${b * b} = 1 give u = ${Math.round(u * 1e4) / 1e4}, v = ${Math.round(v * 1e4) / 1e4}. ${real === 4 ? 'Both positive: four real points (±x, ±y).' : real === 2 ? 'One is zero: two real points, each a tangency counted twice.' : 'A negative value: no real points.'} Bézout always gives 2·2 = 4 over ℂ, counted with multiplicity.`,
+      `import math\na, b, r = ${a}, ${b}, ${r}\ng = lambda t: (r * math.cos(t)) ** 2 / a ** 2 + (r * math.sin(t)) ** 2 / b ** 2 - 1\nN = 400000\nvals = [g(2 * math.pi * k / N) for k in range(N)]\nzeros = sum(1 for k in range(N) if abs(vals[k]) < 1e-12)\ncross = sum(1 for k in range(N) if vals[k] * vals[(k + 1) % N] < 0)\nprint(cross + zeros)`);
+  }),
+
+  SKILL('ag.monomials', 'Spaces of polynomials', 'Polynomials of degree ≤ d in n variables form a space of dimension C(n + d, d).', t => {
+    const n = t.int(1, 4), d = t.int(1, 6), C = (x, y) => { let r = 1; for (let i = 1; i <= y; i++) r = (r * (x - y + i)) / i; return Math.round(r); };
+    return num(`What is the dimension of the space of polynomials in ${n} variable${n > 1 ? 's' : ''} of total degree at most ${d}?`, C(n + d, d),
+      `Monomials x₁^{e₁}…x_${n}^{e_${n}} with Σeᵢ ≤ ${d}: stars and bars gives C(${n} + ${d}, ${d}) = ${C(n + d, d)}.`,
+      `from itertools import product\nprint(sum(1 for e in product(range(${d} + 1), repeat=${n}) if sum(e) <= ${d}))`);
+  }),
 ];

@@ -156,4 +156,88 @@ export const MATHANALYSIS = [
       `Listing the families of subsets closed under union and intersection that contain ∅ and the whole set gives ${counts[n]}${ask === 'T0' ? `, of which ${T0[n]} are T₀` : ''}.`,
       `from itertools import combinations\nn = ${n}\nX = frozenset(range(n))\nsubsets = [frozenset(c) for k in range(n + 1) for c in combinations(range(n), k)]\nrest = [s for s in subsets if s and s != X]\ncount = t0 = 0\nfor k in range(len(rest) + 1):\n    for extra in combinations(rest, k):\n        T = set(extra) | {frozenset(), X}\n        if all(a | b in T and a & b in T for a in T for b in T):\n            count += 1\n            if all(any((x in U) != (y in U) for U in T) for x in range(n) for y in range(x + 1, n)): t0 += 1\nprint(${ask === 'all' ? 'count' : 't0'})`, { tol: 0, dp: 0 });
   }),
+  SKILL('fa.fourier', 'Fourier coefficients', 'bₙ = (1/π)∫ f(x) sin(nx) dx on [−π, π]: the square wave has only odd harmonics, falling like 1/n.', t => {
+    const wave = t.pick(['square', 'sawtooth']), n = t.int(1, 6);
+    // square: f = sign(x) → bₙ = 4/(nπ) for odd n, 0 for even; sawtooth f = x → bₙ = 2(−1)^{n+1}/n
+    const v = wave === 'square' ? (n % 2 ? 4 / (n * Math.PI) : 0) : (2 * (-1) ** (n + 1)) / n;
+    return num(`On [−π, π], f(x) = ${wave === 'square' ? 'sign(x) (a square wave)' : 'x (a sawtooth, extended periodically)'}. What is the sine coefficient b_${n} = (1/π)∫ f(x) sin(${n}x) dx? (4 decimal places)`, r4(v),
+      wave === 'square' ? `f is odd, so only sines appear: bₙ = 4/(nπ) for odd n and 0 for even n. b_${n} = ${r4(v)}.` : `Integrating by parts, bₙ = 2(−1)^{n+1}/n: b_${n} = ${r4(v)}. The slow 1/n decay reflects the jump at ±π.`,
+      `import math\nN = 400000\nf = ${wave === 'square' ? 'lambda x: (x > 0) - (x < 0)' : 'lambda x: x'}\nh = 2 * math.pi / N\nprint(sum(f(-math.pi + (k + .5) * h) * math.sin(${n} * (-math.pi + (k + .5) * h)) for k in range(N)) * h / math.pi)`);
+  }),
+
+  SKILL('fa.parseval', "Parseval's identity", 'The energy of a function equals the sum of the squares of its Fourier coefficients.', t => {
+    const p = t.pick([2, 4]);
+    // Σ 1/n² = π²/6 (Parseval on the sawtooth); Σ 1/n⁴ = π⁴/90 (Parseval on x² or Fourier of a parabola)
+    const v = p === 2 ? Math.PI ** 2 / 6 : Math.PI ** 4 / 90;
+    return num(`Parseval's identity applied to ${p === 2 ? 'the sawtooth f(x) = x' : 'f(x) = x² on [−π, π]'} evaluates Σ_{n≥1} 1/n^${p}. What is its value? (4 decimal places)`, r4(v),
+      p === 2 ? `The sawtooth has bₙ = 2(−1)^{n+1}/n; Parseval gives (1/π)∫x² = Σ 4/n², i.e. 2π²/3 = 4Σ1/n², so Σ 1/n² = π²/6 = ${r4(v)}.` : `x² has aₙ = 4(−1)ⁿ/n²; Parseval gives Σ 1/n⁴ = π⁴/90 = ${r4(v)}.`,
+      `N = 2_000_000\ns = sum(1 / n ** ${p} for n in range(1, N))\n# add the tail ∫_N^∞ x^-p dx\nprint(s + 1 / ((${p} - 1) * N ** (${p} - 1)))`);
+  }),
+
+  SKILL('fa.opnorm', 'Operator norms', 'The 2-norm of a matrix is its largest singular value — the most it can stretch a unit vector.', t => {
+    const A = [[t.int(-4, 4), t.int(-4, 4)], [t.int(-4, 4), t.int(-4, 4)]];
+    const [a, b] = A[0], [c, d] = A[1], S = a * a + b * b + c * c + d * d, D = a * d - b * c;
+    const v = Math.sqrt((S + Math.sqrt(Math.max(0, S * S - 4 * D * D))) / 2);
+    return num(`What is the operator 2-norm ‖A‖ = max ‖Ax‖/‖x‖ of A = [[${a}, ${b}], [${c}, ${d}]]? (4 decimal places)`, r4(v),
+      `σ_max² is the larger eigenvalue of AᵀA: (‖A‖_F² + √(‖A‖_F⁴ − 4 det²))/2 with ‖A‖_F² = ${S}, det = ${D}. So ‖A‖ = ${r4(v)}.`,
+      `import math\na, b, c, d = ${a}, ${b}, ${c}, ${d}\n# maximise |Ax| over unit vectors on a fine grid of angles\nprint(max(math.hypot(a * math.cos(t) + b * math.sin(t), c * math.cos(t) + d * math.sin(t)) for t in [k * math.pi / 200000 for k in range(200000)]))`);
+  }),
+
+  SKILL('dg.curvature', 'Curvature of curves', 'κ = |r′ × r″| / |r′|³ — a circle of radius R has κ = 1/R; a helix also twists, with torsion τ.', t => {
+    const form = t.pick(['parabola', 'helix-k', 'helix-t']);
+    if (form === 'parabola') {
+      const a = t.int(1, 3), x = t.int(-2, 2), v = (2 * a) / (1 + (2 * a * x) ** 2) ** 1.5;
+      return num(`What is the curvature of y = ${a === 1 ? '' : a}x² at x = ${x}? (4 decimal places)`, r4(v),
+        `κ = |y″|/(1 + y′²)^{3/2} = ${2 * a}/(1 + ${(2 * a * x) ** 2})^{3/2} = ${r4(v)}.`,
+        `import math\n# fit a circle through three nearby points and take 1/radius\nf = lambda x: ${a} * x * x\nh = 1e-3\n(x1, y1), (x2, y2), (x3, y3) = [(${x} + k * h, f(${x} + k * h)) for k in (-1, 0, 1)]\nA = math.dist((x1, y1), (x2, y2)); B = math.dist((x2, y2), (x3, y3)); C = math.dist((x1, y1), (x3, y3))\narea = abs((x2 - x1) * (y3 - y1) - (x3 - x1) * (y2 - y1)) / 2\nprint(4 * area / (A * B * C))`);
+    }
+    const R = t.int(1, 4), c = t.int(1, 3), k = R / (R * R + c * c), tau = c / (R * R + c * c);
+    return num(`The helix r(t) = (${R}cos t, ${R}sin t, ${c}t). What is its ${form === 'helix-k' ? 'curvature κ' : 'torsion τ'}? (4 decimal places)`, r4(form === 'helix-k' ? k : tau),
+      `For a helix with radius a = ${R} and pitch parameter b = ${c}: κ = a/(a² + b²) = ${r4(k)}, τ = b/(a² + b²) = ${r4(tau)}, both constant.`,
+      `import math\nR, c = ${R}, ${c}\nr = lambda t: (R * math.cos(t), R * math.sin(t), c * t)\nh = 1e-3\nd = lambda f, t: tuple((p - q) / (2 * h) for p, q in zip(f(t + h), f(t - h)))\nr1 = lambda t: d(r, t); r2 = lambda t: d(r1, t); r3 = lambda t: d(r2, t)\ncross = lambda u, v: (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])\nnorm = lambda u: math.sqrt(sum(x * x for x in u))\nt0 = 0.7\nc12 = cross(r1(t0), r2(t0))\n${form === 'helix-k' ? 'print(norm(c12) / norm(r1(t0)) ** 3)' : 'print(sum(a * b for a, b in zip(c12, r3(t0))) / norm(c12) ** 2)'}`, { tol: 0.0005 });
+  }),
+
+  SKILL('dg.gauss', 'Gaussian curvature', 'For a graph z = f(x, y): K = (f_xx f_yy − f_xy²)/(1 + f_x² + f_y²)².', t => {
+    const a = t.int(-2, 2) || 1, b = t.int(-2, 2), c = t.int(-2, 2) || 1, x = t.int(-1, 1), y = t.int(-1, 1);
+    // f = a x² + b x y + c y²
+    const fx = 2 * a * x + b * y, fy = b * x + 2 * c * y, K = (4 * a * c - b * b) / (1 + fx * fx + fy * fy) ** 2;
+    return num(`What is the Gaussian curvature of the surface z = ${a}x² ${b < 0 ? '−' : '+'} ${Math.abs(b)}xy ${c < 0 ? '−' : '+'} ${Math.abs(c)}y² at (x, y) = (${x}, ${y})? (4 decimal places)`, r4(K),
+      `f_xx f_yy − f_xy² = ${2 * a}·${2 * c} − ${b}² = ${4 * a * c - b * b}; 1 + f_x² + f_y² = ${1 + fx * fx + fy * fy}. K = ${r4(K)}. ${4 * a * c - b * b > 0 ? 'Positive: locally like a cap.' : 4 * a * c - b * b < 0 ? 'Negative: a saddle.' : 'Zero: flat in one direction.'}`,
+      `import math\n# K = det(second fundamental form)/det(first), with every derivative taken by finite differences\nf = lambda x, y: ${a} * x * x + ${b} * x * y + ${c} * y * y\nh = 1e-4; X, Y = ${x}, ${y}\nfx = (f(X + h, Y) - f(X - h, Y)) / (2 * h); fy = (f(X, Y + h) - f(X, Y - h)) / (2 * h)\nfxx = (f(X + h, Y) - 2 * f(X, Y) + f(X - h, Y)) / h ** 2; fyy = (f(X, Y + h) - 2 * f(X, Y) + f(X, Y - h)) / h ** 2\nfxy = (f(X + h, Y + h) - f(X + h, Y - h) - f(X - h, Y + h) + f(X - h, Y - h)) / (4 * h * h)\nE, F, G = 1 + fx * fx, fx * fy, 1 + fy * fy\nW = math.sqrt(E * G - F * F)\nL, M, N = fxx / W, fxy / W, fyy / W\nprint((L * N - M * M) / (E * G - F * F))`, { tol: 0.001 });
+  }),
+
+  SKILL('pde.heat', 'The heat equation', 'Each Fourier mode of u_t = u_xx on [0, π] decays like e^{−n²t}: high frequencies die first.', t => {
+    const B = [t.int(1, 4), 0, t.int(-2, 2)], T = t.pick([0.1, 0.25, 0.5, 1]), x = t.pick([Math.PI / 2, Math.PI / 4, Math.PI / 3]);
+    // u(x,0) = B1 sin x + B3 sin 3x → u = B1 e^{−t} sin x + B3 e^{−9t} sin 3x
+    const v = B[0] * Math.exp(-T) * Math.sin(x) + B[2] * Math.exp(-9 * T) * Math.sin(3 * x);
+    const xt = { [Math.PI / 2]: 'π/2', [Math.PI / 4]: 'π/4', [Math.PI / 3]: 'π/3' }[x];
+    return num(`u_t = u_xx on 0 < x < π with u = 0 at both ends and u(x, 0) = ${B[0]} sin x ${B[2] < 0 ? '−' : '+'} ${Math.abs(B[2])} sin 3x. What is u(${xt}, ${T})? (4 decimal places)`, r4(v),
+      `Separation of variables: u = ${B[0]}e^{−t} sin x ${B[2] < 0 ? '−' : '+'} ${Math.abs(B[2])}e^{−9t} sin 3x. At (${xt}, ${T}): ${r4(v)}.`,
+      `import math\n# explicit finite differences, well inside the stability limit\nN = 200; dx = math.pi / N; dt = 0.2 * dx * dx\nu = [${B[0]} * math.sin(i * dx) + ${B[2]} * math.sin(3 * i * dx) for i in range(N + 1)]\nsteps = round(${T} / dt); dt = ${T} / steps\nfor _ in range(steps):\n    u = [0.0] + [u[i] + dt / dx ** 2 * (u[i + 1] - 2 * u[i] + u[i - 1]) for i in range(1, N)] + [0.0]\nX = ${x}\ni = int(X / dx); w = X / dx - i\nprint(u[i] * (1 - w) + u[i + 1] * w)`, { tol: 0.002 });
+  }),
+
+  SKILL('pde.cfl', 'Stability of explicit schemes', 'Explicit Euler for u_t = α u_xx is stable only if α Δt/Δx² ≤ ½.', t => {
+    const alpha = t.pick([0.5, 1, 2]), dx = t.pick([0.1, 0.05, 0.02]);
+    const v = dx * dx / (2 * alpha);
+    return num(`Explicit finite differences for u_t = ${alpha}·u_xx with Δx = ${dx}. What is the largest stable time step Δt? (6 decimal places)`, Math.round(v * 1e6) / 1e6,
+      `Stability needs r = αΔt/Δx² ≤ ½, so Δt ≤ Δx²/(2α) = ${dx}²/(2·${alpha}) = ${v.toFixed(6)}. Halving Δx quarters the step — one reason implicit methods exist.`,
+      `# von Neumann: the amplification factor 1 - 4r sin^2(theta/2) must stay in [-1, 1]; scan r\nimport math\nr = max(k / 10000 for k in range(1, 20000) if all(abs(1 - 4 * k / 10000 * math.sin(th / 2) ** 2) <= 1 + 1e-12 for th in [j * math.pi / 200 for j in range(201)]))\nprint(r * ${dx} ** 2 / ${alpha})`, { tol: 2e-6, dp: 6 });
+  }),
+
+  SKILL('pde.classify', 'Classifying second-order PDEs', 'a u_xx + 2b u_xy + c u_yy: elliptic if b² < ac, parabolic if b² = ac, hyperbolic if b² > ac.', t => {
+    const a = t.int(-3, 3) || 1, b = t.int(-3, 3), c = t.int(-3, 3);
+    const D = b * b - a * c, kind = D < 0 ? 'Elliptic' : D === 0 ? 'Parabolic' : 'Hyperbolic';
+    return { kind: 'mc', q: `Classify ${a}u_xx ${b < 0 ? '−' : '+'} ${Math.abs(2 * b)}u_xy ${c < 0 ? '−' : '+'} ${Math.abs(c)}u_yy = 0.`, options: [kind, ...['Elliptic', 'Parabolic', 'Hyperbolic'].filter(o => o !== kind)], correct: 0,
+      explain: `b² − ac = ${b}² − (${a})(${c}) = ${D}. ${kind === 'Elliptic' ? 'Like Laplace\'s equation: smooth, no characteristics.' : kind === 'Parabolic' ? 'Like the heat equation: one family of characteristics.' : 'Like the wave equation: two families of characteristics.'}`,
+      python: `import cmath\na, b, c = ${a}, ${b}, ${c}\n# characteristic slopes solve a m^2 - 2 b m + c = 0; count the distinct real ones\nd = cmath.sqrt(4 * b * b - 4 * a * c)\nroots = [(2 * b + d) / (2 * a), (2 * b - d) / (2 * a)]\nreal = [r for r in roots if abs(r.imag) < 1e-12]\nprint('Elliptic' if not real else 'Parabolic' if abs(roots[0] - roots[1]) < 1e-12 else 'Hyperbolic')` };
+  }),
+
+  SKILL('cv.euler', 'The Euler–Lagrange equation', 'Minimise ∫(y′² + k²y²) dx with fixed ends: the minimiser solves y″ = k²y.', t => {
+    const k = t.pick([1, 2]), L = t.pick([1, 2]), A = t.int(0, 3), B = t.int(1, 5), xq = L / 2;
+    // y = (A sinh(k(L−x)) + B sinh(kx)) / sinh(kL)
+    const y = x => (A * Math.sinh(k * (L - x)) + B * Math.sinh(k * x)) / Math.sinh(k * L);
+    return num(`Among functions with y(0) = ${A} and y(${L}) = ${B}, which minimises J[y] = ∫₀^${L} (y′² + ${k * k}y²) dx? Give y(${xq}) for the minimiser. (4 decimal places)`, r4(y(xq)),
+      `Euler–Lagrange: d/dx(2y′) = 2·${k * k}y, so y″ = ${k * k}y with the boundary values: y = (${A} sinh(${k}(${L} − x)) + ${B} sinh(${k}x))/sinh(${k * L}). At x = ${xq}: ${r4(y(xq))}.`,
+      `# minimise the discretised functional directly: it is quadratic, so solve its tridiagonal optimality system\nN = 4000; L, k = ${L}, ${k}; h = L / N\n# interior unknowns y1..y(N-1); gradient = 0 gives (2/h + k^2 h) y_i - (1/h)(y_{i-1} + y_{i+1}) = 0 (trapezoid on y^2)\na = [-1 / h] * (N - 1); b = [2 / h + k * k * h] * (N - 1); c = [-1 / h] * (N - 1); d = [0.0] * (N - 1)\nd[0] += ${A} / h; d[-1] += ${B} / h\nfor i in range(1, N - 1):\n    m = a[i] / b[i - 1]; b[i] -= m * c[i - 1]; d[i] -= m * d[i - 1]\ny = [0.0] * (N - 1); y[-1] = d[-1] / b[-1]\nfor i in range(N - 3, -1, -1): y[i] = (d[i] - c[i] * y[i + 1]) / b[i]\nprint(y[N // 2 - 1])`, { tol: 0.0005 });
+  }),
 ];

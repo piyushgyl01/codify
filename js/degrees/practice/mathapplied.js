@@ -175,4 +175,109 @@ export const MATHAPPLIED = [
       kind === 'exponential' ? `Log-likelihood n log λ − λΣx is maximised at λ̂ = n/Σx = 1/x̄ = ${r4(v)}.` : `The log-likelihood is maximised at the sample mean, ${r4(v)}.`,
       `import math\nx = ${PY(data)}\ndef ll(t):\n    ${kind === 'exponential' ? 'return sum(math.log(t) - t * v for v in x)' : kind === 'poisson' ? 'return sum(v * math.log(t) - t - math.lgamma(v + 1) for v in x)' : 'return sum(math.log(t) if v else math.log(1 - t) for v in x)'}\nlo, hi = 1e-6, ${kind === 'bernoulli' ? '1 - 1e-6' : '20.0'}\nfor _ in range(200):\n    m1, m2 = lo + (hi - lo) / 3, hi - (hi - lo) / 3\n    if ll(m1) < ll(m2): lo = m1\n    else: hi = m2\nprint((lo + hi) / 2)`);
   }),
+  SKILL('cm.kmatrix', 'The second-difference matrix', 'K = tridiag(−1, 2, −1) of size n has eigenvalues 2 − 2cos(kπ/(n + 1)) and determinant n + 1.', t => {
+    const n = t.int(2, 8), ask = t.pick(['det', 'lmin', 'lmax']);
+    const lam = k => 2 - 2 * Math.cos((k * Math.PI) / (n + 1));
+    const v = ask === 'det' ? n + 1 : ask === 'lmin' ? lam(1) : lam(n);
+    return num(`K_${n} is the ${n}×${n} matrix with 2 on the diagonal and −1 beside it (fixed–fixed second differences). What is ${ask === 'det' ? 'its determinant' : ask === 'lmin' ? 'its smallest eigenvalue' : 'its largest eigenvalue'}? (4 decimal places)`, r4(v),
+      ask === 'det' ? `Expanding along the first row gives D_n = 2D_{n−1} − D_{n−2} with D_1 = 2, D_2 = 3, so D_n = n + 1 = ${n + 1}.` : `The eigenvectors are discrete sines; λ_k = 2 − 2cos(kπ/${n + 1}). ${ask === 'lmin' ? 'k = 1' : `k = ${n}`} gives ${r4(v)}. The ratio λ_max/λ_min grows like n² — the condition number.`,
+      `n = ${n}\nK = [[2.0 if i == j else -1.0 if abs(i - j) == 1 else 0.0 for j in range(n)] for i in range(n)]\n${ask === 'det' ? "from fractions import Fraction as F\nM = [[F(x) for x in r] for r in K]; d = F(1)\nfor c in range(n):\n    d *= M[c][c]\n    for i in range(c + 1, n):\n        f = M[i][c] / M[c][c]; M[i] = [a - f * b for a, b in zip(M[i], M[c])]\nprint(float(d))" : `import math\n# power iteration${ask === 'lmin' ? ' on 4I - K, whose top eigenvalue is 4 - lambda_min' : ''}\nA = ${ask === 'lmin' ? '[[(4.0 if i == j else 0.0) - K[i][j] for j in range(n)] for i in range(n)]' : 'K'}\nv = [1.0 + 0.1 * i for i in range(n)]\nfor _ in range(20000):\n    w = [sum(A[i][j] * v[j] for j in range(n)) for i in range(n)]\n    s = math.sqrt(sum(x * x for x in w)); v = [x / s for x in w]\nl = sum(v[i] * sum(A[i][j] * v[j] for j in range(n)) for i in range(n))\nprint(${ask === 'lmin' ? '4 - l' : 'l'})`}`, { tol: 0.0005 });
+  }),
+
+  SKILL('cm.dft', 'The discrete Fourier transform', 'Xₖ = Σ xⱼ e^{−2πijk/n}: the DFT measures how much of each frequency a signal contains.', t => {
+    const n = t.pick([4, 8]), x = Array.from({ length: n }, () => t.int(-3, 3)), k = t.int(0, n - 1), ask = t.pick(['re', 'im', 'abs']);
+    let re = 0, im = 0; x.forEach((v, j) => { re += v * Math.cos((2 * Math.PI * j * k) / n); im -= v * Math.sin((2 * Math.PI * j * k) / n); });
+    const val = ask === 're' ? re : ask === 'im' ? im : Math.hypot(re, im);
+    return num(`x = [${x.join(', ')}]. With Xₖ = Σⱼ xⱼ e^{−2πijk/${n}}, what is ${ask === 're' ? 'Re' : ask === 'im' ? 'Im' : '|·| of'} X_${k}? (4 decimal places)`, r4(val),
+      `X_${k} = ${r4(re)} ${im < 0 ? '−' : '+'} ${r4(Math.abs(im))}i${k === 0 ? ' — X₀ is just the sum' : ''}.`,
+      `import cmath\nx = ${PY(x)}\n# radix-2 FFT, recursively\ndef fft(a):\n    if len(a) == 1: return a\n    e, o = fft(a[0::2]), fft(a[1::2])\n    n = len(a); w = [cmath.exp(-2j * cmath.pi * k / n) for k in range(n // 2)]\n    return [e[k] + w[k] * o[k] for k in range(n // 2)] + [e[k] - w[k] * o[k] for k in range(n // 2)]\nX = fft([complex(v) for v in x])[${k}]\nprint(${ask === 're' ? 'X.real' : ask === 'im' ? 'X.imag' : 'abs(X)'})`);
+  }),
+
+  SKILL('co.assign', 'The assignment problem', 'Match n workers to n jobs at least total cost — the Hungarian method solves it in polynomial time.', t => {
+    const n = t.int(3, 4), C = Array.from({ length: n }, () => Array.from({ length: n }, () => t.int(1, 9)));
+    let best = Infinity; const perm = (arr, l) => { if (l === arr.length) { best = Math.min(best, arr.reduce((s, j, i) => s + C[i][j], 0)); return; } for (let i = l; i < arr.length; i++) { [arr[l], arr[i]] = [arr[i], arr[l]]; perm(arr, l + 1); [arr[l], arr[i]] = [arr[i], arr[l]]; } };
+    perm([...Array(n).keys()], 0);
+    return num(`Cost matrix (rows workers, columns jobs): ${C.map(r => `[${r.join(' ')}]`).join(' ')}. What is the minimum total cost of assigning each worker one distinct job?`, best,
+      `The minimum over all ${n}! assignments is ${best}. The Hungarian method finds it without trying them all, and its dual (row and column potentials) certifies it.`,
+      `# solve it as a min-cost flow LP would: here, dynamic programming over subsets of jobs\nC = ${PY(C)}\nn = len(C)\nfrom functools import lru_cache\n@lru_cache(None)\ndef dp(i, used):\n    if i == n: return 0\n    return min(C[i][j] + dp(i + 1, used | (1 << j)) for j in range(n) if not used >> j & 1)\nprint(dp(0, 0))`);
+  }),
+
+  SKILL('co.tsp', 'Small travelling-salesman tours', 'The shortest tour through every city; exact methods scale exponentially.', t => {
+    const n = t.int(4, 6), P = Array.from({ length: n }, () => [t.int(0, 9), t.int(0, 9)]);
+    const d = (a, b) => Math.hypot(P[a][0] - P[b][0], P[a][1] - P[b][1]);
+    let best = Infinity; const go = (path, left, len) => { if (!left.length) { best = Math.min(best, len + d(path.at(-1), 0)); return; } for (const c of left) go([...path, c], left.filter(x => x !== c), len + d(path.at(-1), c)); };
+    go([0], [...Array(n).keys()].slice(1), 0);
+    return num(`Cities at ${P.map(p => `(${p.join(', ')})`).join(', ')}. What is the length of the shortest closed tour visiting every city? (4 decimal places)`, r4(best),
+      `Trying every tour from city 1 (${[1, 1, 2, 6, 24, 120][n - 1]} orders) gives ${r4(best)}. Held–Karp dynamic programming does it in O(n²2ⁿ).`,
+      `import math\nfrom functools import lru_cache\nP = ${PY(P)}\nn = len(P)\nd = lambda a, b: math.dist(P[a], P[b])\n@lru_cache(None)\ndef hk(S, j):\n    if S == (1 << j) | 1: return d(0, j)\n    return min(hk(S & ~(1 << j), k) + d(k, j) for k in range(1, n) if S >> k & 1 and k != j)\nfull = (1 << n) - 1\nprint(min(hk(full, j) + d(j, 0) for j in range(1, n)))`);
+  }),
+
+  SKILL('ds.logistic', 'The logistic map', 'xₙ₊₁ = r xₙ(1 − xₙ): the fixed point 1 − 1/r is stable for 1 < r < 3, then period doubling begins.', t => {
+    const r = t.pick([1.5, 2, 2.5, 2.8, 3.2, 3.5]), ask = t.pick(['fixed', 'slope']);
+    const xs = 1 - 1 / r, slope = 2 - r;
+    if (ask === 'fixed') return num(`For the logistic map with r = ${r}, what is the non-zero fixed point? (4 decimal places)`, r4(xs),
+      `x = r x(1 − x) gives x* = 1 − 1/r = ${r4(xs)}.`,
+      `r = ${r}\nf = lambda x: r * x * (1 - x)\nlo, hi = 0.01, 0.999\nfor _ in range(200):\n    m = (lo + hi) / 2\n    if (f(lo) - lo) * (f(m) - m) <= 0: hi = m\n    else: lo = m\nprint((lo + hi) / 2)`);
+    return num(`For the logistic map with r = ${r}, what is f′ at the fixed point 1 − 1/r? (|f′| < 1 means stable.) (4 decimal places)`, r4(slope),
+      `f′(x) = r(1 − 2x) = 2 − r = ${r4(slope)} at the fixed point. ${Math.abs(slope) < 1 ? 'Stable.' : 'Unstable: the orbit settles on a cycle instead.'}`,
+      `r = ${r}\nf = lambda x: r * x * (1 - x)\nx = 1 - 1 / r; h = 1e-6\nprint((f(x + h) - f(x - h)) / (2 * h))`);
+  }),
+
+  SKILL('ds.lyapunov', 'Lyapunov exponents', 'The average log-stretching rate along an orbit: positive means chaos.', t => {
+    const map = t.pick(['tent', 'doubling', 'logistic4', 'logistic2']);
+    const v = { tent: Math.log(2), doubling: Math.log(2), logistic4: Math.log(2), logistic2: -Infinity }[map];
+    if (map === 'logistic2') return num(`For the logistic map with r = 2.5, orbits converge to the fixed point 0.6. What is the Lyapunov exponent λ = ln|f′(x*)| there? (4 decimal places)`, r4(Math.log(0.5)),
+      `f′(0.6) = 2.5(1 − 1.2) = −0.5, so λ = ln 0.5 = ${r4(Math.log(0.5))} < 0: nearby orbits converge.`,
+      `import math\nf = lambda x: 2.5 * x * (1 - x)\nfp = lambda x: 2.5 * (1 - 2 * x)\nx, s = 0.3, 0.0\nfor _ in range(1000): x = f(x)\nfor _ in range(100000): s += math.log(abs(fp(x))); x = f(x)\nprint(s / 100000)`, { tol: 0.001 });
+    return num(`What is the Lyapunov exponent of the ${map === 'tent' ? 'tent map x ↦ 1 − |2x − 1|' : map === 'doubling' ? 'doubling map x ↦ 2x mod 1' : 'logistic map with r = 4'} for a typical orbit? (4 decimal places)`, r4(v),
+      `${map === 'logistic4' ? 'It is conjugate to the tent map, which stretches by 2 everywhere' : 'It stretches every small interval by a factor 2'}: λ = ln 2 = ${r4(v)} > 0, chaos.`,
+      `import math\n# average ln|f'| along an orbit, renormalising a tangent vector each step (avoids round-off collapse of the doubling map)\nimport random\nrandom.seed(5)\nx = random.random()\nf = ${map === 'tent' ? 'lambda x: 1 - abs(2 * x - 1)' : map === 'doubling' ? 'lambda x: (2 * x) % 1' : 'lambda x: 4 * x * (1 - x)'}\nfp = ${map === 'logistic4' ? 'lambda x: 4 * (1 - 2 * x)' : 'lambda x: 2.0'}\ns, n = 0.0, 0\nfor _ in range(200000):\n    if x <= 1e-12 or x >= 1 - 1e-12 or ${map === 'logistic4' ? 'abs(1 - 2 * x) < 1e-12' : 'False'}: x = random.random()\n    s += math.log(abs(fp(x))); n += 1\n    x = f(x)\n    x = min(max(x + random.uniform(-1e-13, 1e-13), 0.0), 1.0)\nprint(s / n)`, { tol: 0.02 });
+  }),
+
+  SKILL('ds.bifurcation', 'Saddle-node bifurcations', 'x′ = r + x²: two equilibria for r < 0 collide at r = 0 and vanish.', t => {
+    const r = t.pick([-4, -1, -0.25, -9]), ask = t.pick(['stable', 'unstable']);
+    const s = Math.sqrt(-r), v = ask === 'stable' ? -s : s;
+    return num(`x′ = ${r} + x². Where is the ${ask} equilibrium? (4 decimal places)`, r4(v),
+      `Equilibria at x = ±√${-r} = ±${r4(s)}. f′(x) = 2x is negative at −${r4(s)} (stable) and positive at +${r4(s)} (unstable). As r rises to 0 they merge and disappear.`,
+      `# run the flow forward (stable) or backward (unstable) from near zero\nf = lambda x: ${r} + x * x\nx, dt = 0.1, 1e-3\nfor _ in range(200000): x += (${ask === 'stable' ? '1' : '-1'}) * f(x) * dt\nprint(x)`, { tol: 0.001 });
+  }),
+
+  SKILL('adv.fisher', 'Fisher information and the Cramér–Rao bound', 'No unbiased estimator has variance below 1/(n I(θ)).', t => {
+    const kind = t.pick(['bernoulli', 'poisson', 'exponential']), n = t.pick([10, 25, 50, 100]);
+    const theta = kind === 'bernoulli' ? t.pick([0.2, 0.3, 0.5]) : t.pick([1, 2, 4]);
+    const I = kind === 'bernoulli' ? 1 / (theta * (1 - theta)) : kind === 'poisson' ? 1 / theta : 1 / (theta * theta);
+    const crb = 1 / (n * I);
+    return num(`For n = ${n} i.i.d. ${kind === 'bernoulli' ? `Bernoulli(p = ${theta})` : kind === 'poisson' ? `Poisson(λ = ${theta})` : `Exponential(rate λ = ${theta})`} observations, what is the Cramér–Rao lower bound on the variance of an unbiased estimator of ${kind === 'bernoulli' ? 'p' : 'λ'}? (6 decimal places)`, Math.round(crb * 1e6) / 1e6,
+      `Fisher information per observation: I = ${kind === 'bernoulli' ? '1/(p(1 − p))' : kind === 'poisson' ? '1/λ' : '1/λ²'} = ${r4(I)}. Bound = 1/(nI) = ${crb.toFixed(6)}.${kind !== 'exponential' ? ' The sample mean attains it.' : ''}`,
+      `import math\n# I = E[(d/dθ log f)^2], by summing (or integrating) over the distribution\nth, n = ${theta}, ${n}\nh = 1e-6\n${kind === 'bernoulli' ? 'logf = lambda x, t: math.log(t if x else 1 - t)\nI = sum((t1 := (th if x else 1 - th)) * ((logf(x, th + h) - logf(x, th - h)) / (2 * h)) ** 2 for x in (0, 1))' : kind === 'poisson' ? 'logf = lambda x, t: x * math.log(t) - t - math.lgamma(x + 1)\nI = sum(math.exp(logf(x, th)) * ((logf(x, th + h) - logf(x, th - h)) / (2 * h)) ** 2 for x in range(200))' : 'logf = lambda x, t: math.log(t) - t * x\nN = 200000; U = 40 / th; dx = U / N\nI = sum(math.exp(logf((i + .5) * dx, th)) * ((logf((i + .5) * dx, th + h) - logf((i + .5) * dx, th - h)) / (2 * h)) ** 2 for i in range(N)) * dx'}\nprint(1 / (n * I))`, { tol: 2e-6, dp: 6 });
+  }),
+
+  SKILL('adv.posterior', 'Conjugate Bayesian updating', 'A Beta(a, b) prior on a success probability, after s successes in n trials, becomes Beta(a + s, b + n − s).', t => {
+    const a = t.int(1, 4), b = t.int(1, 4), n = t.int(5, 20), s = t.int(0, n), ask = t.pick(['mean', 'mode']);
+    const A = a + s, B = b + n - s, v = ask === 'mean' ? A / (A + B) : (A - 1) / (A + B - 2);
+    return num(`Prior Beta(${a}, ${b}) on p; you see ${s} successes in ${n} trials. What is the posterior ${ask}? (4 decimal places)`, r4(v),
+      `Posterior Beta(${A}, ${B}). Mean A/(A + B) = ${r4(A / (A + B))}; mode (A − 1)/(A + B − 2) = ${r4((A - 1) / (A + B - 2))}. The data's MLE is ${r4(s / n)}; the prior pulls it toward ${r4(a / (a + b))}.`,
+      `import math\n# posterior ∝ prior × likelihood on a fine grid\nN = 200000\nxs = [(i + .5) / N for i in range(N)]\nw = [x ** (${a} - 1 + ${s}) * (1 - x) ** (${b} - 1 + ${n} - ${s}) for x in xs]\nZ = sum(w)\n${ask === 'mean' ? 'print(sum(x * v for x, v in zip(xs, w)) / Z)' : 'print(xs[max(range(N), key=lambda i: w[i])])'}`, { tol: 0.0002 });
+  }),
+
+  SKILL('code.hamming', 'Hamming codes', 'The [7,4] Hamming code corrects one error: the syndrome spells out the position in binary.', t => {
+    const data = Array.from({ length: 4 }, () => t.int(0, 1));
+    // positions 1..7, parity at 1,2,4
+    const c = Array(8).fill(0); [3, 5, 6, 7].forEach((pos, i) => { c[pos] = data[i]; });
+    for (const p of [1, 2, 4]) c[p] = [1, 2, 3, 4, 5, 6, 7].filter(i => i & p && i !== p).reduce((s, i) => s ^ c[i], 0);
+    const err = t.int(1, 7), r = [...c]; r[err] ^= 1;
+    const word = r.slice(1).join('');
+    return num(`A [7,4] Hamming codeword (parity bits at positions 1, 2, 4; positions counted from 1) arrives as ${word} with exactly one bit flipped. Which position is wrong?`, err,
+      `Recompute each parity check: the failing checks are those whose position bit is set in the error position, so the syndrome reads ${err.toString(2).padStart(3, '0')} = ${err}.`,
+      `r = [0] + [int(b) for b in ${PY(word)}]\n# try flipping each position and keep the one that makes every parity check pass\nok = lambda w: all(sum(w[i] for i in range(1, 8) if i & p) % 2 == 0 for p in (1, 2, 4))\nprint(next(k for k in range(1, 8) if ok([b ^ (i == k) for i, b in enumerate(r)])))`);
+  }),
+
+  SKILL('code.bounds', 'Bounds on codes', 'The Hamming (sphere-packing) bound limits how many length-n binary codewords can correct t errors.', t => {
+    const n = t.pick([7, 10, 15, 23]), tt = t.pick([1, 2, 3]);
+    const C = (x, y) => { let r = 1; for (let i = 1; i <= y; i++) r = (r * (x - y + i)) / i; return Math.round(r); };
+    const vol = Array.from({ length: tt + 1 }, (_, i) => C(n, i)).reduce((a, b) => a + b, 0), v = Math.floor(2 ** n / vol);
+    return num(`What is the Hamming bound — the most codewords a binary code of length ${n} can have if it corrects ${tt} error${tt > 1 ? 's' : ''}?`, v,
+      `Balls of radius ${tt} around codewords must be disjoint; each holds Σ_{i≤${tt}} C(${n}, i) = ${vol} words, out of 2^${n}. So |C| ≤ ⌊2^${n}/${vol}⌋ = ${v}.${2 ** n % vol === 0 ? ' Equality — a perfect code exists here (Hamming or Golay).' : ''}`,
+      `from itertools import combinations\nn, t = ${n}, ${tt}\n# count the words within distance t of 0 by enumerating error patterns\nball = sum(1 for k in range(t + 1) for _ in combinations(range(n), k))\nprint(2 ** n // ball)`);
+  }),
 ];

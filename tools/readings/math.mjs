@@ -28,6 +28,14 @@ const TOPN = p => `https://pi.math.cornell.edu/~hatcher/Top/TopNotes.pdf#page=${
 const AT = p => `https://pi.math.cornell.edu/~hatcher/AT/AT.pdf#page=${p + 9}`;
 const BOYD = p => `https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf#page=${p}`;
 const PC = 'https://www.probabilitycourse.com';
+const O102 = 'https://ocw.mit.edu/courses/18-102-introduction-to-functional-analysis-spring-2021/resources';
+const O950 = 'https://ocw.mit.edu/courses/18-950-differential-geometry-fall-2008/resources';
+const PET = p => `https://www.math.ucla.edu/~petersen/manifolds.pdf#page=${p}`;
+const O821 = 'https://ocw.mit.edu/courses/18-821-project-laboratory-in-mathematics-spring-2013/pages';
+const O085 = 'https://ocw.mit.edu/courses/18-085-computational-science-and-engineering-i-summer-2020/resources';
+const STEIN = p => `https://wstein.org/books/ant/ant.pdf#page=${p}`;
+const O152 = 'https://ocw.mit.edu/courses/18-152-introduction-to-partial-differential-equations-fall-2011/resources';
+const O433 = 'https://ocw.mit.edu/courses/18-433-combinatorial-optimization-fall-2003/resources';
 
 export const MATH_READINGS = {
   'calculus-1': {
@@ -229,5 +237,75 @@ export const MATH_READINGS = {
     6: r(`${PC}/chapter8/8_3_0_interval_estimation.php`, 'Pishro-Nik §8.3–8.4 — confidence intervals and hypothesis tests'),
     7: r(`${PC}/chapter9/9_1_0_bayesian_inference.php`, 'Pishro-Nik §9.1 — Bayesian inference: prior, posterior, estimates'),
     8: r('https://ocw.mit.edu/courses/18-445-introduction-to-stochastic-processes-spring-2015/pages/assignments/', 'MIT 18.445 homework with solutions — the cumulative check'),
+  },
+  'functional-analysis-and-fourier-analysis': {
+    1: r(`${O102}/lecture-1-basic-banach-space-theory/`, '18.102 Lecture 1 — normed spaces and Banach spaces, with examples'),
+    2: r(`${O102}/lecture-14-basic-hilbert-space-theory/`, '18.102 Lectures 14 and 17 — Hilbert spaces, orthogonal complements, projection, Riesz representation'),
+    3: r(`${O102}/lecture-2-bounded-linear-operators/`, '18.102 Lectures 2, 5–6 and 18 — bounded operators, Hahn–Banach, the double dual, adjoints'),
+    4: r(`${O102}/lecture-16-fejers-theorem-and-convergence-of-fourier-series/`, '18.102 Lecture 16 — Fejér\'s theorem and convergence of Fourier series, for the approximation experiment'),
+    5: r(`${O102}/lecture-3-quotient-spaces-the-baire-category-theorem-and-the-uniform-boundedness-theorem/`, '18.102 Lecture 3 — the Baire category theorem and uniform boundedness'),
+    6: r(`${O102}/lecture-4-the-open-mapping-theorem-and-the-closed-graph-theorem/`, '18.102 Lecture 4 — the open mapping and closed graph theorems'),
+    7: r(`${O102}/lecture-15-orthonormal-bases-and-fourier-series/`, '18.102 Lectures 15 and 20–22 — orthonormal bases and Fourier series; compact operators and the spectral theorem'),
+    8: r(`${O102}/complete-lecture-notes/`, '18.102 complete lecture notes — for the cumulative portfolio'),
+  },
+  'differential-geometry': {
+    1: r(PET(7), 'Petersen, Manifolds, Transversality and de Rham Cohomology, Chapter 1 — smooth manifolds, charts and smooth maps (18.950 does not cover manifolds)'),
+    2: r(PET(37), 'Petersen Chapter 2 — tangent spaces, differentials, vector fields and flows'),
+    3: r(PET(118), 'Petersen Chapter 6 — tensors, differential forms, pullbacks and Lie derivatives'),
+    4: r('https://www.cs.cmu.edu/~kmcrane/Projects/DDG/paper.pdf', 'Crane, Discrete Differential Geometry: An Applied Introduction — computing curvature on meshes'),
+    5: r(`${O950}/ch4_revised/`, '18.950 Chapter 4 — lengths, distances and geodesics'),
+    6: r(`${O950}/ch2_revised/`, '18.950 Chapters 1–2 — curvature of plane curves and the local geometry of hypersurfaces'),
+    7: r(`${O950}/ch3_revised/`, '18.950 Chapter 3 — global geometry of hypersurfaces, including Gauss–Bonnet'),
+    8: r('https://ocw.mit.edu/courses/18-950-differential-geometry-fall-2008/pages/assignments/', '18.950 homework sets 1–10 — the cumulative practice'),
+  },
+  'research-and-expository-seminar': {
+    1: r('https://arxiv.org/archive/math', 'arXiv mathematics listings — find the primary source and trace each result back to where it was first proved'),
+    2: r(`${O821}/mathematical-work/`, '18.821 Mathematical Work — how students read definitions and theorem dependencies under mentorship'),
+    3: r(`${O821}/writing/sample-student-papers/`, '18.821 sample student papers — reconstructed proofs and examples to compare yours with'),
+    4: r(`${O821}/writing/revision-and-feedback/`, '18.821 Revision and Feedback — the peer-review and revision cycle'),
+    5: r(`${O821}/introduction/`, '18.821 Introduction — choosing a project: research questions, conjectures and feasibility'),
+    6: r(`${O821}/writing/`, '18.821 Writing — figures, computation, citation and reproducible mathematical writing'),
+    7: r(`${O821}/presentations/practice-and-feedback/`, '18.821 Presentations: Practice and Feedback — talk design and questioning'),
+    8: r(`${O821}/presentations/sample-student-presentation/`, '18.821 sample student presentation — the standard for the public defense'),
+  },
+  'computational-mathematics': {
+    1: r(`${O085}/mit18_085summer20_lec_w4/`, '18.085 Week 4 — stiffness matrices, graph models and Kirchhoff\'s laws: sparsity from structure'),
+    2: r('https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/pages/week-8/', '18.335J Lectures 21–23 — conjugate gradients and preconditioning (18.085 does not cover iterative solvers)'),
+    3: r(`${O085}/mit18_085summer20_lec_w2/`, '18.085 Week 2 — differences, derivatives and boundary conditions'),
+    4: r(`${O085}/mit18_085summer20_lec_w7/`, '18.085 Week 7 — Laplace\'s equation by finite differences, a problem with known solutions to benchmark against'),
+    5: r(`${O085}/mit18_085summer20_lec_w8/`, '18.085 Weeks 8–9 — the finite element method, the DFT and FFT, convolution'),
+    6: r('https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/pages/week-9/', '18.335J Lectures 25–26 — optimisation algorithms and adjoint (reverse-mode) differentiation'),
+    7: r('https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/pages/week-4/', '18.335J Lectures 9–11 — matrix operations, caches and blocking: what actually costs time'),
+    8: r('https://ocw.mit.edu/courses/18-085-computational-science-and-engineering-i-summer-2020/pages/exams/', '18.085 midterm and final with solutions — the cumulative check'),
+  },
+  'algebraic-number-theory': {
+    1: r(STEIN(9), 'Stein, Algebraic Number Theory: a Computational Approach, Chapters 1–2 — number fields and algebraic integers'),
+    2: r(STEIN(69), 'Stein Chapter 6 — discriminants and norms'),
+    3: r(STEIN(41), 'Stein Chapter 3 — Dedekind domains and unique factorisation of ideals'),
+    4: r(STEIN(49), 'Stein Chapters 4–5 — factoring primes, with the Sage computations the book shows'),
+    5: r(STEIN(99), 'Stein Chapter 9 — decomposition and inertia groups, ramification'),
+    6: r(STEIN(77), 'Stein Chapters 7–8 — finiteness of the class group (Minkowski) and Dirichlet\'s unit theorem'),
+    7: r('https://ocw.mit.edu/courses/18-785-number-theory-i-fall-2021/resources/mit18_785f21_lec9/', '18.785 Lectures 8–9 — complete fields, local fields and Hensel\'s lemma'),
+    8: r(STEIN(201), 'Stein Chapter 20 — exercises across the book, for the cumulative dossier'),
+  },
+  'partial-differential-equations': {
+    1: r(`${O152}/mit18_152f11_lec_01/`, '18.152 Lectures 1 and 15 — what a PDE is, well-posedness, classification of second-order equations'),
+    2: r(`${O152}/mit18_152f11_lec_24/`, '18.152 Lecture 24 — transport equations and Burgers\' equation, by characteristics'),
+    3: r(`${O152}/mit18_152f11_lec_10/`, '18.152 Lectures 10–12 — the wave equation, spherical means, Kirchhoff\'s formula'),
+    4: r(`${O152}/mit18_152f11_lec_13_14/`, '18.152 Lectures 13–14 — energy estimates, the quantity a verified simulation should conserve'),
+    5: r(`${O152}/mit18_152f11_lec_04/`, '18.152 Lectures 2–5 — the heat equation, the maximum principle, the fundamental solution'),
+    6: r(`${O152}/mit18_152f11_lec_06/`, '18.152 Lectures 6–9 — Laplace\'s and Poisson\'s equations, Green functions, Harnack and Liouville'),
+    7: r(`${O152}/mit18_152f11_lec_16_18/`, '18.152 Lectures 16–18 — the Fourier transform, Fourier inversion and Plancherel'),
+    8: r('https://ocw.mit.edu/courses/18-152-introduction-to-partial-differential-equations-fall-2011/pages/exams/', '18.152 midterm with solutions, and the final — the cumulative check'),
+  },
+  'combinatorial-optimization': {
+    1: r(`${AC}/s_graphalgorithms_min-wt-span.html`, 'Applied Combinatorics Chapter 12 — minimum spanning trees and shortest paths, with greedy proofs (18.433 starts at matchings)'),
+    2: r(`${O433}/l78/`, '18.433 Lectures 7–9 — flow duality and algorithms, minimum cuts'),
+    3: r(`${O433}/l123/`, '18.433 Lectures 1–3 and 5 — matching algorithms; the bipartite matching polytope'),
+    4: r(`${O433}/l15/`, '18.433 Lecture 16 — the primal–dual algorithm, which builds its own certificate'),
+    5: r('https://math.mit.edu/~goemans/18433S15/matroid-notes.pdf', 'Goemans, 18.433 (2015) notes on matroids — the 2003 matroid lectures were never posted'),
+    6: r(`${O433}/l4/`, '18.433 Lectures 4 and 12 — polyhedral combinatorics and linear programs'),
+    7: r(`${O433}/l2122/`, '18.433 Lectures 21–24 — NP-completeness and approximation algorithms'),
+    8: r('https://ocw.mit.edu/courses/18-433-combinatorial-optimization-fall-2003/pages/assignments/', '18.433 problem sets 1–4 — the cumulative practice'),
   },
 };
