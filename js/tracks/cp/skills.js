@@ -595,12 +595,14 @@ const inclexcl = t => {
   if (t.int(0, 1) === 0) {
     const [a, b] = t.pickN(range(2, 12), 2), l = lcm(a, b), ans = Math.floor(N / a) + Math.floor(N / b) - Math.floor(N / l);
     return num(`How many integers from 1 to ${N} are divisible by ${a} or by ${b}?`, ans,
-      `⌊${N}/${a}⌋ + ⌊${N}/${b}⌋ − ⌊${N}/${l}⌋ = ${Math.floor(N / a)} + ${Math.floor(N / b)} − ${Math.floor(N / l)} = ${ans}. Numbers divisible by both were counted twice.`);
+      `⌊${N}/${a}⌋ + ⌊${N}/${b}⌋ − ⌊${N}/${l}⌋ = ${Math.floor(N / a)} + ${Math.floor(N / b)} − ${Math.floor(N / l)} = ${ans}. Numbers divisible by both were counted twice.`,
+      py(`print(sum(1 for n in range(1, ${N + 1}) if n % ${a} == 0 or n % ${b} == 0))`));
   }
   const [a, b, c] = t.pickN([2, 3, 5, 7], 3).sort((x, y) => x - y), f = d => Math.floor(N / d);
   const ans = f(a) + f(b) + f(c) - f(a * b) - f(a * c) - f(b * c) + f(a * b * c);
   return num(`How many integers from 1 to ${N} are divisible by at least one of ${a}, ${b} and ${c}?`, ans,
-    `Add the singles, subtract the pairs, add the triple back: ${f(a)} + ${f(b)} + ${f(c)} − ${f(a * b)} − ${f(a * c)} − ${f(b * c)} + ${f(a * b * c)} = ${ans}.`);
+    `Add the singles, subtract the pairs, add the triple back: ${f(a)} + ${f(b)} + ${f(c)} − ${f(a * b)} − ${f(a * c)} − ${f(b * c)} + ${f(a * b * c)} = ${ans}.`,
+    py(`print(sum(1 for n in range(1, ${N + 1}) if any(n % d == 0 for d in (${a}, ${b}, ${c}))))`));
 };
 
 const expect = t => {

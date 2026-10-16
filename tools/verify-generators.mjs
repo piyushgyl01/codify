@@ -105,18 +105,19 @@ export function verifyQuestion(q, dir) {
 /** Generate `perSkill` questions for each skill and check every one. */
 export function verifySkills(skills, { perSkill = 4, rng, toolkit }) {
   const dir = mkdtempSync(join(tmpdir(), 'codify-verify-'));
-  const tally = { agree: 0, disagree: 0, construction: 0, skipped: 0, error: 0 }, problems = [], skippedFor = new Set();
+  const tally = { agree: 0, disagree: 0, construction: 0, skipped: 0, error: 0 }, problems = [], skippedFor = new Set(), byConstruction = new Set();
   try {
     for (const s of skills) for (let i = 0; i < perSkill; i++) {
       const q = s.gen(toolkit(rng));
       const r = verifyQuestion(q, dir);
       tally[r.status]++;
       if (r.status === 'skipped') skippedFor.add(r.detail);
+      if (r.status === 'construction') byConstruction.add(s.id);
       if (r.status === 'disagree') problems.push(`${s.id}: generator says ${JSON.stringify(r.want)}, check says ${JSON.stringify(r.got)}`);
       if (r.status === 'error') problems.push(`${s.id}: the check failed — ${r.detail}`);
     }
   } finally { rmSync(dir, { recursive: true, force: true }); }
-  return { ...tally, problems, skippedFor: [...skippedFor] };
+  return { ...tally, problems, skippedFor: [...skippedFor], byConstruction: [...byConstruction] };
 }
 
 /* ---------------------------------- CLI ----------------------------------- */

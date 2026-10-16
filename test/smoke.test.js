@@ -1275,6 +1275,19 @@ group('degrees: audited courses, against their sources');
   }
   ok('no link found dead in the October audit is left in any degree', Object.keys(CO.LINK_FIXES).length >= 19 && !stale.length, stale.slice(0, 2).join(', '));
   ok(`every per-week and per-unit correction landed (${placed})`, placed === Object.keys(CO.PLACE_FIXES).length && !misplaced.length, misplaced.slice(0, 3).join(', '));
+  // Outside CS the catalog names no readings and no rubrics; an audited course must have both.
+  const { READINGS } = await import('../tools/readings/index.mjs');
+  const thin = [];
+  for (const [id, key, cur] of audited.filter(([id]) => id !== 'cs')) {
+    const slug = DL.degreeMeta(id).slug, c = DM.courseByKey(DL.degreeData(id), key);
+    for (const u of c.units) if (!READINGS[slug]?.[key]?.[u.order] || u.url !== READINGS[slug][key][u.order].url || !/^https:\/\//.test(u.url)) thin.push(`${key} U${u.order}: no reading`);
+    for (const a of c.assessments) {
+      if (!a.stage || !a.rubric.length) thin.push(`${key} ${a.title}: no stage or rubric`);
+      else if (a.rubric.reduce((n, x) => n + x.points, 0) !== a.max || a.rubric.some(x => !(x.partial < x.points))) thin.push(`${key} ${a.stage}: rubric does not add up`);
+    }
+    if (!Object.keys(cur.rubrics || {}).every(s => c.assessments.some(a => a.stage === s))) thin.push(`${key}: rubric for a stage it does not have`);
+  }
+  ok(`audited courses outside CS name a reading for every unit and a rubric for every assessment (${audited.filter(([id]) => id !== 'cs').length})`, !thin.length, thin.slice(0, 3).join(' | '));
 
   const VG = await import('../tools/verify-generators.mjs');
   const PX = await import('../js/degrees/practice/python-extra.js'), DSC = await import('../js/degrees/practice/discrete.js');
@@ -1284,12 +1297,12 @@ group('degrees: audited courses, against their sources');
   ok(`Term 1 answers agree with an independent check (${v.agree} run in Python, C or SQLite, ${v.construction} by construction${v.skipped ? `, ${v.skipped} skipped: ${v.skippedFor.join(', ')}` : ''})`,
     !v.disagree && !v.error, v.problems.slice(0, 2).join(' | '));
   // Term 2: the new generators, and every skill borrowed from the Programming and AI tracks.
-  const T2 = await Promise.all(['datastructs', 'arch', 'linalg', 'prob', 'web', 'algos', 'os', 'db', 'net', 'pl', 'se', 'theory', 'compilers', 'security', 'hci', 'aiplan', 'distsys', 'inference', 'graphics', 'systems6'].map(f => import(`../js/degrees/practice/${f}.js`)));
+  const T2 = await Promise.all(['datastructs', 'arch', 'linalg', 'prob', 'web', 'algos', 'os', 'db', 'net', 'pl', 'se', 'theory', 'compilers', 'security', 'hci', 'aiplan', 'distsys', 'inference', 'graphics', 'systems6', 'mathfound'].map(f => import(`../js/degrees/practice/${f}.js`)));
   const term2New = T2.flatMap(m => Object.values(m).flat());
   const borrowed = [...new Set(audited.flatMap(([, , c]) => c.outcomes.flatMap(o => o.skills)))].map(SB.skillById).filter(s => s.track !== 'degrees');
   const v2 = VG.verifySkills([...term2New, ...borrowed], { perSkill: 2, rng: Q.seeded(32), toolkit: Q.toolkit });
   ok(`Terms 2+ and every borrowed skill agree with an independent check (${v2.agree} run in Python, Node or SQLite, ${v2.construction} right by construction)`,
-    !v2.disagree && !v2.error && v2.construction <= 2 * 3, v2.problems.slice(0, 2).join(' | ') || `${v2.construction} by construction`);
+    !v2.disagree && !v2.error && v2.byConstruction.every(id => ['bigo', 'tc.decide'].includes(id)), v2.problems.slice(0, 2).join(' | ') || `by construction: ${v2.byConstruction.join(', ')}`);
 
   let keyRan = 0; const keyBad = [];
   if (VG.availableTools().python) {

@@ -229,11 +229,14 @@ function unitBlock(id, D, r, c, u) {
     </div></details>`;
 }
 
+/** What each degree's outcomes are mapped to (the codes under each outcome). */
+const STANDARD = { cs: 'CS2023', math: 'QAA MSOR and the GRE', phys: 'the GRE and AAPT', ee: 'ABET and the FE exam', me: 'ABET and the FE exam' };
+
 function anchorsFor(id, c, a, x) {
   const an = curriculumFor(id, c.key)?.anchors?.[`${a.stage}/${x.criterion}`];
   if (!an) return `<div class="tiny">${esc(x.description)}</div>`;
   // The rubric itself says what partial credit is worth ("…award 15 when…"); say so only when it does.
-  const part = x.description?.match(/award (\d+) when/i)?.[1];
+  const part = x.partial ?? x.description?.match(/award (\d+) when/i)?.[1];
   return `<div class="deg-anchors"><div class="tiny"><b>${x.points}:</b> ${esc(an.full)}</div><div class="tiny"><b>${part ?? `≈ ${Math.round(x.points / 2)}`}:</b> ${esc(an.part)}</div><div class="tiny"><b>0:</b> ${esc(an.none)}</div></div>`;
 }
 
@@ -329,7 +332,7 @@ function outcomesCard(id, r, c) {
   const tests = E.courseTestsOf(id, c.key), last = kind => [...tests].reverse().find(t => t.kind === kind);
   const place = last('placement'), fin = last('final');
   const testable = cur.outcomes.filter(o => o.skills.length).length;
-  return `<div class="card"><div class="between"><div class="h3">What you will be able to do</div><span class="tiny">${cur.outcomes.length} outcomes · CS2023-mapped</span></div>
+  return `<div class="card"><div class="between"><div class="h3">What you will be able to do</div><span class="tiny">${cur.outcomes.length} outcomes · mapped to ${esc(STANDARD[id] || 'a standard')}</span></div>
     <div class="deg-outcomes">${cur.outcomes.map(o => {
       const lv = outcomeLevel(r, o), p = place?.outcomes?.[o.id], f = fin?.outcomes?.[o.id];
       return `<div class="deg-outcome"><div class="between"><div class="grow"><div class="h3">${esc(o.text)}</div>

@@ -17,6 +17,8 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { LINK_FIXES, placeFix } from '../js/degrees/curriculum/corrections.js';
+import { CURRICULUM } from '../js/degrees/curriculum/index.js';
+import { READINGS } from './readings/index.mjs';
 
 const src = process.argv[2];
 if (!src) { console.error('Usage: node tools/import-atlas.mjs <catalog-export-directory>'); process.exit(1); }
@@ -43,6 +45,24 @@ const fixLinks = s => (s ? s.replace(/https?:\/\/[^\s|)]+/g, u => LINK_FIXES[u] 
 const clean = s => fixLinks((s || '').replace(/\s+/g, ' ').trim());
 const index = [];
 
+/**
+ * Only the CS catalog names its assessment stages. Elsewhere the stage is read
+ * from the title — "…: Applied problem set", "…: Final oral", "Checkpoint II ·
+ * …" — and EE's demonstrations take their place in the course; an audited
+ * course can list its stages outright where the titles do not say.
+ */
+function stagesOf(assessments, design) {
+  if (design?.stages) return design.stages;
+  const tail = a => a.title.split(': ').at(-1);
+  const named = assessments.map((a, i) => a.stage || (/^Applied\b/.test(tail(a)) ? 'applied' : /^Final\b/.test(tail(a)) ? 'final'
+    : /^Checkpoint II\b/.test(a.title) ? 'checkpoint 2' : /^Checkpoint I\b/.test(a.title) ? 'checkpoint 1'
+    : i === assessments.length - 1 ? 'final' : 'demonstration'));
+  return named;
+}
+
+/** An audited course's rubric, for an assessment whose catalog entry has none. */
+const rubricOf = (design, stage) => (design?.rubrics?.[stage] || []).map(x => ({ criterion: x.criterion, description: x.full, points: x.points, partial: x.partial }));
+
 for (const [slug, all] of bySlug) {
   const meta = META[slug];
   if (!meta) { console.warn(`skipping unknown degree ${slug}`); continue; }
@@ -64,10 +84,14 @@ for (const [slug, all] of bySlug) {
     const weights = new Map((cv.gradingPolicy?.contributions || []).map(x => [x.assessmentVersionId, x]));
     // A fix for one place (a unit or a week of this course) beats the general link fixes.
     const at = (where, field, value) => placeFix(slug, c.canonicalSlug, where)?.[field] ?? value;
+    // Where the catalog only says "use the primary resource", the audit names the lectures or chapters.
+    const reading = order => READINGS[slug]?.[c.canonicalSlug]?.[order] || null;
+    const design = CURRICULUM[meta?.id]?.[c.canonicalSlug];
     const units = d.learningUnits.filter(u => u.courseVersionId === cv.id).sort((a, b) => a.order - b.order).map(u => ({
       id: u.id, order: u.order, label: u.label, kind: u.kindLabel || u.kind, title: clean(u.title), topic: clean(u.topic),
       activity: clean(u.activity), evidence: clean(u.evidence), hours: u.nominalHours,
-      where: clean(u.resourceLocator), url: at(`U${u.order}`, 'url', fixLinks((u.resourceLocator || '').match(URL_RE)?.[0] || null)),
+      where: reading(u.order)?.where || clean(u.resourceLocator),
+      url: reading(u.order)?.url || at(`U${u.order}`, 'url', fixLinks((u.resourceLocator || '').match(URL_RE)?.[0] || null)),
       ...(u.weeklyAssignments?.length ? { weeks: u.weeklyAssignments.map(w => ({
         week: w.week, title: at(`W${w.week}`, 'title', clean(w.title)), activity: clean(w.activity), deliverable: clean(w.deliverable), hours: w.estimatedHours,
         url: at(`W${w.week}`, 'url', fixLinks(w.sourceEvidence?.resolvedUrl || w.sourceEvidence?.url || (w.resourceLocator || '').match(URL_RE)?.[0] || null)),
@@ -86,15 +110,15 @@ for (const [slug, all] of bySlug) {
           licenseUrl: g?.licenseUrl || '', free: a ? a.type === 'free' && !a.loginRequired : true };
       }).filter(Boolean),
       units,
-      assessments: assessmentsOf(cv.id).map(a => {
-        const w = weights.get(a.id);
+      assessments: (list => { const stages = stagesOf(list, design); return list.map((a, i) => {
+        const w = weights.get(a.id), rubric = (a.rubric || []).map(x => ({ criterion: clean(x.criterion), description: clean(x.description), points: x.points }));
         return {
-          id: a.id, title: clean(a.title), unit: a.unitId, stage: a.stage || '', instructions: clean(a.instructions),
+          id: a.id, title: clean(a.title), unit: a.unitId, stage: stages[i] || '', instructions: clean(a.instructions),
           evidence: (a.submissionEvidence || []).map(clean), hours: a.estimatedHours, max: a.maximumScore || 100,
           pass: a.passingScore ?? null, weight: w?.weight ?? 0, required: !!w?.requiredToPass,
-          rubric: (a.rubric || []).map(x => ({ criterion: clean(x.criterion), description: clean(x.description), points: x.points })),
+          rubric: rubric.length ? rubric : rubricOf(design, stages[i]),
         };
-      }),
+      }); })(assessmentsOf(cv.id).map(a => ({ ...a, title: clean(a.title) }))),
     };
   }).sort((a, b) => a.term - b.term || a.order - b.order);
 

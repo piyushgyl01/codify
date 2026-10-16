@@ -10,9 +10,20 @@ import { CS_TERM3 } from './cs-term3.js';
 import { CS_TERM4 } from './cs-term4.js';
 import { CS_TERM5 } from './cs-term5.js';
 import { CS_TERM6 } from './cs-term6.js';
+import { MATH_TERM0 } from './math-term0.js';
+
+/**
+ * Courses outside CS have no rubric in the catalog, so their design carries one
+ * (rubrics[stage] = [{ criterion, points, partial, full, part, none }]); the
+ * importer writes it into the catalog and its anchors are read from here.
+ */
+const anchored = courses => Object.fromEntries(Object.entries(courses).map(([key, c]) => [key, !c.rubrics ? c : {
+  ...c, anchors: { ...Object.fromEntries(Object.entries(c.rubrics).flatMap(([stage, lines]) => lines.map(x => [`${stage}/${x.criterion}`, { full: x.full, part: x.part, none: x.none }]))), ...c.anchors },
+}]));
 
 export const CURRICULUM = {
   cs: { ...CS_TERM1, ...CS_TERM2, ...CS_TERM3, ...CS_TERM4, ...CS_TERM5, ...CS_TERM6 },
+  math: anchored({ ...MATH_TERM0 }),
 };
 
 export const curriculumFor = (degreeId, courseKey) => CURRICULUM[degreeId]?.[courseKey] || null;
