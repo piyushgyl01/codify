@@ -42,18 +42,21 @@ const ohm = t => {
     const I = t.pick([5, 10, 15, 20, 25, 30, 40, 50]), R = t.pick([100, 150, 220, 330, 470, 680, 1000]);
     const V = (I / 1000) * R;
     return num(`${I} mA flows through a ${R} Ω resistor. What voltage is across it, in volts?`,
-      V, 'V', 2, `V = I × R = ${I / 1000} A × ${R} Ω = ${n(V)} V.`);
+      V, 'V', 2, `V = I × R = ${I / 1000} A × ${R} Ω = ${n(V)} V.`,
+      { python: `# nodal analysis: a current source I into a node with conductance 1/R to ground; KCL gives v·(1/R) = I\nG, I = 1 / ${R}, ${I} / 1000\nprint(I / G)` });
   }
   if (v === 1) {
     const V = t.pick([3.3, 5, 9, 12]), R = t.pick([220, 330, 470, 1000, 2200, 4700]);
     const I = (V / R) * 1000;
     return num(`${V} V across a ${R} Ω resistor. How much current flows, in mA?`,
-      I, 'mA', 2, `I = V / R = ${V} V / ${R} Ω = ${n(I / 1000, 4)} A = ${n(I)} mA.`);
+      I, 'mA', 2, `I = V / R = ${V} V / ${R} Ω = ${n(I / 1000, 4)} A = ${n(I)} mA.`,
+      { python: `# power balance: P = V^2 / R dissipated equals V·I supplied\nV, R = ${V}, ${R}\nP = V * V / R\nprint(P / V * 1000)` });
   }
   const V = t.pick([3.3, 5, 9, 12]), I = t.pick([10, 20, 25, 50, 100]);
   const R = V / (I / 1000);
   return num(`You need exactly ${I} mA to flow with ${V} V across a resistor. What resistance, in ohms?`,
-    R, 'Ω', 1, `R = V / I = ${V} V / ${I / 1000} A = ${n(R, 1)} Ω.`);
+    R, 'Ω', 1, `R = V / I = ${V} V / ${I / 1000} A = ${n(R, 1)} Ω.`,
+    { python: `# bisect on R until the current through it is the target\nV, I = ${V}, ${I} / 1000\nlo, hi = 1e-3, 1e7\nfor _ in range(200):\n    m = (lo * hi) ** 0.5\n    if V / m > I: lo = m\n    else: hi = m\nprint(m)` });
 };
 
 const divider = t => {
@@ -62,13 +65,15 @@ const divider = t => {
     const [R1, R2] = t.pickN([1, 2.2, 3.3, 4.7, 10, 22, 47], 2);
     const Vout = Vin * R2 / (R1 + R2);
     return num(`A divider has R1 = ${R1} kΩ on top and R2 = ${R2} kΩ to ground, fed from ${Vin} V. What is Vout, in volts?`,
-      Vout, 'V', 2, `Vout = Vin × R2 / (R1 + R2) = ${Vin} × ${R2} / ${r2(R1 + R2)} = ${n(Vout)} V.`);
+      Vout, 'V', 2, `Vout = Vin × R2 / (R1 + R2) = ${Vin} × ${R2} / ${r2(R1 + R2)} = ${n(Vout)} V.`,
+      { python: `# KCL at the middle node: (Vin - v)/R1 = v/R2, solved as a conductance equation\nVin, R1, R2 = ${Vin}, ${R1}, ${R2}\nprint((Vin / R1) / (1 / R1 + 1 / R2))` });
   }
   const [Vin, Vout] = t.pick([[5, 3.3], [12, 5], [9, 3.3], [12, 3.3], [5, 2.5]]);
   const R1 = t.pick([1, 2.2, 4.7, 10]);
   const R2 = R1 * Vout / (Vin - Vout);
   return num(`You want ${Vout} V out of a ${Vin} V supply. R1 on top is ${R1} kΩ. What should R2 to ground be, in kΩ?`,
-    R2, 'kΩ', 2, `From Vout = Vin·R2/(R1+R2): R2 = R1 × Vout / (Vin − Vout) = ${R1} × ${Vout} / ${r2(Vin - Vout)} = ${n(R2)} kΩ.`);
+    R2, 'kΩ', 2, `From Vout = Vin·R2/(R1+R2): R2 = R1 × Vout / (Vin − Vout) = ${R1} × ${Vout} / ${r2(Vin - Vout)} = ${n(R2)} kΩ.`,
+    { python: `# bisect on R2 until nodal analysis gives the target output\nVin, Vout, R1 = ${Vin}, ${Vout}, ${R1}\nv = lambda R2: (Vin / R1) / (1 / R1 + 1 / R2)\nlo, hi = 1e-6, 1e6\nfor _ in range(300):\n    m = (lo * hi) ** 0.5\n    if v(m) < Vout: lo = m\n    else: hi = m\nprint(m)` });
 };
 
 const LEDS = [['red', 2.0], ['yellow', 2.1], ['green', 2.2], ['blue', 3.0], ['white', 3.0]];

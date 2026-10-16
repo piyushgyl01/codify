@@ -8,6 +8,11 @@ const O803 = `${OCW}/8-03sc-physics-iii-vibrations-and-waves-fall-2016/pages`;
 const C5111 = `${OCW}/5-111sc-principles-of-chemical-science-fall-2014/pages`;
 const L6100 = `${OCW}/6-100l-introduction-to-cs-and-programming-using-python-fall-2022/pages`;
 const NIST = 'https://www.itl.nist.gov/div898/handbook';
+const C1802 = `${OCW}/18-02sc-multivariable-calculus-fall-2010/pages`;
+const C1803 = `${OCW}/18-03sc-differential-equations-fall-2011/pages`;
+const LA06 = `${OCW}/18-06sc-linear-algebra-fall-2011/pages`;
+const E802 = `${OCW}/8-02x-physics-ii-electricity-magnetism-with-an-experimental-focus-spring-2005/resources`;
+const S1805 = `${OCW}/18-05-introduction-to-probability-and-statistics-spring-2022/resources`;
 
 export const PHYS_READINGS = {
   'calculus-1-physical-modeling': {
@@ -59,5 +64,55 @@ export const PHYS_READINGS = {
     6: r(`${NIST}/mpc/mpc.htm`, 'NIST/SEMATECH e-Handbook Chapter 2 — measurement process characterisation: calibration, resolution, noise'),
     7: r('https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1003285', 'Sandve et al., Ten Simple Rules for Reproducible Computational Research'),
     8: r('https://osf.io/prereg/', 'OSF preregistration — register the replication before running it'),
+  },
+  'multivariable-and-vector-calculus': {
+    1: r(`${C1802}/1.-vectors-and-matrices/part-a-vectors-determinants-and-planes/`, '18.02SC Unit 1 — vectors, determinants, planes, coordinates and parametric curves'),
+    2: r(`${C1802}/2.-partial-derivatives/part-b-chain-rule-gradient-and-directional-derivatives/`, '18.02SC Unit 2B — the chain rule, gradient and directional derivatives'),
+    3: r(`${C1802}/2.-partial-derivatives/part-c-lagrange-multipliers-and-constrained-differentials/`, '18.02SC Unit 2C — Lagrange multipliers and constrained differentials'),
+    4: r(`${C1802}/2.-partial-derivatives/part-a-functions-of-two-variables-tangent-approximation-and-optimization/`, '18.02SC Unit 2A — tangent-plane approximation: reconstructing a field from local slopes'),
+    5: r(`${C1802}/3.-double-integrals-and-line-integrals-in-the-plane/part-a-double-integrals/`, '18.02SC Units 3A and 4A — double and triple integrals, change of variables'),
+    6: r(`${C1802}/3.-double-integrals-and-line-integrals-in-the-plane/part-b-vector-fields-and-line-integrals/`, '18.02SC Units 3B and 4B — line integrals and flux through surfaces'),
+    7: r(`${C1802}/4.-triple-integrals-and-surface-integrals-in-3-space/part-c-line-integrals-and-stokes-theorem/`, '18.02SC Units 3C, 4B–4C — Green\'s, Stokes\' and the divergence theorem'),
+    8: r(`${C1802}/4.-triple-integrals-and-surface-integrals-in-3-space/physics-applications/`, '18.02SC physics applications, with the final exam for the cumulative check'),
+  },
+  'linear-algebra-and-differential-equations': {
+    1: r(`${LA06}/ax-b-and-the-four-subspaces/elimination-with-matrices/`, '18.06SC — elimination, LU and the geometry of linear equations (18.03SC has no linear algebra)'),
+    2: r(`${LA06}/ax-b-and-the-four-subspaces/independence-basis-and-dimension/`, '18.06SC — independence, bases, rank and the four subspaces; orthogonality'),
+    3: r(`${LA06}/least-squares-determinants-and-eigenvalues/eigenvalues-and-eigenvectors/`, '18.06SC — eigenvalues, eigenvectors and diagonalisation'),
+    4: r(`${C1803}/unit-iv-first-order-systems/matrix-methods-eigenvalues-and-normal-modes/`, '18.03SC — matrix methods, eigenvalues and normal modes'),
+    5: r(`${C1803}/unit-i-first-order-differential-equations/first-order-linear-odes/`, '18.03SC Unit I — first-order linear ODEs and integrating factors'),
+    6: r(`${C1803}/unit-iv-first-order-systems/qualitative-behavior-phase-portraits/`, '18.03SC Unit IV — linear systems, phase portraits and stability'),
+    7: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/transfer-system-and-weight-functions-greens-formula/`, '18.03SC Unit III — Laplace transforms, forcing, resonance and Green\'s formula'),
+    8: r(`${C1803}/final-exam/`, '18.03SC final exam with solutions — the cumulative check'),
+  },
+  'electricity-magnetism-and-circuits': {
+    1: r(`${E802}/2_13_2002_edited/`, '8.02X Lectures 1–5 — charge, Coulomb\'s law and the electric field'),
+    2: r(`${E802}/2_19_2002_edited/`, '8.02X Lectures 6–8 and 11–13 — Gauss\'s law, potential, capacitors and dielectrics'),
+    3: r(`${E802}/3_13_2002_edited/`, '8.02X Lectures 14–15 — current, resistance, Ohm\'s law and Kirchhoff\'s rules'),
+    4: r(`${E802}/3_15_2002_edited/`, '8.02X Lecture 16 — DC and RC circuits'),
+    5: r(`${E802}/4_03_2002_edited/`, '8.02X Lectures 19–21 — magnetism, charged particles in fields, Biot–Savart and Ampère'),
+    6: r(`${E802}/4_26_2002_edited/`, '8.02X Lecture 23 — inductance, RL circuits and stored magnetic energy'),
+    7: r(`${E802}/4_29_2002_edited/`, '8.02X Lectures 24–26 — RLC circuits, displacement current, Maxwell\'s equations, EM waves'),
+    8: r(`${OCW}/8-02x-physics-ii-electricity-magnetism-with-an-experimental-focus-spring-2005/pages/exams/`, '8.02X quizzes with solutions — the cumulative check'),
+  },
+  'waves-oscillations-and-optics': {
+    1: r(`${O803}/part-i-mechanical-vibrations-and-waves/lecture-2/`, '8.03SC Lectures 1–3 — harmonic, damped and driven oscillators'),
+    2: r(`${O803}/part-i-mechanical-vibrations-and-waves/lecture-4/`, '8.03SC Lectures 4–6 — coupled oscillators, normal modes, beats and resonance'),
+    3: r(`${O803}/part-i-mechanical-vibrations-and-waves/lecture-10/`, '8.03SC Lectures 7–10 — infinitely many oscillators, the wave equation, travelling waves'),
+    4: r(`${O803}/part-i-mechanical-vibrations-and-waves/lecture-9/`, '8.03SC Lectures 9 and 13 — standing waves, dispersion, phase and group velocity'),
+    5: r(`${O803}/part-ii-electromagnetic-waves/lecture-14/`, '8.03SC Lectures 14–15 — the Fourier transform, wave packets and the uncertainty principle'),
+    6: r('https://openstax.org/books/university-physics-volume-3/pages/2-introduction', 'OpenStax University Physics Volume 3 Chapter 2 — geometric optics and image formation (8.03SC skips lenses)'),
+    7: r(`${O803}/part-iii-optics/lecture-20/`, '8.03SC Lectures 17–22 — polarisation, interference and diffraction'),
+    8: r(`${O803}/final-exam/`, '8.03SC final exam — the cumulative check'),
+  },
+  'probability-data-and-experimental-methods': {
+    1: r(`${S1805}/mit18_05_s22_class03-prep_pdf/`, '18.05 Classes 1–3 — counting, probability rules, conditional probability and Bayes'),
+    2: r(`${S1805}/mit18_05_s22_class05-prep-c_pdf/`, '18.05 Classes 4–5 — discrete and continuous random variables, a gallery of distributions'),
+    3: r(`${S1805}/mit18_05_s22_class07-prep-b_pdf/`, '18.05 Classes 6–7 — expectation, variance, joint distributions, covariance'),
+    4: r(`${S1805}/mit18_05_s22_class10-prep-b_pdf/`, '18.05 Class 10 — maximum-likelihood estimates from noisy data'),
+    5: r(`${S1805}/mit18_05_s22_class22-prep_pdf/`, '18.05 Classes 22–24 — confidence intervals, three views, and the bootstrap'),
+    6: r(`${S1805}/mit18_05_s22_class26-prep_pdf/`, '18.05 Class 26 — linear regression'),
+    7: r(`${S1805}/mit18_05_s22_class17-prep-b_pdf/`, '18.05 Classes 17–19 — null-hypothesis significance testing, power and multiple tests'),
+    8: r('https://osf.io/prereg/', 'OSF preregistration — register the experiment before collecting data'),
   },
 };

@@ -1297,7 +1297,7 @@ group('degrees: audited courses, against their sources');
   ok(`Term 1 answers agree with an independent check (${v.agree} run in Python, C or SQLite, ${v.construction} by construction${v.skipped ? `, ${v.skipped} skipped: ${v.skippedFor.join(', ')}` : ''})`,
     !v.disagree && !v.error, v.problems.slice(0, 2).join(' | '));
   // Term 2: the new generators, and every skill borrowed from the Programming and AI tracks.
-  const T2 = await Promise.all(['datastructs', 'arch', 'linalg', 'prob', 'web', 'algos', 'os', 'db', 'net', 'pl', 'se', 'theory', 'compilers', 'security', 'hci', 'aiplan', 'distsys', 'inference', 'graphics', 'systems6', 'mathfound', 'mathcalc', 'mathalg', 'mathcomb', 'mathanalysis', 'mathapplied', 'physmech', 'physlab'].map(f => import(`../js/degrees/practice/${f}.js`)));
+  const T2 = await Promise.all(['datastructs', 'arch', 'linalg', 'prob', 'web', 'algos', 'os', 'db', 'net', 'pl', 'se', 'theory', 'compilers', 'security', 'hci', 'aiplan', 'distsys', 'inference', 'graphics', 'systems6', 'mathfound', 'mathcalc', 'mathalg', 'mathcomb', 'mathanalysis', 'mathapplied', 'physmech', 'physlab', 'physem'].map(f => import(`../js/degrees/practice/${f}.js`)));
   const term2New = T2.flatMap(m => Object.values(m).flat());
   const borrowed = [...new Set(audited.flatMap(([, , c]) => c.outcomes.flatMap(o => o.skills)))].map(SB.skillById).filter(s => s.track !== 'degrees');
   const v2 = VG.verifySkills([...term2New, ...borrowed], { perSkill: 2, rng: Q.seeded(32), toolkit: Q.toolkit });
