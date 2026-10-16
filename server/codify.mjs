@@ -34,6 +34,7 @@ const DA = await import('../js/degrees/actions.js');
 const DP = await import('../js/degrees/practice/index.js');
 const CT = await import('../js/degrees/curriculum/cs-term1.js');
 const SB = await import('../js/skillbook.js');
+const CR = await import('../js/career/model.js');
 await import('../js/degrees/engine.js');
 
 for (const d of DL.DEGREES) DL.setDegreeData(d.id, JSON.parse(readFileSync(new URL(`../data/degrees/${d.slug}.json`, import.meta.url), 'utf8')));
@@ -378,6 +379,48 @@ export const TOOLS = [
       else if (args.github_user) { St.linkGithub({ login: args.github_user }); out.github = args.github_user; }
       if (args.dismiss_notice) { St.dismissNotice(); out.notice = null; }
       return Object.keys(out).length ? out : fail('Nothing to change.');
+    },
+  },
+  {
+    name: 'get_projects',
+    description: 'Flagship projects — one hard, public, measured project per degree term and per Programming month — with progress, plus internship readiness for each field and every verified project. Without track: the projects you are on now and readiness. With track: that track\'s projects in full. With id: one project in full (milestones, bar, routes, what the GitHub check looks for, the post and resume line).',
+    inputSchema: obj({ track: TRACK, id: str('A project id (from a list).') }), readOnly: true,
+    run(args) {
+      const full = f => ({ ...f, proof: CR.proofList(f), progress: CR.progressOf(f), record: CR.recordOf(f.id), route: CR.optionOf(f) });
+      if (args.id) return full(CR.flagshipById(args.id) || fail(`No project "${args.id}".`));
+      if (args.track) return CR.flagshipsFor(trackOf(args)).map(full);
+      return {
+        current: St.enabledTracks().map(t => CR.currentFlagship(t, t === 'cp' ? CA.currentMonth() : null)).filter(Boolean)
+          .map(f => ({ id: f.id, track: f.track, title: f.title, hook: f.hook, progress: CR.progressOf(f), next: f.milestones.find((_, i) => !CR.recordOf(f.id)?.milestones?.[i])?.title || 'check it on GitHub' })),
+        readiness: CR.lanesOn().map(CR.laneStatus).map(s => ({ field: s.lane.name, id: s.lane.id, done: s.done, total: s.total, items: s.items.map(i => ({ id: i.id, label: i.label, how: i.how, kind: i.kind, done: i.done, detail: i.detail || null })) })),
+        portfolio: CR.portfolio(), openSource: S.career?.oss || null,
+      };
+    },
+  },
+  {
+    name: 'update_project',
+    description: [
+      'Work on a flagship project the way its screen does.',
+      'milestone {id, index, done} · route {id, concentration} (capstones) · check {id, repo} runs the GitHub check (pays XP the first time it passes)',
+      '· posted {id, url} · ready {field, item, done, link} ticks a readiness item you did yourself · oss {} re-reads merged pull requests from GitHub.',
+      'Tick milestones only when the learner says they are done.',
+    ].join(' '),
+    inputSchema: obj({
+      action: str('What to do.', { enum: ['milestone', 'route', 'check', 'posted', 'ready', 'oss'] }),
+      id: str('Project id.'), index: num('Milestone index, from 0.'), done: { type: 'boolean' }, concentration: str('Route: the concentration key.'),
+      repo: str('owner/repo or owner/repo/folder.'), url: str('Link to the post.'), field: str('Readiness field id (software, ml, robotics, ee, me, physics, math).'), item: str('Readiness item id.'), link: str('A link for a readiness item.'),
+    }, ['action']),
+    async run(args) {
+      const f = () => CR.flagshipById(need(args.id, 'Say which project.')) || fail(`No project "${args.id}".`);
+      switch (args.action) {
+        case 'milestone': { const p = f(); if (!p.milestones[args.index]) fail(`${p.title} has milestones 0–${p.milestones.length - 1}.`); CR.toggleMilestone(p.id, args.index, args.done !== false); return CR.progressOf(p); }
+        case 'route': return CR.chooseOption(f().id, args.concentration) ? { route: CR.optionOf(f()) } : fail('That route is not one of this project\'s.');
+        case 'check': { const res = await CR.checkFlagship(f().id, need(args.repo, 'Give the repo.')); if (!res.ok) fail(res.error); return { verified: res.verified, checks: res.checks.map(c => ({ check: c.label, pass: c.pass, detail: c.detail || null })), reward: res.reward }; }
+        case 'posted': return CR.setPosted(f().id, args.url) ? { posted: CR.recordOf(args.id).posted } : fail('Give the full https:// link.');
+        case 'ready': return CR.tickReady(need(args.field, 'Say which field.'), need(args.item, 'Say which item.'), args.done !== false, args.link) ? CR.laneStatus(CR.LANES.find(l => l.id === args.field)).items.find(i => i.id === args.item) : fail('That is not a readiness item you tick yourself, or the link is not https://.');
+        case 'oss': { const res = await CR.checkOss(); return res.ok ? res : fail(res.error); }
+        default: fail(`Unknown action "${args.action}".`);
+      }
     },
   },
   {

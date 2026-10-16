@@ -11,7 +11,8 @@ export const PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 
 const INSTRUCTIONS = [
   'Codify is the learner\'s own study app: daily missions in Programming, Robotics and AI, and five university degrees (cs, ee, me, phys, math) built from free courses.',
-  'Call get_overview first. Read with get_mission, get_skills, get_degree, get_course, read_save and get_log; change things with quiz, update_degree, update_track, update_profile and write_save.',
+  'Call get_overview first. Read with get_mission, get_skills, get_degree, get_course, get_projects, read_save and get_log; change things with quiz, update_degree, update_track, update_project, update_profile and write_save.',
+  'Flagship projects are the learner\'s path to an internship: help them plan milestones, review their README against the project\'s bar, and draft posts from real numbers only.',
   'Every change is saved to the learner\'s private GitHub repo and appears in the app within a minute.',
   'The app only pays for what it can check. When quizzing, ask the learner and pass on their answer; tick work only when they say it is done.',
 ].join(' ');

@@ -19,6 +19,7 @@ import { SOURCE, BUILDS } from '../tracks/robotics/roadmap.js';
 import { checkGithub } from '../platforms.js';
 import { syncAll, describeSync } from '../sync.js';
 import { cloudState, cloudConnect, cloudChoose, cloudDisconnect, cloudSync, cloudToken, CLOUD_REPO } from '../cloud.js';
+import { openPortfolio, portfolioLine } from '../career/view.js';
 import { rankFor, nextRank, dayKey, addDays } from '../game.js';
 import { seriesChart, calendarGrid } from '../charts.js';
 import { h, raw, esc, bind, sheet, dialog, toast, fmt, hm, confetti, sfx, $, shortDate } from '../ui.js';
@@ -174,6 +175,8 @@ function shop() {
 
 function settings() {
   return `<div class="stack s2">
+    <button class="card tap pad-s" data-act="portfolio"><div class="between"><div><div class="h3">Portfolio &amp; jobs</div>
+      <div class="tiny">${portfolioLine()}</div></div><span>›</span></div></button>
     <button class="card tap pad-s" data-act="profile"><div class="between"><div><div class="h3">Profile and goals</div>
       <div class="tiny">${esc(S.profile.name)} · ${S.profile.focusGoal} min a day${trackOn('cp') ? ` · ${S.tracks.cp.dailySolves} problems` : ''}</div></div><span>›</span></div></button>
     <button class="card tap pad-s" data-act="cloud"><div class="between"><div><div class="h3">AI &amp; sync</div>
@@ -465,6 +468,7 @@ export function mount(root, rerender) {
     hf:      () => openHf(rerender),
     backup:  () => openBackup(rerender),
     cloud:   () => openCloud(rerender),
+    portfolio: () => openPortfolio(rerender),
     sync:    async el => { el.textContent = 'Syncing…'; const r = await syncAll({ force: true }); toast(esc(describeSync(r)), 3200); rerender(); },
     sound:   () => { S.settings.sound = !S.settings.sound; saveProfile({}); },
     motion:  () => { S.settings.reduceMotion = !S.settings.reduceMotion; saveProfile({}); },

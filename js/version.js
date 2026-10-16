@@ -8,4 +8,4 @@
  *
  * Kept equal to CACHE_VERSION in sw.js; a test fails if the two drift apart.
  */
-export const APP_VERSION = 'v15';
+export const APP_VERSION = 'v16';

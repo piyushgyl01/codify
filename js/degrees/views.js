@@ -12,6 +12,8 @@ import * as M from './model.js';
 import * as A from './actions.js';
 import { coursePractice, unitPractice } from './practice/index.js';
 import { curriculumFor } from './curriculum/cs-term1.js';
+import { projectsTab, mountProjects, projectCard } from '../career/view.js';
+import { currentFlagship, FLAGSHIPS } from '../career/model.js';
 import { skillById } from '../skillbook.js';
 import { openCheck, openPractice, openCourseTest } from '../views/player.js';
 import { openFocus } from '../views/focus.js';
@@ -288,6 +290,7 @@ function coursePage(id, D, r, c) {
       ${c.setup.length ? `<details class="deg-more"><summary class="tiny"><b>Set up</b></summary><ul class="focus">${c.setup.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>` : ''}
       ${curriculumFor(id, c.key) ? '' : `<details class="deg-more"><summary class="tiny"><b>What you will be able to do</b></summary><ul class="focus">${c.outcomes.map(x => `<li>${esc(x)}</li>`).join('')}</ul></details>`}
     </div>
+    ${courseProject(id, c)}
     ${outcomesCard(id, r, c)}
     <div class="card"><div class="h3">Free material</div><div class="res-list">${c.resources.map(x => `<div class="res">
         <span class="res-check static">${x.role === 'primary' ? '★' : '·'}</span>
@@ -303,6 +306,12 @@ function coursePage(id, D, r, c) {
     <div class="stack s2">${c.assessments.map(a => assessmentBlock(id, D, r, a, c)).join('')}</div>
     ${benchmarksCard(id, r, c)}
     ${auditCard(id, c)}`;
+}
+
+/** The term's flagship project, on the course pages it draws on. */
+function courseProject(id, c) {
+  const f = FLAGSHIPS.find(x => x.track === id && x.uses.includes(c.key));
+  return f ? `<div class="stack s1"><div class="label">This course feeds a flagship project</div>${projectCard(f)}</div>` : '';
 }
 
 /* -------------------------- audited course design -------------------------- */
@@ -358,7 +367,7 @@ function auditCard(id, c) {
 
 /* ---------------------------------- hub ----------------------------------- */
 
-const TABS = [['week', 'This week'], ['path', 'Path'], ['record', 'Record']];
+const TABS = [['week', 'This week'], ['path', 'Path'], ['projects', 'Projects'], ['record', 'Record']];
 
 export function hubFor(id) {
   return {
@@ -368,7 +377,7 @@ export function hubFor(id) {
       const c = u.course && M.courseByKey(D, u.course);
       if (c) return `<div class="fade-up stack s3">${coursePage(id, D, r, c)}</div>`;
       const prog = M.degreeProgress(D, r);
-      const body = u.tab === 'path' ? pathTab(id, D, r) : u.tab === 'record' ? recordTab(id, D, r) : weekTab(id, D, r);
+      const body = u.tab === 'path' ? pathTab(id, D, r) : u.tab === 'record' ? recordTab(id, D, r) : u.tab === 'projects' ? projectsTab(id, currentFlagship(id)) : weekTab(id, D, r);
       return `<div class="fade-up">
         <div class="between page-head"><div><div class="h1">${esc(D.title)}</div>
           <div class="sub">${prog.term < D.terms.length ? esc(M.termShort(D.terms[prog.term])) : 'Complete'} · ${prog.passed}/${prog.courses} courses</div></div>
@@ -410,6 +419,7 @@ export function mountDegree(id, root, rerender) {
     openCheck(id, unitPractice(b.dataset.ucheck, hit.course.key, hit.unit.order), { key: `unit:${b.dataset.ucheck}`, label: `${hit.course.code} · ${hit.unit.title}` }, rerender);
   });
   on('[data-practice]', b => openPractice(id, b.dataset.practice, rerender));
+  mountProjects(root, rerender);
   on('[data-ctest]', b => {
     const c = M.courseByKey(D, b.dataset.ctestCourse), cur = curriculumFor(id, c.key);
     const items = cur.outcomes.filter(o => o.skills.length).map(o => ({ outcome: o.id, text: o.text, skill: o.skills[Math.floor(Math.random() * o.skills.length)] }));

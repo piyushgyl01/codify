@@ -11,17 +11,19 @@ import { PATHS, TIERS, topicById } from './topics.js';
 import { CONTESTS } from './contests.js';
 import {
   isLinked, solvedList, treeProgress, treeCompletion, topicStatus, staleness,
-  activeContest, startContest, finishContest, abandonContest, linkCodeforces,
+  activeContest, startContest, finishContest, abandonContest, linkCodeforces, currentMonth,
 } from './actions.js';
 import { colorForRating, BANDS } from './model.js';
 import { suggestProblems, problemUrl, leetcodeTagUrl, checkHandle } from './codeforces.js';
 import { syncAll, describeSync, isSyncing } from '../../sync.js';
 import { seriesChart } from '../../charts.js';
 import * as missionView from './view-mission.js';
+import { projectsTab, mountProjects } from '../../career/view.js';
+import { currentFlagship } from '../../career/model.js';
 import { h, raw, esc, $, $$, bind, bar, pct, sheet, dialog, toast, sfx, haptic, confetti, rewardToast, fmt, shortDate } from '../../ui.js';
 import { dayKey, addDays } from '../../game.js';
 
-const TABS = [['today', 'Today'], ['topics', 'Topics'], ['contests', 'Contests'], ['solves', 'Solves']];
+const TABS = [['today', 'Today'], ['topics', 'Topics'], ['contests', 'Contests'], ['projects', 'Projects'], ['solves', 'Solves']];
 let tab = 'today', filter = 'all', ticker = null;
 
 export const openTab = t => { if (TABS.some(([k]) => k === t)) tab = t; };
@@ -195,6 +197,7 @@ export function render() {
     ${c.handle ? `<div class="stack s2" style="align-items:flex-end"><span class="badge" style="background:${colorForRating(c.rating)}">${c.rating ?? 'unrated'}${c.rank ? ` · ${esc(c.rank)}` : ''}</span>
       <button class="btn xs" data-cp="sync">${isSyncing() ? 'Syncing…' : 'Sync'}</button></div>` : ''}</div>`;
   const body = tab === 'today' ? `${isLinked() ? '' : `<div style="margin-bottom:16px">${connect()}</div>`}${missionView.render()}`
+    : tab === 'projects' ? `<div class="stack s3">${projectsTab('cp', currentFlagship('cp', currentMonth()))}</div>`
     : !isLinked() ? connect()
     : tab === 'topics' ? topics() : tab === 'contests' ? contests() : solves();
   return `<div class="fade-up">${head}
@@ -209,6 +212,7 @@ export function mount(root, rerender) {
   $$('[data-sub]', root).forEach(b => b.onclick = () => { tab = b.dataset.sub; rerender(); document.getElementById('view').scrollTop = 0; });
   $$('[data-filter]', root).forEach(b => b.onclick = () => { filter = b.dataset.filter; sfx('tick'); rerender(); });
   $$('[data-topic]', root).forEach(b => b.onclick = () => openTopic(b.dataset.topic));
+  mountProjects(root, rerender);
 
   $$('[data-start]', root).forEach(b => b.onclick = () => {
     const c = CONTESTS.find(x => x.id === b.dataset.start);

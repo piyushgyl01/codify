@@ -13,6 +13,9 @@ import { h, raw, esc, bind, ring, bar, hm, rewardToast, sfx, shortDate } from '.
 import { icon } from '../icons.js';
 import { openFocus } from './focus.js';
 import { openBackup } from './hero.js';
+import { currentFlagship, progressOf, flagshipsFor } from '../career/model.js';
+import { openProject } from '../career/view.js';
+import { currentMonth as cpMonth } from '../tracks/cp/actions.js';
 import { go } from '../router.js';
 
 const greet = () => {
@@ -99,10 +102,23 @@ function weekStrip() {
     }).join('')}</div></div></div>`;
 }
 
+/** The flagship project you are on in each track that has them, with the next milestone. */
+function projectsCard() {
+  const rows = enabledTracks().filter(t => flagshipsFor(t).length).map(t => currentFlagship(t, t === 'cp' ? cpMonth() : null)).filter(Boolean)
+    .filter(f => !progressOf(f).verified);
+  if (!rows.length) return '';
+  return `<div class="card"><div class="between"><div class="h3">Your projects</div><span class="tiny">the portfolio you are building</span></div>
+    <div class="stack s2" style="margin-top:8px">${rows.slice(0, 4).map(f => {
+      const p = progressOf(f), next = f.milestones.find((_, i) => !p.started || !S.career?.projects?.[f.id]?.milestones?.[i]);
+      return `<button class="card tap pad-s sunk" data-open-project="${f.id}"><div class="between"><span class="h3">${esc(f.title)}</span><span class="tiny">${p.done}/${p.total}</span></div>
+        <div class="tiny" style="margin-top:2px">Next: ${esc(next?.title || 'check it on GitHub')}</div></button>`;
+    }).join('')}</div></div>`;
+}
+
 export function render() {
   const cards = enabledTracks().map(id => trackById(id).today.render()).join('');
   return `<div class="stack s4 fade-up">
-    ${heroCard()}${notices()}${focusCard()}${cards}${questCards()}${weekStrip()}
+    ${heroCard()}${notices()}${focusCard()}${cards}${projectsCard()}${questCards()}${weekStrip()}
   </div>`;
 }
 
@@ -113,6 +129,7 @@ export function mount(root, rerender) {
     dismiss: () => dismissNotice(),
   });
   for (const id of enabledTracks()) trackById(id).today.mount(root, rerender);
+  root.querySelectorAll('[data-open-project]').forEach(b => { b.onclick = () => openProject(b.dataset.openProject, rerender); });
   root.querySelectorAll('[data-go]').forEach(el => {
     el.onclick = () => { if (el.dataset.cptab) cpTab(el.dataset.cptab); go(el.dataset.go); };
   });

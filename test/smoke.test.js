@@ -1339,6 +1339,62 @@ group('degrees: importing Course Atlas progress');
   ok('a file that is not a backup is refused', !DA.importAtlas('{"hello":1}').ok && !DA.importAtlas('nope').ok);
 }
 
+/* ===================== career: flagship projects and jobs ===================== */
+group('career: flagship projects and internship readiness');
+{
+  const CF = await import('../js/career/flagships.js');
+  const CR = await import('../js/career/model.js');
+  const problems = [];
+  for (const [track, terms] of [['cs', [0, 1, 2, 3, 4, 5]], ['ee', [0, 1, 2, 3, 4, 5]], ['me', [0, 1, 2, 3, 4, 5]], ['phys', [0, 1, 2, 3, 4, 5]], ['math', [0, 1, 2, 3, 4, 5]], ['cp', [1, 2, 3, 4]]]) {
+    for (const t of terms) if (CF.FLAGSHIPS.filter(f => f.track === track && f.term === t).length !== 1) problems.push(`${track} term ${t}: not exactly one`);
+  }
+  for (const f of CF.FLAGSHIPS) {
+    const D = DL.degreeData(f.track);
+    if (f.milestones.length < 4) problems.push(`${f.id}: fewer than 4 milestones`);
+    if (f.bar.length < 1 || !f.why || !f.hook || !f.cost) problems.push(`${f.id}: brief incomplete`);
+    if (!f.learn.length || !f.learn.every(l => /^https?:\/\//.test(l.url))) problems.push(`${f.id}: learning links`);
+    if (!/\[[^\]]+\]/.test(f.post) || !/\[[^\]]+\]/.test(f.bullet)) problems.push(`${f.id}: post/bullet have no [blanks] for real numbers`);
+    if (!(f.proof.readme || []).every(x => x.re instanceof RegExp) || !(f.proof.files || []).every(x => x.re instanceof RegExp)) problems.push(`${f.id}: proof patterns`);
+    if (D) for (const k of f.uses) if (!DM.courseByKey(D, k)) problems.push(`${f.id}: uses ${k}`);
+    if (D && D.courses.filter(c => f.uses.includes(c.key)).some(c => c.term > f.term)) problems.push(`${f.id}: uses a course from a later term`);
+    for (const o of f.options || []) if (!D?.concentrations.some(c => c.key === o.concentration)) problems.push(`${f.id}: route ${o.concentration}`);
+  }
+  ok(`34 flagships: one per degree term and Programming month, each complete and tied to real courses`, CF.FLAGSHIPS.length === 34 && !problems.length, problems.slice(0, 4).join(' | '));
+
+  St.importSave(JSON.stringify({ v: 3, profile: { name: 'Career', onboarded: true, tracks: ['cp', 'cs', 'math'] }, xp: 0, tracks: {} }));
+  ok('an old save gains an empty career', St.S.career && typeof St.S.career.projects === 'object');
+  ok('the current project follows the degree term', CR.currentFlagship('cs').id === 'cs-shell' && CR.currentFlagship('cp', 3).id === 'cp-judge');
+  CR.toggleMilestone('math-lean', 0, true); CR.toggleMilestone('math-lean', 0, true); CR.toggleMilestone('math-lean', 2, true);
+  ok('milestones tick, and ticking twice is no toggle', CR.progressOf(CF.flagshipById('math-lean')).done === 2);
+  ok('a capstone route must be one of its own', !CR.chooseOption('cs-capstone', 'chips') && CR.chooseOption('cs-capstone', 'scalable-secure-systems') && CR.optionOf(CF.flagshipById('cs-capstone')).title === 'Infrastructure people adopt');
+  ok('a post link must be a real https link', !CR.setPosted('math-lean', 'linkedin post') && CR.setPosted('math-lean', 'https://www.linkedin.com/posts/x'));
+
+  St.S.github.user = '';
+  ok('checking needs a linked GitHub user', !(await CR.checkFlagship('math-lean', 'tester/proofs')).ok);
+  St.S.github.user = 'tester';
+  const words = 'Each proof is written twice: once on paper and once in Lean, so the reader can compare them line by line and see exactly where the formal version needs more care than the informal one. '.repeat(3);
+  const readme = `# Twenty theorems in Lean\n\n![build](ci.png)\n\n${words}\n\n## Theorems\n- theorem infinitely_many_primes\n- theorem sum_first_n\n- lemma pigeonhole\n- theorem div_by_three\n- lemma bijection_count\n\nNo sorry anywhere: CI fails if one appears.\n\n## What broke\nInduction on the wrong variable.`;
+  const repoFiles = { 'README.md': readme, 'Proofs/Basic.lean': 'theorem x : True := trivial', 'lakefile.toml': '' };
+  const xp0 = St.S.xp;
+  let res = await CR.checkFlagship('math-lean', 'tester/bench', { fetchImpl: fakeGitHub({ files: repoFiles, ci: 'failure' }) });
+  ok('a failing CI run keeps a flagship unverified, and says why', res.ok && !res.verified && res.checks.some(c => !c.pass && /Actions/.test(c.label)));
+  res = await CR.checkFlagship('math-lean', 'tester/bench', { fetchImpl: fakeGitHub({ files: repoFiles, ci: 'success' }) });
+  ok('a repo meeting the bar verifies the flagship and pays once', res.verified && res.first && St.S.xp - xp0 === CR.flagshipXp(CF.flagshipById('math-lean')), JSON.stringify(res.checks?.filter(c => !c.pass)));
+  const xp1 = St.S.xp;
+  await CR.checkFlagship('math-lean', 'tester/bench', { fetchImpl: fakeGitHub({ files: repoFiles, ci: 'success' }) });
+  ok('checking again pays nothing', St.S.xp === xp1);
+  res = await CR.checkFlagship('math-model', 'tester/bench', { fetchImpl: fakeGitHub({ files: repoFiles, ci: 'success' }) });
+  ok('one repo folder cannot verify two flagships', !res.verified && res.checks.some(c => !c.pass && /another/.test(c.label)));
+
+  const math = CR.laneStatus(CR.LANES.find(l => l.id === 'math'));
+  ok('readiness checks what it can: the Lean project counts', math.items.find(i => i.id === 'formal').done && !math.items.find(i => i.id === 'projects').done);
+  ok('readiness items you do yourself are ticked by you, with an optional link', CR.tickReady('math', 'problems', true, 'https://example.com/score') && !CR.tickReady('math', 'formal', true) && !CR.tickReady('math', 'resume', true, 'not a link'));
+  ok('lanes follow the tracks you have on', CR.lanesOn().map(l => l.id).join() === 'software,ml,math');
+  ok('the portfolio lists verified work with its resume line', CR.portfolio().length === 1 && CR.portfolio()[0].bullet.includes('Lean'));
+  const oss = await CR.checkOss({ fetchImpl: async url => ({ ok: true, status: 200, json: async () => ({ total_count: 2, items: [{ title: 'Fix typo', html_url: 'https://github.com/o/r/pull/1', repository_url: 'https://api.github.com/repos/o/r', pull_request: { merged_at: '2026-10-01T00:00:00Z' } }] }), url }) });
+  ok('merged pull requests to other people\'s repos are counted', oss.ok && oss.count === 2 && CR.laneStatus(CR.LANES[0]).items.find(i => i.id === 'oss').done);
+}
+
 /* ====================== AI access: the save on GitHub ====================== */
 group('AI access: the save on GitHub, and the MCP server');
 {
@@ -1386,7 +1442,7 @@ group('AI access: the save on GitHub, and the MCP server');
     ok('initialize answers with the protocol version and the tools capability', init.result.protocolVersion === '2025-06-18' && init.result.capabilities.tools && init.result.serverInfo.name === 'codify');
     ok('a notification gets no reply', (await MCP.handleMessage({ jsonrpc: '2.0', method: 'notifications/initialized' }, auth)) === null);
     const list = (await rpc('tools/list')).result.tools;
-    ok(`tools/list offers ${list.length} tools, each with a schema`, list.length === 12 && list.every(t => t.inputSchema?.type === 'object' && t.description));
+    ok(`tools/list offers ${list.length} tools, each with a schema`, list.length === 14 && list.every(t => t.inputSchema?.type === 'object' && t.description));
     const none = await call('get_overview');
     ok('with no save on GitHub yet, a tool says how to connect', none.isError && /Hero → AI & sync/.test(none.value.error));
 

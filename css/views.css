@@ -852,3 +852,11 @@ details.explain > summary { padding: var(--s3); }
 .deg-key { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin-top: 8px; }
 .deg-key .input, .deg-bench .input { width: 90px; flex: none; }
 .deg-bench { display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-end; padding: 10px 0; border-top: var(--line-thin) solid var(--ink); margin-top: 8px; }
+.career-card.now { border-width: var(--line); box-shadow: 4px 4px 0 var(--accent); }
+.career-ms { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: var(--line-thin) solid var(--ink); border-radius: var(--radius-s); background: var(--card); cursor: pointer; }
+.career-ms input { margin-top: 3px; flex: none; width: 18px; height: 18px; accent-color: var(--accent); }
+.career-ms.done { background: var(--sunk); }
+.career-ms.done b { text-decoration: line-through; text-decoration-thickness: 2px; }
+.career-ready { padding: 8px 0; border-top: var(--line-thin) dashed var(--ink); }
+.career-ready:first-child { border-top: 0; padding-top: 0; }
+.career-ready.done .h3 { color: var(--good-ink, inherit); }
