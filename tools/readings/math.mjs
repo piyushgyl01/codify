@@ -13,6 +13,13 @@ const LADR = p => `https://linear.axler.net/LADR4e.pdf#page=${p}`;
 const O1803 = 'https://ocw.mit.edu/courses/18-03-differential-equations-spring-2010/resources';
 const O18440 = 'https://ocw.mit.edu/courses/18-440-probability-and-random-variables-spring-2014/resources';
 const AC = 'https://appliedcombinatorics.org/book';
+const O100 = 'https://ocw.mit.edu/courses/18-100a-real-analysis-fall-2020/resources';
+const AATA = 'https://judsonbooks.org/aata-files/aata-html';
+const O04 = 'https://ocw.mit.edu/courses/18-04-complex-variables-with-applications-spring-2018/resources';
+const O330 = 'https://ocw.mit.edu/courses/18-330-introduction-to-numerical-analysis-spring-2012/resources';
+const O335 = 'https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/pages';
+// The SIAM M3 handbook's PDF pages run 3 ahead of its printed numbers.
+const M3 = p => `https://m3challenge.siam.org/sites/default/files/uploads/siam-guidebook-final-press.pdf#page=${p + 3}`;
 
 export const MATH_READINGS = {
   'calculus-1': {
@@ -114,5 +121,55 @@ export const MATH_READINGS = {
     6: r(`${AC}/s_graphs_planar.html`, 'Applied Combinatorics §5.5 Planar Graphs and Euler\'s formula'),
     7: r(`${AC}/s_ramsey_probability.html`, 'Applied Combinatorics Chapter 11 — Ramsey theory and the probabilistic method'),
     8: r('https://kskedlaya.org/putnam-archive/', 'Putnam problems in combinatorics and graph theory, with Kedlaya\'s solutions — the cumulative check'),
+  },
+  'real-analysis-1': {
+    1: r(`${O100}/mit18_100af20_lec4/`, '18.100A Lectures 1–6 — sets and cardinality, the least-upper-bound property, the Archimedean property, the uncountability of ℝ'),
+    2: r(`${O100}/mit18_100af20_lec9/`, '18.100A Lectures 7–10 — convergent sequences, the squeeze theorem, limsup and liminf, Bolzano–Weierstrass, Cauchy sequences'),
+    3: r(`${O100}/mit18_100af20_lec13/`, '18.100A Lectures 13–17 — limits of functions, continuity, the extreme and intermediate value theorems, uniform continuity'),
+    4: r(`${O100}/mit18_100af20_lec10/`, '18.100A Lectures 10–12 — completeness and the series tests: audit each test\'s hypotheses against counterexamples'),
+    5: r(`${O100}/mit18_100af20_lec19/`, '18.100A Lectures 17–20 — the derivative, Rolle\'s theorem, the mean value theorem, Taylor\'s theorem'),
+    6: r(`${O100}/mit18_100af20_lec21/`, '18.100A Lectures 20–22 — Riemann sums, the Riemann integral, the fundamental theorem of calculus'),
+    7: r(`${O100}/mit18_100af20_lec23/`, '18.100A Lectures 23–25 — pointwise and uniform convergence, the M-test, power series, Weierstrass approximation'),
+    8: r(`${O100}/mit18_100af20_basic_analysis/`, 'Lebl, Basic Analysis I — the course text, for the cumulative portfolio'),
+  },
+  'abstract-algebra-1': {
+    1: r(`${AATA}/groups.html`, 'Judson Chapters 3–4 — groups, subgroups and cyclic groups'),
+    2: r(`${AATA}/homomorph.html`, 'Judson Chapters 10–11 — normal subgroups, factor groups, homomorphisms and the isomorphism theorems'),
+    3: r(`${AATA}/permute.html`, 'Judson Chapter 5 Permutation Groups, with Chapter 14 Group Actions'),
+    4: r(`${AATA}/struct.html`, 'Judson Chapter 13 — the structure of finite abelian groups; classify small groups with Sage as the chapter does'),
+    5: r(`${AATA}/sylow.html`, 'Judson Chapter 15 — the Sylow theorems, after the class equation in Chapter 14'),
+    6: r(`${AATA}/rings.html`, 'Judson Chapter 16 — rings, ideals, quotient rings'),
+    7: r(`${AATA}/poly.html`, 'Judson Chapters 17–18 — polynomial rings, irreducibility, unique factorisation'),
+    8: r('https://leanprover-community.github.io/mathematics_in_lean/C09_Groups_and_Rings.html', 'Mathematics in Lean Chapter 9 — groups and rings, with proofs Lean checks'),
+  },
+  'complex-analysis': {
+    1: r(`${O04}/mit18_04s18_topic1/`, '18.04 Topic 1 — complex algebra and the complex plane'),
+    2: r(`${O04}/mit18_04s18_topic2/`, '18.04 Topics 2 and 5 — analytic functions, the Cauchy–Riemann equations, harmonic functions'),
+    3: r(`${O04}/mit18_04s18_topic3/`, '18.04 Topic 3 — line integrals and Cauchy\'s theorem'),
+    4: r(`${O04}/mit18_04s18_topic9/`, '18.04 Topics 6 and 9 — complex potentials; definite integrals by the residue theorem'),
+    5: r(`${O04}/mit18_04s18_topic4/`, '18.04 Topics 4 and 7 — the Cauchy integral formula; Taylor and Laurent series'),
+    6: r(`${O04}/mit18_04s18_topic8/`, '18.04 Topics 8 and 11 — the residue theorem and the argument principle'),
+    7: r(`${O04}/mit18_04s18_topic10/`, '18.04 Topics 10 and 13 — conformal transformations; analytic continuation and the Gamma function'),
+    8: r(`${O04}/mit18_04s18_practice-final/`, '18.04 practice final, with its worked answers in the next file'),
+  },
+  'numerical-analysis': {
+    1: r(`${O335}/week-1/`, '18.335J Lectures 2–3 — floating-point arithmetic, summation and backward stability (18.330 does not cover them)'),
+    2: r(`${O335}/week-5/`, '18.335J Lectures 4–5 and 13–14 — norms and condition numbers; LU with partial pivoting and Cholesky'),
+    3: r(`${O330}/mit18_330s12_chapter4/`, '18.330 Chapter 4 — nonlinear equations: bisection, Newton, fixed-point iteration and their convergence'),
+    4: r(`${O330}/mit18_330s12_chapter5/`, '18.330 Chapter 5 — methods for ODEs, compared against known solutions'),
+    5: r(`${O330}/mit18_330s12_chapter3/`, '18.330 Chapter 3 — interpolation'),
+    6: r(`${O330}/mit18_330s12_chapter2/`, '18.330 Chapter 2 — integrals as sums and derivatives as differences, with Chapter 7 on spectral quadrature'),
+    7: r(`${O335}/week-6/`, '18.335J Lectures 15–17 — eigensolvers: Hessenberg form, the power method, the shifted QR algorithm'),
+    8: r('https://ocw.mit.edu/courses/18-330-introduction-to-numerical-analysis-spring-2012/pages/assignments/', '18.330 homework sets — the cumulative practice'),
+  },
+  'mathematical-modeling': {
+    1: r(M3(10), 'SIAM M3 handbook, Chapters 2–3 — defining the problem and making assumptions'),
+    2: r('https://jheffero.w3.uvm.edu/linearalgebra/book.pdf#page=175', 'Hefferon, Topic: Dimensional Analysis — Buckingham\'s π theorem; with M3 Chapter 4 on defining variables'),
+    3: r(M3(25), 'SIAM M3 handbook, Chapter 5 — building solutions: deterministic, stochastic and discrete choices'),
+    4: r(M3(48), 'SIAM M3 handbook, sample solution paper — a complete calibrated model to imitate and then try to break'),
+    5: r('https://www.probabilitycourse.com/chapter8/8_2_0_point_estimation.php', 'Pishro-Nik, §8.2 Point Estimation — estimators, bias and maximum likelihood for model parameters'),
+    6: r('https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd44.htm', 'NIST/SEMATECH e-Handbook §4.4.4 — how to tell if a model fits: residuals, not just R²'),
+    7: r(M3(32), 'SIAM M3 handbook, Chapters 6–7 — analysis, model assessment, and putting it all together'),
+    8: r(M3(40), 'SIAM M3 handbook, Chapter 7 and appendices — assembling and defending the full report'),
   },
 };
