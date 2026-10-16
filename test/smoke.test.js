@@ -1257,9 +1257,19 @@ group('degrees: CS Term 1, audited against its sources');
   ok('Term 1: five courses, every outcome, unit, rubric line and benchmark resolves', Object.keys(CT.CS_TERM1).length === 5 && !problems.length, problems.slice(0, 4).join(' | '));
   ok('every outcome the app can check is in its course practice', Object.entries(CT.CS_TERM1).every(([k, cur]) => cur.outcomes.flatMap(o => o.skills).every(s => DP.coursePractice('cs', k).includes(s))));
   const fs = await import('node:fs/promises');
-  const urls = (await fs.readFile('data/degrees/computer-science.json', 'utf8')).match(/https?:\/\/[^\s"|)]+/g) || [];
-  const stale = urls.filter(u => CT.LINK_FIXES[u]);
-  ok('none of the nine broken links is left in the CS catalogue', Object.keys(CT.LINK_FIXES).length === 9 && !stale.length, stale.slice(0, 2).join(', '));
+  const CO = await import('../js/degrees/curriculum/corrections.js');
+  let stale = [], placed = 0, misplaced = [];
+  for (const d of DL.DEGREES) {
+    const D = DL.degreeData(d.id);
+    stale.push(...((await fs.readFile(`data/degrees/${d.slug}.json`, 'utf8')).match(/https?:\/\/[^\s"|)]+/g) || []).filter(u => CO.LINK_FIXES[u]));
+    for (const [k, f] of Object.entries(CO.PLACE_FIXES).filter(([k]) => k.startsWith(`${d.slug}:`))) {
+      const [, key, where] = k.split(':'), c = DM.courseByKey(D, key), n = +where.slice(1);
+      const at = !c ? null : where[0] === 'U' ? c.units.find(u => u.order === n) : c.units.flatMap(u => u.weeks || []).find(w => w.week === n);
+      if (at && at.url === f.url && (!f.title || at.title === f.title)) placed++; else misplaced.push(k);
+    }
+  }
+  ok('no link found dead in the October audit is left in any degree', Object.keys(CO.LINK_FIXES).length >= 19 && !stale.length, stale.slice(0, 2).join(', '));
+  ok(`every per-week and per-unit correction landed (${placed})`, placed === Object.keys(CO.PLACE_FIXES).length && !misplaced.length, misplaced.slice(0, 3).join(', '));
 
   const VG = await import('../tools/verify-generators.mjs');
   const PX = await import('../js/degrees/practice/python-extra.js'), DSC = await import('../js/degrees/practice/discrete.js');

@@ -16,7 +16,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { LINK_FIXES } from '../js/degrees/curriculum/cs-term1.js';
+import { LINK_FIXES, placeFix } from '../js/degrees/curriculum/corrections.js';
 
 const src = process.argv[2];
 if (!src) { console.error('Usage: node tools/import-atlas.mjs <catalog-export-directory>'); process.exit(1); }
@@ -62,13 +62,15 @@ for (const [slug, all] of bySlug) {
   const courses = d.courseVersions.map(cv => {
     const c = courseOf.get(cv.courseId), placed = termOf.get(cv.id) || { term: -1, order: 99 };
     const weights = new Map((cv.gradingPolicy?.contributions || []).map(x => [x.assessmentVersionId, x]));
+    // A fix for one place (a unit or a week of this course) beats the general link fixes.
+    const at = (where, field, value) => placeFix(slug, c.canonicalSlug, where)?.[field] ?? value;
     const units = d.learningUnits.filter(u => u.courseVersionId === cv.id).sort((a, b) => a.order - b.order).map(u => ({
       id: u.id, order: u.order, label: u.label, kind: u.kindLabel || u.kind, title: clean(u.title), topic: clean(u.topic),
       activity: clean(u.activity), evidence: clean(u.evidence), hours: u.nominalHours,
-      where: clean(u.resourceLocator), url: fixLinks((u.resourceLocator || '').match(URL_RE)?.[0] || null),
+      where: clean(u.resourceLocator), url: at(`U${u.order}`, 'url', fixLinks((u.resourceLocator || '').match(URL_RE)?.[0] || null)),
       ...(u.weeklyAssignments?.length ? { weeks: u.weeklyAssignments.map(w => ({
-        week: w.week, title: clean(w.title), activity: clean(w.activity), deliverable: clean(w.deliverable), hours: w.estimatedHours,
-        url: fixLinks(w.sourceEvidence?.resolvedUrl || w.sourceEvidence?.url || (w.resourceLocator || '').match(URL_RE)?.[0] || null),
+        week: w.week, title: at(`W${w.week}`, 'title', clean(w.title)), activity: clean(w.activity), deliverable: clean(w.deliverable), hours: w.estimatedHours,
+        url: at(`W${w.week}`, 'url', fixLinks(w.sourceEvidence?.resolvedUrl || w.sourceEvidence?.url || (w.resourceLocator || '').match(URL_RE)?.[0] || null)),
       })) } : {}),
     }));
     return {

@@ -222,16 +222,7 @@ export const CS_TERM1 = {
  * Links that had moved or broken, found by fetching every Term 1 link on
  * 2026-10-15, and what replaces them. Applied when the catalog is imported.
  */
-export const LINK_FIXES = {
-  'https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/pages/assignments/': `${MCS10}/pages/assignments/`,
-  'https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/pages/exams/': `${MCS10}/pages/exams/`,
-  [`${C1801}/pages/unit-1-differentiation/`]: `${C1801}/pages/1.-differentiation/`,
-  [`${C1801}/pages/unit-1-differentiation/problem-set-1/`]: `${C1801}/pages/1.-differentiation/part-a-definition-and-basic-rules/problem-set-1/`,
-  [`${C1801}/pages/unit-2-applications-of-differentiation/problem-set-3/`]: `${C1801}/pages/unit-2-applications-of-differentiation/part-b-optimization-related-rates-and-newtons-method/problem-set-4/`,
-  [`${C1801}/pages/unit-3-the-definite-integral-and-its-applications/problem-set-5/`]: `${C1801}/pages/unit-3-the-definite-integral-and-its-applications/part-a-definition-of-the-definite-integral-and-first-fundamental-theorem/problem-set-6/`,
-  [`${C1801}/pages/unit-4-techniques-of-integration/problem-set-7/`]: `${C1801}/pages/unit-4-techniques-of-integration/part-b-partial-fractions-integration-by-parts-arc-length-and-surface-area/problem-set-10/`,
-  'https://guides.library.stanford.edu/evaluate': 'https://cor.inquirygroup.org/curriculum/lessons/intro-to-lateral-reading/',
-  'https://cs50.harvard.edu/x/2026/honesty/': 'https://cs50.harvard.edu/x/2026/project/',
-};
+/** The link fixes now live with every other catalogue correction. */
+export { LINK_FIXES } from './corrections.js';
 
 export const curriculumFor = (degreeId, courseKey) => (degreeId === 'cs' ? CS_TERM1[courseKey] || null : null);
