@@ -181,4 +181,109 @@ export const PHYSADV = [
       `cₙ = (2n + 1)/2 ∫₋₁¹ x^${k} Pₙ(x) dx = ${r4(c)}.${(k + n) % 2 ? ' Odd integrand: zero.' : ''}`,
       `# Legendre polynomials by Bonnet's recurrence, then Gauss–Legendre-free midpoint quadrature\ndef P(n, x):\n    a, b = 1.0, x\n    if n == 0: return a\n    for m in range(1, n): a, b = b, ((2 * m + 1) * x * b - m * a) / (m + 1)\n    return b\nN = 200000; h = 2 / N\nprint((2 * ${n} + 1) / 2 * sum(((-1 + (i + .5) * h) ** ${k}) * P(${n}, -1 + (i + .5) * h) * h for i in range(N)))`, { rtol: 0.002, tol: 1e-6 });
   }),
+  SKILL('pa.pendulum', 'The large-amplitude pendulum', 'Beyond small angles the period grows: T = 4√(L/g) K(sin(θ₀/2)).', t => {
+    const L = t.pick([0.5, 1, 2]), th = t.pick([30, 60, 90, 120, 150]);
+    // complete elliptic integral of the first kind by the arithmetic–geometric mean
+    const k = Math.sin((th * Math.PI) / 360); let a = 1, b = Math.sqrt(1 - k * k); for (let i = 0; i < 30; i++) [a, b] = [(a + b) / 2, Math.sqrt(a * b)];
+    const T = 4 * Math.sqrt(L / 9.8) * (Math.PI / (2 * a));
+    return num(`A ${L} m pendulum is released from rest at ${th}° (g = 9.8 m/s²). What is its period, in seconds? (4 significant figures)`, r4(T),
+      `T = 4√(L/g) K(sin(θ₀/2)) = ${r4(T)} s, against the small-angle ${r4(2 * Math.PI * Math.sqrt(L / 9.8))} s. The separatrix is at 180°, where the period diverges.`,
+      `import math\nL, g, th = ${L}, 9.8, math.radians(${th})\nx, v, t, h = th, 0.0, 0.0, 1e-5\n# integrate until the angle first crosses zero: that is a quarter period\nwhile x > 0:\n    k1v = -g / L * math.sin(x); k1x = v\n    k2v = -g / L * math.sin(x + h / 2 * k1x); k2x = v + h / 2 * k1v\n    k3v = -g / L * math.sin(x + h / 2 * k2x); k3x = v + h / 2 * k2v\n    k4v = -g / L * math.sin(x + h * k3x); k4x = v + h * k3v\n    xn = x + h / 6 * (k1x + 2 * k2x + 2 * k3x + k4x); v += h / 6 * (k1v + 2 * k2v + 2 * k3v + k4v)\n    if xn <= 0: t += h * x / (x - xn); x = xn; break\n    x = xn; t += h\nprint(4 * t)`);
+  }),
+
+  SKILL('pr.waveguide', 'Waveguide cutoff', 'A rectangular guide of width a carries TE₁₀ only above f_c = c/(2a).', t => {
+    const a = t.pick([0.02286, 0.01067, 0.05, 0.1]), m = t.pick([1, 2]);
+    const fc = (m * C) / (2 * a);
+    return num(`What is the cutoff frequency of the TE${m}0 mode of a hollow rectangular waveguide of width ${a * 100} cm, in GHz? (4 significant figures)`, r4(fc / 1e9),
+      `The field must vanish at both walls, so k_x = mπ/a and f_c = mc/(2a) = ${r4(fc / 1e9)} GHz. Below it the mode is evanescent.`,
+      `${STURM}# eigenvalues of -d^2/dx^2 across the guide with zero field at the walls; f_c = c k / 2 pi\nN, a = 2000, ${a}\nh = a / (N + 1)\nd, e = [2 / h / h] * N, [-1 / h / h] * (N - 1)\nimport math\nprint(${C} * math.sqrt(eig(d, e, ${m})) / (2 * math.pi) / 1e9)`);
+  }),
+
+  SKILL('pr.larmor', 'Radiation from an accelerated charge', 'Larmor: P = q²a²/(6πε₀c³), radiated in a sin²θ pattern.', t => {
+    const q = 1.602176634e-19, acc = t.pick([1e15, 1e18, 1e20, 5e20]);
+    const P = (q * q * acc * acc) / (6 * Math.PI * 8.8541878128e-12 * C ** 3);
+    return num(`An electron accelerates at ${acc.toExponential(0)} m/s² (non-relativistically). What power does it radiate, in watts? (4 significant figures)`, r4(P),
+      `P = q²a²/(6πε₀c³) = ${r4(P)} W.`,
+      `import math\nq, a, eps0, c = 1.602176634e-19, ${acc}, 8.8541878128e-12, ${C}\n# the far field E = q a sin(th) / (4 pi eps0 c^2 r); integrate the Poynting flux E^2/(mu0 c) over a sphere\nmu0 = 1 / (eps0 * c * c); r = 1.0; N = 200000\nP = 0.0\nfor i in range(N):\n    th = (i + .5) * math.pi / N\n    E = q * a * math.sin(th) / (4 * math.pi * eps0 * c * c * r)\n    P += E * E / (mu0 * c) * 2 * math.pi * r * r * math.sin(th) * math.pi / N\nprint(P)`);
+  }),
+
+  SKILL('q2.addition', 'Adding angular momenta', 'j₁ ⊗ j₂ contains every total J from |j₁ − j₂| to j₁ + j₂, once each.', t => {
+    const j1 = t.pick([0.5, 1, 1.5, 2]), j2 = t.pick([0.5, 1, 1.5]), ask = t.pick(['count', 'states']);
+    const nJ = Math.round(Math.min(2 * j1, 2 * j2)) + 1, dim = (2 * j1 + 1) * (2 * j2 + 1);
+    const J = Math.max(Math.abs(j1 - j2), j1 + j2 - t.int(0, nJ - 1));
+    if (ask === 'count') return num(`How many different total angular momenta J appear when combining j₁ = ${j1} and j₂ = ${j2}?`, nJ,
+      `J runs from |j₁ − j₂| = ${Math.abs(j1 - j2)} to j₁ + j₂ = ${j1 + j2} in steps of 1: ${nJ} values. Check: Σ(2J + 1) = ${dim} = (2j₁ + 1)(2j₂ + 1).`,
+      `from collections import Counter\nj1, j2 = ${j1}, ${j2}\nms = Counter(round(2 * (m1 + m2)) for m1 in [j1 - k for k in range(int(2 * j1) + 1)] for m2 in [j2 - k for k in range(int(2 * j2) + 1)])\n# peel off multiplets from the top m downwards\ncount = 0\nwhile ms:\n    top = max(ms); count += 1\n    for m in range(-top, top + 1, 2):\n        ms[m] -= 1\n        if ms[m] == 0: del ms[m]\nprint(count)`, { rtol: 0, tol: 0, dp: 0 });
+    return num(`Combining j₁ = ${j1} and j₂ = ${j2}, how many states make up the J = ${J} multiplet?`, 2 * J + 1,
+      `A multiplet of total angular momentum J has 2J + 1 states (m = −J … J): ${2 * J + 1}.`,
+      `J = ${J}\nprint(len([J - k for k in range(int(round(2 * J)) + 1)]))`, { rtol: 0, tol: 0, dp: 0 });
+  }),
+
+  SKILL('q2.hydrogen', 'Hydrogen degeneracy', 'Level n of hydrogen holds n² orbital states (2n² with spin): l = 0…n−1, m = −l…l.', t => {
+    const n = t.int(1, 6), spin = t.rng() < 0.5;
+    return num(`How many states share the hydrogen energy level n = ${n}${spin ? ', counting electron spin' : ', ignoring spin'}?`, (spin ? 2 : 1) * n * n,
+      `Σ_{l=0}^{n−1} (2l + 1) = n² = ${n * n}${spin ? `, doubled for spin: ${2 * n * n}` : ''}. The degeneracy in l comes from the hidden symmetry of the 1/r potential.`,
+      `print(sum(1 for l in range(${n}) for m in range(-l, l + 1) for s in (${spin ? '-.5, .5' : '0,'})))`, { rtol: 0, tol: 0, dp: 0 });
+  }),
+
+  SKILL('q2.perturb', 'First-order perturbation theory', 'An anharmonic term λx⁴ shifts the oscillator ground state by λ⟨x⁴⟩ = 3λ/4 (units ħ = m = ω = 1).', t => {
+    const lam = t.pick([0.01, 0.02, 0.05]), n = t.pick([0, 1]);
+    const x4 = n === 0 ? 3 / 4 : 15 / 4, E1 = n + 0.5 + lam * x4;
+    return num(`The oscillator H = p²/2 + x²/2 (ħ = m = ω = 1) is perturbed by λx⁴ with λ = ${lam}. What is the first-order estimate of the n = ${n} energy? (4 significant figures)`, r4(E1),
+      `E ≈ (n + ½) + λ⟨n|x⁴|n⟩, with ⟨x⁴⟩ = ${x4} for n = ${n}: ${r4(E1)}.`,
+      `${STURM}# exact energies of the discretised H at lambda and 0; first-order term = lambda * dE/dlambda at 0, estimated by a small lambda\nN, L = 3000, 16.0\nh = L / (N + 1)\nx = [-L / 2 + (i + 1) * h for i in range(N)]\nE = lambda lam: eig([1 / (h * h) + 0.5 * xi * xi + lam * xi ** 4 for xi in x], [-0.5 / (h * h)] * (N - 1), ${n + 1})\nd = 1e-4\nslope = (E(d) - E(-d)) / (2 * d)\nprint(E(0) + ${lam} * slope)`);
+  }),
+
+  SKILL('q2.rabi', 'Rabi oscillations', 'A two-level system driven on resonance flips completely; off resonance the maximum transfer is Ω²/(Ω² + Δ²).', t => {
+    const W = t.pick([1, 2]), D = t.pick([0, 0.5, 1, 2]), tt = t.pick([0.5, 1, 1.5, 2]);
+    const Wp = Math.sqrt(W * W + D * D), P = ((W * W) / (Wp * Wp)) * Math.sin((Wp * tt) / 2) ** 2;
+    return num(`A two-level atom starts in |g⟩ and is driven with Rabi frequency Ω = ${W} and detuning Δ = ${D} (rotating frame). What is the probability of |e⟩ at t = ${tt}? (4 significant figures)`, r4(P),
+      `P = (Ω²/Ω′²) sin²(Ω′t/2) with Ω′ = √(Ω² + Δ²) = ${r4(Wp)}: ${r4(P)}.`,
+      `import cmath\n# integrate i d/dt (cg, ce) = H (cg, ce) with H = [[-D/2, W/2], [W/2, D/2]]\nW, D = ${W}, ${D}\ncg, ce = 1 + 0j, 0j\nh = 1e-4\nf = lambda a, b: (-1j * (-D / 2 * a + W / 2 * b), -1j * (W / 2 * a + D / 2 * b))\nfor _ in range(int(round(${tt} / h))):\n    k1 = f(cg, ce); k2 = f(cg + h / 2 * k1[0], ce + h / 2 * k1[1]); k3 = f(cg + h / 2 * k2[0], ce + h / 2 * k2[1]); k4 = f(cg + h * k3[0], ce + h * k3[1])\n    cg += h / 6 * (k1[0] + 2 * k2[0] + 2 * k3[0] + k4[0]); ce += h / 6 * (k1[1] + 2 * k2[1] + 2 * k3[1] + k4[1])\nprint(abs(ce) ** 2)`, { tol: 1e-4 });
+  }),
+
+  SKILL('sm.ising', 'The 1-D Ising chain', 'Neighbouring spins correlate as ⟨sᵢsᵢ₊₁⟩ = tanh(βJ); the infinite chain never orders at T > 0.', t => {
+    const K = t.pick([0.2, 0.5, 1, 1.5]);
+    const c = Math.tanh(K);
+    return num(`In a long 1-D Ising chain with coupling βJ = ${K} and no field, what is the nearest-neighbour correlation ⟨sᵢsᵢ₊₁⟩? (4 significant figures)`, r4(c),
+      `The bond variables are independent: ⟨sᵢsᵢ₊₁⟩ = tanh(βJ) = ${r4(c)}. Correlations decay as tanh(βJ)^r — no long-range order.`,
+      `import math, itertools\n# exact enumeration of an open 14-spin chain, measuring the middle bond\nK, N = ${K}, 14\nZ = S = 0.0\nfor s in itertools.product((-1, 1), repeat=N):\n    e = sum(s[i] * s[i + 1] for i in range(N - 1))\n    w = math.exp(K * e); Z += w; S += w * s[N // 2] * s[N // 2 + 1]\nprint(S / Z)`);
+  }),
+
+  SKILL('sm.fermi', 'The Fermi energy', 'Filling k-space two electrons per state gives E_F = ħ²(3π²n)^{2/3}/2m.', t => {
+    const metals = [['copper', 8.47e28], ['aluminium', 18.1e28], ['sodium', 2.65e28], ['silver', 5.86e28]];
+    const [name, nn] = t.pick(metals), EF = ((HBAR * HBAR) / (2 * ME)) * (3 * Math.PI * Math.PI * nn) ** (2 / 3) / EV;
+    return num(`${name[0].toUpperCase() + name.slice(1)} has ${nn.toExponential(3)} free electrons per m³. What is its Fermi energy in the free-electron model, in eV? (4 significant figures)`, r4(EF),
+      `k_F = (3π²n)^{1/3}, E_F = ħ²k_F²/2m = ${r4(EF)} eV.`,
+      `import math\n# fill a cubic box with periodic boundary conditions: count k-points 2 pi (i,j,k)/L inside a sphere\nhbar, me, eV, n = ${HBAR}, ${ME}, ${EV}, ${nn}\nNe = 400000; L = (Ne / n) ** (1 / 3)\nR = int((3 * Ne / 2 / (4 / 3 * math.pi)) ** (1 / 3)) + 3\nr2 = sorted(i * i + j * j + k * k for i in range(-R, R + 1) for j in range(-R, R + 1) for k in range(-R, R + 1))\nkF = 2 * math.pi / L * math.sqrt(r2[Ne // 2 - 1])\nprint(hbar ** 2 * kF ** 2 / (2 * me) / eV)`, { rtol: 0.01 });
+  }),
+  SKILL('sm.bec', 'Bose–Einstein condensation', 'Below T_c = (2πħ²/mk)(n/ζ(3/2))^{2/3} a macroscopic fraction of bosons sits in the ground state.', t => {
+    const n = t.pick([1e19, 5e19, 1e20, 2.5e20]), m = 86.909 * 1.66053906660e-27, zeta = 2.6123753486854883;
+    const Tc = ((2 * Math.PI * HBAR * HBAR) / (m * KB)) * (n / zeta) ** (2 / 3);
+    const frac = t.pick([0, 0.5, 0.8]);
+    if (!frac) return num(`A gas of rubidium-87 atoms has density ${n.toExponential(1)} m⁻³. What is its Bose–Einstein condensation temperature, in nK? (4 significant figures)`, r4(Tc * 1e9),
+      `T_c = (2πħ²/mk_B)(n/ζ(3/2))^{2/3} with ζ(3/2) = 2.612: ${r4(Tc * 1e9)} nK.`,
+      `import math\n# n(T) with mu = 0 from the density of states, integrated numerically; bisect for n(T) = n\nhbar, kB, m, n = ${HBAR}, ${KB}, ${m}, ${n}\ndef dens(T):\n    N, top, s = 20000, 8.0, 0.0\n    for i in range(N):\n        u = (i + .5) * top / N\n        s += 2 * u * u / math.expm1(u * u) * top / N\n    return (2 * m / hbar ** 2) ** 1.5 / (4 * math.pi ** 2) * (kB * T) ** 1.5 * s\nlo, hi = 1e-12, 1e-3\nfor _ in range(200):\n    mid = (lo * hi) ** .5\n    lo, hi = (mid, hi) if dens(mid) < n else (lo, mid)\nprint(lo * 1e9)`);
+    const T = Tc * frac, f0 = 1 - frac ** 1.5;
+    return num(`An ideal Bose gas is cooled to ${frac} T_c. What fraction of the atoms is in the condensate? (4 significant figures)`, r4(f0),
+      `Above the condensate the excited states hold N(T/T_c)^{3/2}, so N₀/N = 1 − (T/T_c)^{3/2} = ${r4(f0)}.`,
+      `import math\n# excited-state population at mu = 0 relative to its value at T_c, from the integral; condensate = the rest\ndef I(T):\n    N, top, s = 20000, 8.0, 0.0\n    for i in range(N):\n        u = (i + .5) * top / N\n        s += 2 * u * u / math.expm1(u * u) * top / N\n    return T ** 1.5 * s\nprint(1 - I(${frac}) / I(1.0))`);
+  }),
+
+  SKILL('cp.euler', 'Why forward Euler fails for orbits', 'Forward Euler multiplies an oscillator’s energy by (1 + h²ω²) every step; symplectic methods do not drift.', t => {
+    const w = t.pick([1, 2, 2 * Math.PI]), h = t.pick([0.01, 0.02, 0.05]), n = t.pick([100, 500, 1000]);
+    const ratio = (1 + h * h * w * w) ** n;
+    return num(`Forward Euler integrates x″ = −ω²x with ω = ${r4(w)} and step h = ${h}. After ${n} steps, by what factor has the energy grown? (4 significant figures)`, r4(ratio),
+      `Each step multiplies ω²x² + v² by exactly 1 + h²ω², so the energy grows by (1 + h²ω²)^${n} = ${r4(ratio)}. Symplectic Euler or leapfrog keeps it bounded.`,
+      `w, h = ${w}, ${h}\nx, v = 1.0, 0.0\nE0 = (w * w * x * x + v * v) / 2\nfor _ in range(${n}):\n    x, v = x + h * v, v - h * w * w * x\nprint((w * w * x * x + v * v) / 2 / E0)`);
+  }),
+
+  SKILL('cp.mcerror', 'Monte Carlo error bars', 'A Monte Carlo mean of N samples has standard error σ/√N, whatever the dimension.', t => {
+    const fs = [['x²', 1 / 5 - 1 / 9, 'x * x'], ['x³', 1 / 7 - 1 / 16, 'x ** 3'], ['√x', 1 / 18, 'math.sqrt(x)'], ['eˣ', (Math.E ** 2 - 1) / 2 - (Math.E - 1) ** 2, 'math.exp(x)']];
+    const [name, v, py] = t.pick(fs), N = t.pick([100, 400, 1000]);
+    const se = Math.sqrt(v / N);
+    return num(`You estimate ∫₀¹ ${name} dx by averaging ${name} at ${N} uniform random points. What is the standard error of the estimate? (4 significant figures)`, r4(se),
+      `σ² = ⟨f²⟩ − ⟨f⟩² = ${r4(v)}, so the standard error is √(σ²/N) = ${r4(se)}.`,
+      `import math, random\n# repeat the experiment many times and measure the spread of the estimates\nrandom.seed(7)\nN, R = ${N}, 6000\nmeans = []\nfor _ in range(R):\n    s = 0.0\n    for _ in range(N):\n        x = random.random(); s += ${py}\n    means.append(s / N)\nmu = sum(means) / R\nprint(math.sqrt(sum((m - mu) ** 2 for m in means) / (R - 1)))`, { rtol: 0.04 });
+  }),
 ];

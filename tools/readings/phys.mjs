@@ -18,6 +18,16 @@ const E807 = `${OCW}/8-07-electromagnetism-ii-fall-2012/resources`;
 const Q804 = `${OCW}/8-04-quantum-physics-i-spring-2016/resources`;
 const T8044 = `${OCW}/8-044-statistical-physics-i-spring-2013/resources`;
 const TONG = 'https://davidtong.org/pdfs/teaching';
+const C809 = `${OCW}/8-09-classical-mechanics-iii-fall-2014/resources`;
+const E311 = `${OCW}/8-311-electromagnetic-theory-spring-2004`;
+const FITZ = p => `https://farside.ph.utexas.edu/teaching/jk1/Electromagnetism.pdf#page=${p}`;
+const Q805 = `${OCW}/8-05-quantum-physics-ii-fall-2013`;
+const Q806 = `${OCW}/8-06-quantum-physics-iii-spring-2016/resources`;
+const S8333 = `${OCW}/8-333-statistical-mechanics-i-statistical-mechanics-of-particles-fall-2013`;
+const TONGSP = p => `${TONG}/statistical-physics/statphys.pdf#page=${p + 6}`;
+const SETHNA = p => `https://www.lassp.cornell.edu/sethna/StatMech/EntropyOrderParametersComplexity20.pdf#page=${p + 24}`;
+const N2215 = `${OCW}/22-15-essential-numerical-methods-fall-2014`;
+const O335 = `${OCW}/18-335j-introduction-to-numerical-methods-spring-2019/pages`;
 
 export const PHYS_READINGS = {
   'calculus-1-physical-modeling': {
@@ -169,5 +179,55 @@ export const PHYS_READINGS = {
     6: r(`${E807}/mit8_07f12_ln9/`, '8.07 Notes 8–9 — Legendre polynomials and spherical harmonics: orthogonal function bases'),
     7: r(`${E807}/mit8_07f12_ln2/`, '8.07 Notes 2 — index notation and tensors; 18.354J Chapters 2–3 for scaling'),
     8: r('https://nptel.ac.in/courses/115106086', 'NPTEL, Selected Topics in Mathematical Physics (the catalogue\'s course) — lecture videos for review'),
+  },
+  'advanced-classical-and-nonlinear-dynamics': {
+    1: r(`${C809}/mit8_09f14_chapter_1/`, '8.09 Chapter 1 — Lagrangian and Hamiltonian mechanics: phase space and Hamilton\'s equations'),
+    2: r(`${TONG}/classical-dynamics/clas4.pdf`, 'Tong, Classical Dynamics §§4.2–4.4 — Liouville\'s theorem, Poisson brackets, canonical transformations and generating functions'),
+    3: r(`${C809}/mit8_09f14_chapter_4/`, '8.09 Chapter 4 — canonical transformations, the Hamilton–Jacobi equation and action-angle variables'),
+    4: r(`${C809}/mit8_09f14_chapter_7/`, '8.09 Chapter 7 §§7.1–7.3 — fixed points, phase portraits and separatrices'),
+    5: r(`${C809}/mit8_09f14_chapter_5/`, '8.09 Chapter 5 — perturbation theory, secular terms and the finite-angle pendulum (adiabatic invariants: Tong §4.6)'),
+    6: r(`${C809}/mit8_09f14_pset10/`, '8.09 Problem Set 10 — the logistic map, chaos and Lyapunov exponents (read Chapter 7 §§7.5–7.6 first)'),
+    7: r(`${C809}/mit8_09f14_chapter_6/`, '8.09 Chapter 6 §6.1 and §6.5 — from particles to the continuum, and sound as its normal modes (discrete modes: Chapter 3)'),
+    8: r(`${OCW}/8-09-classical-mechanics-iii-fall-2014/pages/assignments/`, '8.09 Problem Sets 1–10 — the cumulative practice (no exams or solutions are posted)'),
+  },
+  'electrodynamics-and-radiation': {
+    1: r(FITZ(7), 'Fitzpatrick, Classical Electromagnetism Chapter 1 — Maxwell\'s equations, potentials, gauge and retarded solutions (8.311 posts only four handouts)'),
+    2: r(FITZ(153), 'Fitzpatrick Chapter 8 §§8.1–8.4 — reflection and refraction at interfaces, the Fresnel relations, total internal reflection'),
+    3: r(`${E311}/resources/wave_guides/`, '8.311 handout — wave guides (Fitzpatrick Chapter 10 for cavities)'),
+    4: r(FITZ(215), 'Fitzpatrick Chapter 10 — cavities and waveguides, with mode cutoffs to benchmark a solver against'),
+    5: r(`${TONG}/electromagnetism/electro5.pdf`, 'Tong, Electromagnetism Chapter 6 §§6.1–6.2 — retarded potentials, dipole and quadrupole radiation, the Larmor formula'),
+    6: r(FITZ(201), 'Fitzpatrick Chapter 9 — antennas, Thomson and Rayleigh scattering (radiation reaction: §12.25)'),
+    7: r(`${TONG}/electromagnetism/electro4.pdf`, 'Tong, Electromagnetism Chapter 5 — four-vectors, the field tensor, the Maxwell action and the energy–momentum tensor'),
+    8: r(`${E311}/pages/assignments/`, '8.311 Problem Sets 1–12 with solutions — the cumulative practice'),
+  },
+  'quantum-mechanics-2': {
+    1: r(`${Q805}/resources/lecture-notes-10/`, '8.05 Chapter 10 — adding angular momenta: two spins, spin–orbit, the general rule (Chapter 9 for angular momentum itself)'),
+    2: r(`${Q805}/resources/lecture-notes-7/`, '8.05 Chapters 2 and 7 — spin one-half, Stern–Gerlach, and two-state dynamics: precession and magnetic resonance'),
+    3: r(`${Q805}/resources/lecture-notes-9/`, '8.05 Chapter 9 — central potentials, the radial equation, the 3-D oscillator and hydrogen'),
+    4: r(`${Q806}/mit8_06s16_chap1/`, '8.06 Chapter 1 — non-degenerate and degenerate perturbation theory, fine structure (variational bounds: 8.05 Chapter 1 §5)'),
+    5: r(`${Q806}/mit8_06s16_chap4/`, '8.06 Chapter 4 — identical particles, exchange symmetry and the Pauli principle (8.05 stops before them)'),
+    6: r(`${Q806}/mit8_06s16_chap2/`, '8.06 Chapter 2 — time-dependent perturbation theory, Fermi\'s golden rule and transition rates'),
+    7: r(`${Q806}/mit8_06s16_chap3/`, '8.06 Chapter 3 — density matrices, entanglement and decoherence (scattering: 8.06 Spring 2018 Chapter 7)'),
+    8: r(`${Q805}/pages/exams/`, '8.05 tests and finals, 2011–2013 — the cumulative practice (solutions are not posted)'),
+  },
+  'statistical-mechanics': {
+    1: r(TONGSP(1), 'Tong, Statistical Physics §§1.1–1.2 — microstates, the microcanonical ensemble, entropy and temperature'),
+    2: r(`${S8333}/resources/lecture-14/`, '8.333 Lectures 12–14 (graduate) — microcanonical, canonical, Gibbs and grand canonical ensembles'),
+    3: r(`${S8333}/resources/lecture-13/`, '8.333 Lecture 13 — the ideal gas, the canonical partition function, mixing entropy and Gibbs\'s paradox'),
+    4: r(SETHNA(219), 'Sethna, Entropy, Order Parameters, and Complexity Chapter 8 — the Ising model, Markov chains, Metropolis and Wolff (8.333 has no Monte Carlo)'),
+    5: r(TONGSP(62), 'Tong, Statistical Physics Chapter 3 — density of states, photons, phonons, Bose–Einstein condensation and Fermi gases'),
+    6: r(TONGSP(135), 'Tong, Statistical Physics Chapter 5 — the liquid–gas transition, the Ising model, mean field and Landau theory'),
+    7: r(`${S8333}/resources/lecture-9/`, '8.333 Lectures 8–11 — the Boltzmann equation, the H-theorem and transport (fluctuation and response: Sethna Chapter 10)'),
+    8: r(`${S8333}/pages/exams/`, '8.333 exam reviews and final review, with solutions — the cumulative check'),
+  },
+  'computational-physics': {
+    1: r(`${O335}/week-1/`, '18.335J Lectures 2–3 — floating point, rounding, conditioning and backward stability (22.15 does not cover them)'),
+    2: r(`${O335}/week-6/`, '18.335J Lectures 15–17 — eigensolvers; sparse iterative solvers: 22.15 notes Chapter 6'),
+    3: r(`${N2215}/pages/lecture-notes/`, '22.15 notes Chapter 2 — ODEs: accuracy, stability, implicit schemes, Runge–Kutta and leapfrog (the notes open from this page)'),
+    4: r(`${N2215}/resources/mit22_15f14_ex02/`, '22.15 Exercise 2 — integrating orbits in prescribed fields, the benchmark task'),
+    5: r(`${N2215}/resources/mit22_15f14_ex05/`, '22.15 Exercise 5 and notes Chapters 4–5 — diffusion, explicit and implicit schemes and their stability (spectral methods: Boyd)'),
+    6: r(`${N2215}/resources/mit22_15f14_ex09/`, '22.15 notes Chapters 11–12 and Exercise 9 — random sampling, Monte Carlo transport and statistical error'),
+    7: r(`${O335}/week-9/`, '18.335J Lectures 25–26 — optimisation and adjoint differentiation (fitting as an inverse problem: 22.15 Chapter 1)'),
+    8: r(`${N2215}/pages/exams/`, '22.15 final exams (2013 and an example) — the cumulative check'),
   },
 };

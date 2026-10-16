@@ -47,6 +47,7 @@ const CORE = [
   './js/degrees/curriculum/phys-term0.js',
   './js/degrees/curriculum/phys-term1.js',
   './js/degrees/curriculum/phys-term2.js',
+  './js/degrees/curriculum/phys-term3.js',
   './js/degrees/practice/se.js',
   './js/degrees/practice/theory.js',
   './js/degrees/practice/compilers.js',
