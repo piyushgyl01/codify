@@ -13,6 +13,11 @@ const C1803 = `${OCW}/18-03sc-differential-equations-fall-2011/pages`;
 const LA06 = `${OCW}/18-06sc-linear-algebra-fall-2011/pages`;
 const E802 = `${OCW}/8-02x-physics-ii-electricity-magnetism-with-an-experimental-focus-spring-2005/resources`;
 const S1805 = `${OCW}/18-05-introduction-to-probability-and-statistics-spring-2022/resources`;
+const M223 = `${OCW}/8-223-classical-mechanics-ii-january-iap-2017/resources`;
+const E807 = `${OCW}/8-07-electromagnetism-ii-fall-2012/resources`;
+const Q804 = `${OCW}/8-04-quantum-physics-i-spring-2016/resources`;
+const T8044 = `${OCW}/8-044-statistical-physics-i-spring-2013/resources`;
+const TONG = 'https://davidtong.org/pdfs/teaching';
 
 export const PHYS_READINGS = {
   'calculus-1-physical-modeling': {
@@ -114,5 +119,55 @@ export const PHYS_READINGS = {
     6: r(`${S1805}/mit18_05_s22_class26-prep_pdf/`, '18.05 Class 26 — linear regression'),
     7: r(`${S1805}/mit18_05_s22_class17-prep-b_pdf/`, '18.05 Classes 17–19 — null-hypothesis significance testing, power and multiple tests'),
     8: r('https://osf.io/prereg/', 'OSF preregistration — register the experiment before collecting data'),
+  },
+  'analytical-mechanics-1': {
+    1: r(`${M223}/mit8_223iap17_lec2/`, '8.223 Lecture 2 — building up to the principle of least action: coordinates and constraints'),
+    2: r(`${M223}/mit8_223iap17_lec3/`, '8.223 Lectures 3–4 — the principle of least action, the Lagrangian workflow, why L = T − U'),
+    3: r(`${M223}/mit8_223iap17_lec6/`, '8.223 Lectures 5–6 — conservation of energy and momentum from symmetries'),
+    4: r(`${M223}/mit8_223iap17_lec5/`, '8.223 Lecture 5 — a full worked example to model the double pendulum on'),
+    5: r(`${M223}/mit8_223iap17_lec8/`, '8.223 Lecture 8 — central forces, effective potentials and Kepler\'s laws'),
+    6: r(`${TONG}/classical-dynamics/clas3.pdf`, 'Tong, Classical Dynamics Chapter 3 — rigid bodies, the inertia tensor and Euler\'s equations (8.223 does not cover them)'),
+    7: r(`${M223}/mit8_223iap17_lec10/`, '8.223 Lectures 10–13 — oscillators: small oscillations, forcing and damping'),
+    8: r(`${M223}/mit8_223iap17_lec18/`, '8.223 Lectures 15–18 — Hamiltonian mechanics, Poisson brackets and connections'),
+  },
+  'electromagnetic-theory-1': {
+    1: r(`${E807}/mit8_07f12_ln3/`, '8.07 Notes 3 — the integral formulation of electrostatics and uniqueness'),
+    2: r(`${E807}/mit8_07f12_ln4/`, '8.07 Notes 4 — conductors, surface forces and capacitance'),
+    3: r(`${E807}/mit8_07f12_ln5/`, '8.07 Notes 5 — image charges and separation of variables'),
+    4: r(`${E807}/mit8_07f12_ln6/`, '8.07 Notes 6–7 — separation of variables in spherical coordinates, a worked boundary-value problem'),
+    5: r(`${TONG}/electromagnetism/electro6.pdf`, 'Tong, Electromagnetism Chapter 7 — dielectrics, polarisation and energy in matter (8.07\'s notes skip dielectrics)'),
+    6: r(`${E807}/mit8_07f12_ln10/`, '8.07 Notes 10 — magnetic multipoles and dipoles, the vector potential'),
+    7: r(`${E807}/mit8_07f12_ln11/`, '8.07 Notes 11 and 14 — magnetic fields in matter; Maxwell\'s equations and waves'),
+    8: r(`${OCW}/8-07-electromagnetism-ii-fall-2012/pages/exams/`, '8.07 quizzes with solutions and the final — the cumulative check'),
+  },
+  'quantum-mechanics-1': {
+    1: r(`${Q804}/mit8_04s16_lecnotes2/`, '8.04 Lectures 1–3 — linearity, Mach–Zehnder experiments, wave–particle duality'),
+    2: r(`${Q804}/mit8_04s16_lecnotes8/`, '8.04 Lecture 8 — momentum space and operators\' expectation values'),
+    3: r(`${Q804}/mit8_04s16_lecnotes6/`, '8.04 Lectures 5–6 and 10 — the Schrödinger equation, probability current, stationary states'),
+    4: r(`${Q804}/mit8_04s16_lecnotes11/`, '8.04 Lectures 11 and 16–17 — square wells and step potentials, transmission and tunnelling'),
+    5: r(`${Q804}/mit8_04s16_lecnotes14_15/`, '8.04 Lectures 14–15 — the harmonic oscillator by ladder operators'),
+    6: r(`${Q804}/mit8_04s16_lecnotes9/`, '8.04 Lecture 9 — observables, Hermitian operators and uncertainty'),
+    7: r(`${Q804}/mit8_04s16_lecnotes7/`, '8.04 Lecture 7 — wave packets and their time evolution'),
+    8: r(`${OCW}/8-04-quantum-physics-i-spring-2016/pages/exams/`, '8.04 tests and final (Fall 2015) — the cumulative check'),
+  },
+  'thermal-physics': {
+    1: r(`${T8044}/mit8_044s13_notes-def/`, '8.044 Lecture 5 notes — temperature, equilibrium and equations of state'),
+    2: r(`${T8044}/mit8_044s13_l6/`, '8.044 Lecture 6 — work, heat and the first law; isothermal and adiabatic processes'),
+    3: r(`${T8044}/mit8_044s13_mcrocanoncl/`, '8.044 notes on the microcanonical ensemble — entropy and the second law'),
+    4: r(`${T8044}/mit8_044s13_l14/`, '8.044 Lecture 14 — heat capacities, for the measurement'),
+    5: r(`${T8044}/mit8_044s13_notes-max/`, '8.044 notes on thermodynamic potentials and the Maxwell relations'),
+    6: r(`${T8044}/mit8_044s13_l11/`, '8.044 Lectures 11–12 — heat engines, refrigerators and the second law'),
+    7: r(`${T8044}/mit8_044s13_l18/`, '8.044 Lecture 18 — chemical potential and phase equilibrium'),
+    8: r(`${OCW}/8-044-statistical-physics-i-spring-2013/pages/exams/`, '8.044 exams with solutions — the cumulative check'),
+  },
+  'mathematical-methods-for-physics': {
+    1: r(`${OCW}/18-04-complex-variables-with-applications-spring-2018/resources/mit18_04s18_topic8/`, '18.04 Topics 2–4 and 8 — analytic functions, Cauchy\'s theorem and the residue theorem'),
+    2: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/fourier-series-basics/`, '18.03SC Unit III — Fourier series, with 18.152 Lectures 16–18 for the transform and distributions'),
+    3: r(`${OCW}/18-152-introduction-to-partial-differential-equations-fall-2011/resources/mit18_152f11_lec_15/`, '18.152 Lectures 1 and 15 — what a PDE is and how second-order equations are classified'),
+    4: r(`${OCW}/18-085-computational-science-and-engineering-i-summer-2020/resources/mit18_085summer20_lec_w7/`, '18.085 Week 7 — Laplace\'s equation by separation of variables and spectral expansion'),
+    5: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/transfer-system-and-weight-functions-greens-formula/`, '18.03SC — impulse response, weight functions and Green\'s formula'),
+    6: r(`${E807}/mit8_07f12_ln9/`, '8.07 Notes 8–9 — Legendre polynomials and spherical harmonics: orthogonal function bases'),
+    7: r(`${E807}/mit8_07f12_ln2/`, '8.07 Notes 2 — index notation and tensors; 18.354J Chapters 2–3 for scaling'),
+    8: r('https://nptel.ac.in/courses/115106086', 'NPTEL, Selected Topics in Mathematical Physics (the catalogue\'s course) — lecture videos for review'),
   },
 };
