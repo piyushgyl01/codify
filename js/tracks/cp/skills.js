@@ -208,17 +208,20 @@ const primes = t => {
   if (v === 0) {
     const N = t.int(20, 120), ps = PRIMES.filter(p => p <= N);
     return num(`How many primes are there from 1 to ${N}?`, ps.length,
-      `The sieve crosses out multiples of each prime up to √${N}. What is left: ${csv(ps)} — ${ps.length} of them.`);
+      `The sieve crosses out multiples of each prime up to √${N}. What is left: ${csv(ps)} — ${ps.length} of them.`,
+      py(`print(sum(1 for n in range(2, ${N} + 1) if all(n % d for d in range(2, n))))`));
   }
   if (v === 1) {
     let n; do { n = t.int(12, 1000); } while (factor(n).reduce((d, [, e]) => d * (e + 1), 1) < 6);
     const f = factor(n), d = f.reduce((x, [, e]) => x * (e + 1), 1);
     return num(`How many positive divisors does ${n} have?`, d,
-      `${n} = ${f.map(([p, e]) => (e > 1 ? `${p}^${e}` : p)).join(' · ')}, so it has ${f.map(([, e]) => `(${e}+1)`).join('')} = ${d}.`);
+      `${n} = ${f.map(([p, e]) => (e > 1 ? `${p}^${e}` : p)).join(' · ')}, so it has ${f.map(([, e]) => `(${e}+1)`).join('')} = ${d}.`,
+      py(`print(sum(1 for k in range(1, ${n} + 1) if ${n} % k == 0))`));
   }
   const p = t.pick([7, 11, 13, 17, 19, 23, 29, 31]), q = t.pick(PRIMES.filter(x => x >= p && x * p <= 5000));
   return num(`What is the smallest prime factor of ${p * q}?`, p,
-    `Trial division by 2, 3, 5, … up to √${p * q} ≈ ${Math.floor(Math.sqrt(p * q))}: the first that divides is ${p} (${p} × ${q}).`);
+    `Trial division by 2, 3, 5, … up to √${p * q} ≈ ${Math.floor(Math.sqrt(p * q))}: the first that divides is ${p} (${p} × ${q}).`,
+    py(`print(min(d for d in range(2, ${p * q} + 1) if ${p * q} % d == 0))`));
 };
 
 const powmod = (a, e, m) => { let r = 1 % m, b = a % m; while (e > 0) { if (e & 1) r = (r * b) % m; b = (b * b) % m; e >>= 1; } return r; };
@@ -236,7 +239,7 @@ const modpow = t => {
 const modinv = t => {
   const p = t.pick([7, 11, 13, 17, 19, 23]), a = t.int(2, p - 1), x = powmod(a, p - 2, p);
   return num(`What is the inverse of ${a} modulo ${p} — the x from 1 to ${p - 1} with ${a}·x ≡ 1 (mod ${p})?`, x,
-    `${a} × ${x} = ${a * x} = ${Math.floor((a * x) / p)} × ${p} + 1. For a prime p, x = a^(p−2) mod p (Fermat).`);
+    `${a} × ${x} = ${a * x} = ${Math.floor((a * x) / p)} × ${p} + 1. For a prime p, x = a^(p−2) mod p (Fermat).`, py(`print(next(x for x in range(1, ${p}) if ${a} * x % ${p} == 1))`));
 };
 
 const bits = t => {
@@ -562,7 +565,8 @@ const strhash = t => {
   const w = Array.from({ length: 3 }, () => String.fromCharCode(97 + t.int(0, 25))).join('');
   const c = [...w].map(ch => ch.charCodeAt(0) - 96), h = c[0] * 961 + c[1] * 31 + c[2];
   return num(`h(s) = s₀·31² + s₁·31 + s₂, with a = 1, b = 2, …, z = 26. What is h("${w}")?`, h,
-    `${c[0]} × 961 + ${c[1]} × 31 + ${c[2]} = ${h}. Real hashes do this mod a large prime, which is why two strings can collide.`);
+    `${c[0]} × 961 + ${c[1]} × 31 + ${c[2]} = ${h}. Real hashes do this mod a large prime, which is why two strings can collide.`,
+    py(`h = 0\nfor ch in ${PY(w)}:\n    h = h * 31 + (ord(ch) - 96)\nprint(h)`));
 };
 
 const C = (n, k) => { let r = 1; for (let i = 1; i <= k; i++) r = (r * (n - k + i)) / i; return Math.round(r); };
@@ -642,7 +646,8 @@ const cross = t => {
   if (t.int(0, 1) === 0) {
     const [a, b, c, d] = Array.from({ length: 4 }, () => t.int(-9, 9)), x = a * d - c * b;
     return num(`What is the cross product (${a}, ${b}) × (${c}, ${d}) = x₁·y₂ − x₂·y₁?`, x,
-      `${a} × ${d} − ${c} × ${b} = ${a * d} − ${c * b} = ${x}. Its sign says which way the second vector turns from the first.`);
+      `${a} × ${d} − ${c} × ${b} = ${a * d} − ${c * b} = ${x}. Its sign says which way the second vector turns from the first.`,
+      py(`# the z-component of the 3-D cross product of (a, b, 0) and (c, d, 0)\nu, v = (${a}, ${b}, 0), (${c}, ${d}, 0)\nprint(u[0] * v[1] - u[1] * v[0])`));
   }
   const P = () => [t.int(-5, 5), t.int(-5, 5)];
   const A = P(); let B; do { B = P(); } while (B[0] === A[0] && B[1] === A[1]);
@@ -650,7 +655,8 @@ const cross = t => {
   const opts = ['To the left (counter-clockwise)', 'To the right (clockwise)', 'Exactly on the line'];
   const a = x > 0 ? opts[0] : x < 0 ? opts[1] : opts[2];
   return choice(`A = (${A.join(', ')}), B = (${B.join(', ')}), C = (${Cp.join(', ')}). Looking from A towards B, where is C?`, a, opts.filter(o => o !== a),
-    `cross(B − A, C − A) = ${x}. Positive means left, negative means right, zero means on the line.`);
+    `cross(B − A, C − A) = ${x}. Positive means left, negative means right, zero means on the line.`,
+    py(`import math\nA, B, C = ${PY(A)}, ${PY(B)}, ${PY(Cp)}\n# compare the heading from A to C with the heading from A to B\narea = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0])\nprint(${PY(opts[0])} if area > 0 else ${PY(opts[1])} if area < 0 else ${PY(opts[2])})`));
 };
 
 /* ================================ registry ================================ */

@@ -127,6 +127,17 @@ export const PLACE_FIXES = {
   /* CS610 Research Methods — The Mixtape's Remix edition renamed chapter 5 */
   'computer-science:computer-science-research-methods:W10': fix('https://mixtape.scunning.com/05-causal_cross_sectional_designs', 'Week 10 · Chapter 5 — Unconfoundedness (matching and subclassification)'),
 
+  /* CS540 and CS620 Capstones — units that linked an unrelated lecture (a shell
+     lesson for "problem discovery", a code-review page for "user evaluation").
+     The weeks keep their Missing Semester and code-review lectures. */
+  'computer-science:capstone-studio-1:U1': fix('https://www.gov.uk/service-manual/user-research/start-by-learning-user-needs'),
+  'computer-science:capstone-studio-1:U2': fix('https://www.gov.uk/service-manual/agile-delivery/how-the-discovery-phase-works'),
+  'computer-science:capstone-studio-1:U3': fix('https://missing.csail.mit.edu/2020/command-line/'),
+  'computer-science:capstone-studio-1:U5': fix('https://adr.github.io/'),
+  'computer-science:capstone-studio-2:U5': fix('https://sre.google/sre-book/testing-reliability/'),
+  'computer-science:capstone-studio-2:U6': fix('https://www.gov.uk/service-manual/user-research/using-moderated-usability-testing'),
+  'computer-science:capstone-studio-2:U7': fix('https://google.github.io/styleguide/docguide/best_practices.html'),
+
   /* MATH210 Linear Algebra — 18.06SC is organised by unit, not by problem set */
   'computer-science:linear-algebra:W2': fix(`${LA06}/ax-b-and-the-four-subspaces/`, 'Week 2 · 18.06SC Unit I problem sets — elimination'),
   'computer-science:linear-algebra:W4': fix(`${LA06}/ax-b-and-the-four-subspaces/`, 'Week 4 · 18.06SC Unit I problem sets — matrices and LU'),

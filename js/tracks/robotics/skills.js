@@ -647,14 +647,16 @@ const rot = t => {
     const axis = t.int(0, 1) ? 'x' : 'y';
     return num(`Rotate the point (${x}, ${y}) by ${th}° counter-clockwise about the origin. New ${axis}? (2 decimals)`,
       axis === 'x' ? xr : yr, '', 2,
-      `x' = x·cosθ − y·sinθ = ${n(xr)}; y' = x·sinθ + y·cosθ = ${n(yr)}.`, { tol: 0.02 });
+      `x' = x·cosθ − y·sinθ = ${n(xr)}; y' = x·sinθ + y·cosθ = ${n(yr)}.`, { tol: 0.02,
+      python: `import cmath, math\nz = complex(${x}, ${y}) * cmath.exp(1j * math.radians(${th}))\nprint(z.${axis === 'x' ? 'real' : 'imag'})` });
   }
   const tx = t.int(-3, 3), ty = t.int(-3, 3);
   const ax = x * c - y * s + tx, ay = x * s + y * c + ty;
   const axis = t.int(0, 1) ? 'x' : 'y';
   return num(`Frame B sits at (${tx}, ${ty}) in frame A, rotated ${th}°. A point is (${x}, ${y}) in B. Its ${axis} in frame A? (2 decimals)`,
     axis === 'x' ? ax : ay, '', 2,
-    `p_A = R·p_B + t: rotate (${x}, ${y}) by ${th}° to (${n(x * c - y * s)}, ${n(x * s + y * c)}), then add (${tx}, ${ty}) → (${n(ax)}, ${n(ay)}).`, { tol: 0.02 });
+    `p_A = R·p_B + t: rotate (${x}, ${y}) by ${th}° to (${n(x * c - y * s)}, ${n(x * s + y * c)}), then add (${tx}, ${ty}) → (${n(ax)}, ${n(ay)}).`, { tol: 0.02,
+    python: `import cmath, math\nz = complex(${x}, ${y}) * cmath.exp(1j * math.radians(${th})) + complex(${tx}, ${ty})\nprint(z.${axis === 'x' ? 'real' : 'imag'})` });
 };
 
 const jacobian = t => {
@@ -679,12 +681,14 @@ const pinhole = t => {
   if (t.int(0, 1) === 0) {
     const u = f * X / Z + cx;
     return num(`Pinhole camera: fx = ${f} px, cx = ${cx} px. A point sits ${X} m sideways (X) and ${Z} m ahead (Z). Its image column u, in pixels?`,
-      u, 'px', 1, `u = fx·X/Z + cx = ${f} × ${X} / ${Z} + ${cx} = ${n(u, 1)} px.`, { tol: 1 });
+      u, 'px', 1, `u = fx·X/Z + cx = ${f} × ${X} / ${Z} + ${cx} = ${n(u, 1)} px.`, { tol: 1,
+      python: `# project with a 3x4 camera matrix K[I|0] in homogeneous coordinates\nK = [[${f}, 0, ${cx}], [0, ${f}, 240], [0, 0, 1]]\nP = [${X}, 0.0, ${Z}]\nh = [sum(K[r][c] * P[c] for c in range(3)) for r in range(3)]\nprint(h[0] / h[2])` });
   }
   const u = Math.round(f * X / Z + cx);
   const Xb = (u - cx) * Z / f;
   return num(`fx = ${f} px, cx = ${cx} px. An object appears at column u = ${u} px and your depth sensor says it is ${Z} m away. Its sideways position X, in metres? (3 decimals)`,
-    Xb, 'm', 3, `X = (u − cx)·Z / fx = (${u} − ${cx}) × ${Z} / ${f} = ${n(Xb, 3)} m.`, { tol: 0.005 });
+    Xb, 'm', 3, `X = (u − cx)·Z / fx = (${u} − ${cx}) × ${Z} / ${f} = ${n(Xb, 3)} m.`, { tol: 0.005,
+    python: `# back-project: bisect for the X whose projection lands on column u\nf, cx, Z, u = ${f}, ${cx}, ${Z}, ${u}\nlo, hi = -10.0, 10.0\nfor _ in range(200):\n    mid = (lo + hi) / 2\n    if f * mid / Z + cx < u: lo = mid\n    else: hi = mid\nprint(lo)` });
 };
 
 const stereo = t => {

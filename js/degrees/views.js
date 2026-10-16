@@ -232,7 +232,9 @@ function unitBlock(id, D, r, c, u) {
 function anchorsFor(id, c, a, x) {
   const an = curriculumFor(id, c.key)?.anchors?.[`${a.stage}/${x.criterion}`];
   if (!an) return `<div class="tiny">${esc(x.description)}</div>`;
-  return `<div class="deg-anchors"><div class="tiny"><b>${x.points}:</b> ${esc(an.full)}</div><div class="tiny"><b>≈ ${Math.round(x.points / 2)}:</b> ${esc(an.part)}</div><div class="tiny"><b>0:</b> ${esc(an.none)}</div></div>`;
+  // The rubric itself says what partial credit is worth ("…award 15 when…"); say so only when it does.
+  const part = x.description?.match(/award (\d+) when/i)?.[1];
+  return `<div class="deg-anchors"><div class="tiny"><b>${x.points}:</b> ${esc(an.full)}</div><div class="tiny"><b>${part ?? `≈ ${Math.round(x.points / 2)}`}:</b> ${esc(an.part)}</div><div class="tiny"><b>0:</b> ${esc(an.none)}</div></div>`;
 }
 
 function keyChecksFor(id, r, c, a) {
@@ -349,7 +351,7 @@ function benchmarksCard(id, r, c) {
   const cur = curriculumFor(id, c.key);
   if (!cur?.benchmarks?.length) return '';
   return `<div class="card"><div class="h3">Outside benchmarks</div>
-    <div class="tiny" style="margin-top:4px">Checks that are not you and not this app: MIT's exams with MIT's own solutions, CS50's check50. Record what you get; it pays nothing, but it is the honest test of everything above.</div>
+    <div class="tiny" style="margin-top:4px">Checks that are not you and not this app — each one below is scored by someone else's exam, grader or leaderboard. Record what you get; it pays nothing, but it is the honest test of everything above.</div>
     ${cur.benchmarks.map(b => {
       const hist = r.benchmarks?.[b.id] || [], lastB = hist.at(-1);
       return `<div class="deg-bench" data-bench-row="${b.id}"><div class="grow"><div class="h3">${link(b.url, b.name)}</div><div class="tiny">${esc(b.how)}</div>

@@ -8,9 +8,11 @@ import { CS_TERM1 } from './cs-term1.js';
 import { CS_TERM2 } from './cs-term2.js';
 import { CS_TERM3 } from './cs-term3.js';
 import { CS_TERM4 } from './cs-term4.js';
+import { CS_TERM5 } from './cs-term5.js';
+import { CS_TERM6 } from './cs-term6.js';
 
 export const CURRICULUM = {
-  cs: { ...CS_TERM1, ...CS_TERM2, ...CS_TERM3, ...CS_TERM4 },
+  cs: { ...CS_TERM1, ...CS_TERM2, ...CS_TERM3, ...CS_TERM4, ...CS_TERM5, ...CS_TERM6 },
 };
 
 export const curriculumFor = (degreeId, courseKey) => CURRICULUM[degreeId]?.[courseKey] || null;

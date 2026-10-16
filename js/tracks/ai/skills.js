@@ -10,7 +10,7 @@
 
 const num = (q, answer, explain, extra = {}) => ({ kind:'num', q, answer, unit:'', dp:0, tol:0, explain, ...extra });
 const dec = (q, answer, explain, dp = 3, extra = {}) => num(q, answer, explain, { dp, tol: 0.5 * 10 ** -dp + 1e-9, ...extra });
-const rel = (q, answer, explain, rtol = 0.02, dp = 2) => num(q, answer, explain, { dp, tol: undefined, rtol });
+const rel = (q, answer, explain, rtol = 0.02, dp = 2, extra = {}) => num(q, answer, explain, { dp, tol: undefined, rtol, ...extra });
 const choice = (q, a, wrong, explain, extra = {}) => ({ kind:'mc', q, options:[a, ...wrong], correct:0, explain, ...extra });
 /** An independent check: a Python program that prints the answer (run by tools/verify-generators.mjs). */
 const py = code => ({ python: code });
@@ -153,19 +153,22 @@ const linreg = t => {
   const mx = 3, my = sum(ys) / 5, slope = sum(xs.map((x, i) => (x - mx) * (ys[i] - my))) / sum(xs.map(x => (x - mx) ** 2)), icpt = my - slope * mx;
   const pts = xs.map((x, i) => `(${x}, ${ys[i]})`).join(', ');
   if (t.int(0, 1) === 0) return dec(`Fit a least-squares line to ${pts}. What is the slope? (Three decimals.)`, slope,
-    `slope = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)² with x̄ = 3, ȳ = ${f(my)}: ${f(slope)}.`);
+    `slope = Σ(x−x̄)(y−ȳ) / Σ(x−x̄)² with x̄ = 3, ȳ = ${f(my)}: ${f(slope)}.`, 3,
+    py(`from fractions import Fraction as F\nxs, ys = [1, 2, 3, 4, 5], ${PY(ys)}\nn = 5; sx, sy = sum(xs), sum(ys); sxx = sum(x * x for x in xs); sxy = sum(x * y for x, y in zip(xs, ys))\nprint(float(F(n * sxy - sx * sy, n * sxx - sx * sx)))`));
   return dec(`Fit a least-squares line to ${pts}. What does it predict at x = 6? (Three decimals.)`, icpt + slope * 6,
-    `slope ${f(slope)}, intercept ȳ − slope·x̄ = ${f(icpt)}, so ŷ(6) = ${f(icpt + slope * 6)}.`);
+    `slope ${f(slope)}, intercept ȳ − slope·x̄ = ${f(icpt)}, so ŷ(6) = ${f(icpt + slope * 6)}.`, 3,
+    py(`from fractions import Fraction as F\nxs, ys = [1, 2, 3, 4, 5], ${PY(ys)}\nn = 5; sx, sy = sum(xs), sum(ys); sxx = sum(x * x for x in xs); sxy = sum(x * y for x, y in zip(xs, ys))\nm = F(n * sxy - sx * sy, n * sxx - sx * sx); c = (sy - m * sx) / n\nprint(float(c + 6 * m))`));
 };
 
 const logit = t => {
   const w = [t.pick([-1.5, -1, -0.5, 0.5, 1, 2]), t.pick([-1, -0.5, 0.5, 1, 1.5])], b = t.pick([-1, -0.5, 0, 0.5]), x = [t.int(-2, 2), t.int(-2, 2)];
   const z = dotp(w, x) + b, p = sigmoid(z);
   if (t.int(0, 1) === 0) return dec(`Logistic regression with w = ${vec(w)}, b = ${b}. What probability does it give x = ${vec(x)}? (Three decimals.)`, p,
-    `z = w·x + b = ${f(z)}, and σ(${f(z)}) = ${f(p)}.`);
+    `z = w·x + b = ${f(z)}, and σ(${f(z)}) = ${f(p)}.`, 3, py(`import math\nz = ${w[0]} * ${x[0]} + ${w[1]} * ${x[1]} + ${b}\nprint(math.exp(z) / (1 + math.exp(z)))`));
   const y = t.int(0, 1), loss = -(y * Math.log(p) + (1 - y) * Math.log(1 - p));
   return dec(`Logistic regression with w = ${vec(w)}, b = ${b}. For x = ${vec(x)} with true label ${y}, what is the log loss? (Three decimals.)`, loss,
-    `p = σ(${f(z)}) = ${f(p)}; loss = −ln(${y ? 'p' : '1 − p'}) = ${f(loss)}.`);
+    `p = σ(${f(z)}) = ${f(p)}; loss = −ln(${y ? 'p' : '1 − p'}) = ${f(loss)}.`, 3,
+    py(`import math\nz = ${w[0]} * ${x[0]} + ${w[1]} * ${x[1]} + ${b}\nprint(math.log1p(math.exp(-z)) if ${y} else math.log1p(math.exp(z)))`));
 };
 
 const metrics = t => {
@@ -173,10 +176,10 @@ const metrics = t => {
   const P = tp / (tp + fp), R = tp / (tp + fn), F = (2 * P * R) / (P + R), A = (tp + tn) / (tp + fp + fn + tn);
   const d = `A classifier has ${tp} true positives, ${fp} false positives, ${fn} false negatives and ${tn} true negatives.`;
   return [
-    dec(`${d} What is its precision? (Three decimals.)`, P, `Precision = TP/(TP+FP) = ${tp}/${tp + fp} = ${f(P)}: of what it flagged, how much was right.`),
-    dec(`${d} What is its recall? (Three decimals.)`, R, `Recall = TP/(TP+FN) = ${tp}/${tp + fn} = ${f(R)}: of what was there, how much it found.`),
-    dec(`${d} What is its F1 score? (Three decimals.)`, F, `F1 = 2PR/(P+R) with P = ${f(P)}, R = ${f(R)}: ${f(F)}.`),
-    dec(`${d} What is its accuracy? (Three decimals.)`, A, `(TP+TN)/all = ${tp + tn}/${tp + fp + fn + tn} = ${f(A)}. On imbalanced data this can look great while recall is terrible.`),
+    dec(`${d} What is its precision? (Three decimals.)`, P, `Precision = TP/(TP+FP) = ${tp}/${tp + fp} = ${f(P)}: of what it flagged, how much was right.`, 3, py(`tp, fp, fn, tn = ${tp}, ${fp}, ${fn}, ${tn}\nprint(tp / (tp + fp))`)),
+    dec(`${d} What is its recall? (Three decimals.)`, R, `Recall = TP/(TP+FN) = ${tp}/${tp + fn} = ${f(R)}: of what was there, how much it found.`, 3, py(`tp, fp, fn, tn = ${tp}, ${fp}, ${fn}, ${tn}\nprint(tp / (tp + fn))`)),
+    dec(`${d} What is its F1 score? (Three decimals.)`, F, `F1 = 2PR/(P+R) with P = ${f(P)}, R = ${f(R)}: ${f(F)}.`, 3, py(`tp, fp, fn, tn = ${tp}, ${fp}, ${fn}, ${tn}\nprint(2 * tp / (2 * tp + fp + fn))`)),
+    dec(`${d} What is its accuracy? (Three decimals.)`, A, `(TP+TN)/all = ${tp + tn}/${tp + fp + fn + tn} = ${f(A)}. On imbalanced data this can look great while recall is terrible.`, 3, py(`tp, fp, fn, tn = ${tp}, ${fp}, ${fn}, ${tn}\nprint((tp + tn) / (tp + fp + fn + tn))`)),
   ][v];
 };
 
@@ -185,7 +188,8 @@ const auc = t => {
   let s = 0; for (const p of pos) for (const n of neg) s += p > n ? 1 : p === n ? 0.5 : 0;
   const a = s / (pos.length * neg.length);
   return dec(`Scores for positives: ${csv(pos)}. Scores for negatives: ${csv(neg)}. What is the ROC-AUC? (Three decimals.)`, a,
-    `AUC is the chance a random positive outranks a random negative: ${s} of ${pos.length * neg.length} pairs = ${f(a)}.`);
+    `AUC is the chance a random positive outranks a random negative: ${s} of ${pos.length * neg.length} pairs = ${f(a)}.`, 3,
+    py(`pos, neg = ${PY(pos)}, ${PY(neg)}\nallv = sorted(pos + neg)\nrank = lambda v: (sum(1 for x in allv if x < v) + 1 + sum(1 for x in allv if x <= v)) / 2\nR = sum(rank(p) for p in pos)\nprint((R - len(pos) * (len(pos) + 1) / 2) / (len(pos) * len(neg)))`));
 };
 
 const gini = t => {
@@ -193,9 +197,11 @@ const gini = t => {
   const g = ([a, b]) => 1 - (a / (a + b)) ** 2 - (b / (a + b)) ** 2;
   const after = ((l[0] + l[1]) / N) * g(l) + ((r[0] + r[1]) / N) * g(r);
   if (t.int(0, 1) === 0) return dec(`A node holds ${p[0]} of class A and ${p[1]} of class B. What is its Gini impurity? (Three decimals.)`, g(p),
-    `Gini = 1 − Σ p² = 1 − (${p[0]}/${N})² − (${p[1]}/${N})² = ${f(g(p))}.`);
+    `Gini = 1 − Σ p² = 1 − (${p[0]}/${N})² − (${p[1]}/${N})² = ${f(g(p))}.`, 3,
+    py(`a, b = ${p[0]}, ${p[1]}\nn = a + b\nprint(2 * (a / n) * (b / n))   # two classes: 1 − p² − q² = 2pq`));
   return dec(`A node with ${p[0]} A and ${p[1]} B is split into left (${l[0]} A, ${l[1]} B) and right (${r[0]} A, ${r[1]} B). What is the Gini impurity decrease? (Three decimals.)`, g(p) - after,
-    `Before: ${f(g(p))}. After: size-weighted Gini of the children = ${f(after)}. Decrease = ${f(g(p) - after)} — trees pick the split with the biggest.`);
+    `Before: ${f(g(p))}. After: size-weighted Gini of the children = ${f(after)}. Decrease = ${f(g(p) - after)} — trees pick the split with the biggest.`, 3,
+    py(`def g(a, b):\n    n = a + b\n    return 2 * (a / n) * (b / n)\nl, r = ${PY(l)}, ${PY(r)}\nN = sum(l) + sum(r)\nprint(g(l[0] + r[0], l[1] + r[1]) - sum(l) / N * g(*l) - sum(r) / N * g(*r))`));
 };
 
 const mf = t => {
@@ -217,19 +223,20 @@ const kmeans = t => {
   const A = pts.filter(p => Math.abs(p - c[0]) <= Math.abs(p - c[1])), B = pts.filter(p => Math.abs(p - c[0]) > Math.abs(p - c[1]));
   const k = !A.length ? 1 : !B.length ? 0 : t.int(0, 1), grp = k ? B : A, nc = sum(grp) / grp.length;
   return dec(`1-D points ${csv(pts)}; centroids at ${c[0]} and ${c[1]}. After one k-means step (assign, then average), where is centroid ${k + 1}? (Two decimals.)`, nc,
-    `Points nearest ${c[k]}: ${csv(grp)}. Their mean is ${f(nc, 2)}.`, 2);
+    `Points nearest ${c[k]}: ${csv(grp)}. Their mean is ${f(nc, 2)}.`, 2,
+    py(`pts, c = ${PY(pts)}, ${PY(c)}\nmine = [p for p in pts if min(range(2), key=lambda j: (abs(p - c[j]), j)) == ${k}]\nprint(sum(mine) / len(mine))`));
 };
 
 const forecast = t => {
   const base = t.int(80, 120), season = [0, 5, 12, 20, 12, 5, 0, -5, -12, -20, -12, -5], y = range(0, 14).map(i => base + i * t.int(0, 2) + season[i % 12] + t.int(-3, 3));
   const v = t.int(0, 2), last = y.slice(-6);
   if (v === 0) return num(`Monthly sales for 15 months: ${csv(y)}. What is the seasonal-naive forecast for next month (same month last year)?`, y[y.length - 12],
-    `Next month is month 16; the same month a year earlier is month 4, which was ${y[y.length - 12]}.`);
+    `Next month is month 16; the same month a year earlier is month 4, which was ${y[y.length - 12]}.`, py(`y = ${PY(y)}\nprint(y[len(y) + 1 - 12 - 1])`));
   if (v === 1) return dec(`Monthly values ending ${csv(last)}. What is the 3-month moving-average forecast for next month? (Two decimals.)`, sum(last.slice(-3)) / 3,
-    `(${csv(last.slice(-3))}) / 3 = ${f(sum(last.slice(-3)) / 3, 2)}.`, 2);
+    `(${csv(last.slice(-3))}) / 3 = ${f(sum(last.slice(-3)) / 3, 2)}.`, 2, py(`import statistics\nprint(statistics.mean(${PY(last)}[-3:]))`));
   const errs = last.slice(1).map((x, i) => Math.abs(x - last[i]));
   return dec(`Values ${csv(last)}. Forecasting each with the one before it (naive forecast), what is the MAE over the last five? (Two decimals.)`, sum(errs) / 5,
-    `Absolute errors ${csv(errs)}; mean ${f(sum(errs) / 5, 2)}.`, 2);
+    `Absolute errors ${csv(errs)}; mean ${f(sum(errs) / 5, 2)}.`, 2, py(`v = ${PY(last)}\nprint(sum(abs(a - b) for a, b in zip(v[1:], v[:-1])) / 5)`));
 };
 
 /* ======================= part 3 — deep learning ========================== */
@@ -237,19 +244,22 @@ const forecast = t => {
 const backprop = t => {
   const w = t.int(-3, 3), x = t.int(1, 4), b = t.int(-3, 3), y = t.int(-4, 6), r = w * x + b - y;
   if (t.int(0, 1) === 0) return num(`L = (w·x + b − y)² with w = ${w}, x = ${x}, b = ${b}, y = ${y}. What is ∂L/∂w?`, 2 * r * x,
-    `∂L/∂w = 2(wx + b − y)·x = 2 × ${r} × ${x} = ${2 * r * x}.`);
+    `∂L/∂w = 2(wx + b − y)·x = 2 × ${r} × ${x} = ${2 * r * x}.`,
+    py(`from fractions import Fraction as F\nL = lambda w: (w * ${x} + ${b} - ${y}) ** 2\nh = F(1, 10 ** 6)\nprint(round((L(${w} + h) - L(${w} - h)) / (2 * h)))`));
   return num(`L = (w·x + b − y)² with w = ${w}, x = ${x}, b = ${b}, y = ${y}. What is ∂L/∂b?`, 2 * r,
-    `∂L/∂b = 2(wx + b − y) = 2 × ${r} = ${2 * r}.`);
+    `∂L/∂b = 2(wx + b − y) = 2 × ${r} = ${2 * r}.`,
+    py(`from fractions import Fraction as F\nL = lambda b: (${w} * ${x} + b - ${y}) ** 2\nh = F(1, 10 ** 6)\nprint(round((L(${b} + h) - L(${b} - h)) / (2 * h)))`));
 };
 
 const softmaxQ = t => {
   const z = [t.pick([-1, 0, 0.5, 1]), t.pick([1, 1.5, 2, 3]), t.pick([-2, -0.5, 0, 0.5])], k = t.int(0, 2), p = softmax(z), v = t.int(0, 2);
   if (v === 0) return dec(`Logits ${vec(z)}. What softmax probability does class ${k + 1} get? (Three decimals.)`, p[k],
-    `softmax = e^z / Σe^z: ${p.map(x => f(x)).join(', ')}. Subtracting the largest logit first keeps it numerically stable.`);
+    `softmax = e^z / Σe^z: ${p.map(x => f(x)).join(', ')}. Subtracting the largest logit first keeps it numerically stable.`, 3, py(`import math\nz = ${PY(z)}\nm = max(z); e = [math.exp(x - m) for x in z]; p = [x / sum(e) for x in e]\nprint(p[${k}])`));
   if (v === 1) return dec(`Logits ${vec(z)}; the true class is ${k + 1}. What is the cross-entropy loss? (Three decimals.)`, -Math.log(p[k]),
-    `p = ${f(p[k])}, so −ln p = ${f(-Math.log(p[k]))}.`);
+    `p = ${f(p[k])}, so −ln p = ${f(-Math.log(p[k]))}.`, 3, py(`import math\nz = ${PY(z)}\nprint(math.log(sum(math.exp(x) for x in z)) - z[${k}])`));
   return dec(`Logits ${vec(z)}; true class ${k + 1}. What is ∂loss/∂z${k + 1} for softmax + cross-entropy? (Three decimals.)`, p[k] - 1,
-    `The gradient is p − y: ${f(p[k])} − 1 = ${f(p[k] - 1)}. That clean form is why the two are always fused.`);
+    `The gradient is p − y: ${f(p[k])} − 1 = ${f(p[k] - 1)}. That clean form is why the two are always fused.`, 3,
+    py(`import math\nz = ${PY(z)}\nL = lambda v: math.log(sum(math.exp(x) for x in v)) - v[${k}]\nh = 1e-6\nzp = list(z); zp[${k}] += h; zm = list(z); zm[${k}] -= h\nprint((L(zp) - L(zm)) / (2 * h))`));
 };
 
 const params = t => {
@@ -258,26 +268,29 @@ const params = t => {
     const s = [t.pick([784, 512, 256]), t.pick([512, 256, 128]), t.pick([128, 64]), t.pick([10, 2])];
     const n = sum([0, 1, 2].map(i => s[i] * s[i + 1] + s[i + 1]));
     return num(`An MLP with layer sizes ${s.join(' → ')} (weights and biases). How many parameters?`, n,
-      `Each layer has in×out weights plus out biases: ${[0, 1, 2].map(i => `${s[i]}×${s[i + 1]}+${s[i + 1]}`).join(' + ')} = ${n.toLocaleString('en-US')}.`);
+      `Each layer has in×out weights plus out biases: ${[0, 1, 2].map(i => `${s[i]}×${s[i + 1]}+${s[i + 1]}`).join(' + ')} = ${n.toLocaleString('en-US')}.`,
+      py(`s = ${PY(s)}\nshapes = [(s[i], s[i + 1]) for i in range(3)] + [(s[i + 1],) for i in range(3)]\nimport math\nprint(sum(math.prod(t) for t in shapes))`));
   }
   if (v === 1) {
     const k = t.pick([1, 3, 5]), ci = t.pick([3, 16, 32, 64]), co = t.pick([16, 32, 64, 128]);
     return num(`A ${k}×${k} convolution from ${ci} to ${co} channels, with bias. How many parameters?`, k * k * ci * co + co,
-      `${k}×${k}×${ci}×${co} weights + ${co} biases = ${(k * k * ci * co + co).toLocaleString('en-US')} — independent of the image size.`);
+      `${k}×${k}×${ci}×${co} weights + ${co} biases = ${(k * k * ci * co + co).toLocaleString('en-US')} — independent of the image size.`,
+      py(`import math\nprint(math.prod((${co}, ${ci}, ${k}, ${k})) + ${co})`));
   }
   const V = t.pick([32000, 50257, 128000]), d = t.pick([512, 768, 1024]);
   return num(`An embedding table for a ${V.toLocaleString('en-US')}-token vocabulary at width ${d}. How many parameters?`, V * d,
-    `${V.toLocaleString('en-US')} × ${d} = ${(V * d).toLocaleString('en-US')}. In small LLMs this is a big share of the model.`);
+    `${V.toLocaleString('en-US')} × ${d} = ${(V * d).toLocaleString('en-US')}. In small LLMs this is a big share of the model.`, py(`print(${V} * ${d})`));
 };
 
 const init = t => {
   const fin = t.pick([64, 128, 256, 512, 784, 1024]), fout = t.pick([64, 128, 256, 512]), v = t.int(0, 2);
   if (v === 0) return rel(`He (Kaiming) initialisation for a ReLU layer with fan-in ${fin}: what standard deviation? (Four decimals.)`, Math.sqrt(2 / fin),
-    `std = √(2/fan_in) = √(2/${fin}) = ${f(Math.sqrt(2 / fin), 4)}. The 2 makes up for ReLU zeroing half the inputs.`, 0.01, 4);
+    `std = √(2/fan_in) = √(2/${fin}) = ${f(Math.sqrt(2 / fin), 4)}. The 2 makes up for ReLU zeroing half the inputs.`, 0.01, 4, py(`print((2 / ${fin}) ** 0.5)`));
   if (v === 1) return rel(`Xavier (Glorot) normal initialisation, fan-in ${fin} and fan-out ${fout}: what standard deviation? (Four decimals.)`, Math.sqrt(2 / (fin + fout)),
-    `std = √(2/(fan_in + fan_out)) = ${f(Math.sqrt(2 / (fin + fout)), 4)}.`, 0.01, 4);
+    `std = √(2/(fan_in + fan_out)) = ${f(Math.sqrt(2 / (fin + fout)), 4)}.`, 0.01, 4, py(`print((2 / (${fin} + ${fout})) ** 0.5)`));
   return rel(`Xavier uniform initialisation, fan-in ${fin}, fan-out ${fout}: weights are drawn from ±a. What is a? (Four decimals.)`, Math.sqrt(6 / (fin + fout)),
-    `a = √(6/(fan_in + fan_out)) = ${f(Math.sqrt(6 / (fin + fout)), 4)}.`, 0.01, 4);
+    `a = √(6/(fan_in + fan_out)) = ${f(Math.sqrt(6 / (fin + fout)), 4)}.`, 0.01, 4,
+    py(`# a uniform(-a, a) has variance a²/3; Xavier wants 2/(fan_in + fan_out)\nprint((3 * 2 / (${fin} + ${fout})) ** 0.5)`));
 };
 
 const adam = t => {
@@ -285,24 +298,28 @@ const adam = t => {
   if (t.int(0, 1) === 0) {
     const m2 = b1 * ((1 - b1) * g1) + (1 - b1) * g2, mh = m2 / (1 - b1 ** 2);
     return dec(`Adam with β₁ = 0.9, m₀ = 0. Gradients ${g1} then ${g2}. What is the bias-corrected first moment m̂ after step 2? (Four decimals.)`, mh,
-      `m₁ = 0.1×${g1} = ${f(0.1 * g1, 4)}; m₂ = 0.9×m₁ + 0.1×${g2} = ${f(m2, 4)}; m̂₂ = m₂/(1 − 0.9²) = ${f(mh, 4)}. Without the correction the early estimates are far too small.`, 4);
+      `m₁ = 0.1×${g1} = ${f(0.1 * g1, 4)}; m₂ = 0.9×m₁ + 0.1×${g2} = ${f(m2, 4)}; m̂₂ = m₂/(1 − 0.9²) = ${f(mh, 4)}. Without the correction the early estimates are far too small.`, 4,
+      py(`m, t = 0.0, 0\nfor g in (${g1}, ${g2}):\n    t += 1; m = 0.9 * m + 0.1 * g\nprint(m / (1 - 0.9 ** t))`));
   }
   const mu = t.pick([0.9, 0.5]), lr = t.pick([0.1, 0.01]), w0 = 1;
   const v1 = g1, w1 = w0 - lr * v1, v2 = mu * v1 + g2, w2 = w1 - lr * v2;
   return dec(`SGD with momentum ${mu} (v ← μv + g; w ← w − lr·v), lr = ${lr}, w starts at 1, v at 0. Gradients ${g1} then ${g2}. What is w after two steps? (Four decimals.)`, w2,
-    `v₁ = ${g1}, w₁ = ${f(w1, 4)}; v₂ = ${mu}×${g1} + ${g2} = ${f(v2, 4)}, w₂ = ${f(w2, 4)}.`, 4);
+    `v₁ = ${g1}, w₁ = ${f(w1, 4)}; v₂ = ${mu}×${g1} + ${g2} = ${f(v2, 4)}, w₂ = ${f(w2, 4)}.`, 4,
+    py(`w, v = 1.0, 0.0\nfor g in (${g1}, ${g2}):\n    v = ${mu} * v + g; w -= ${lr} * v\nprint(w)`));
 };
 
 const convout = t => {
   if (t.int(0, 2) === 0) {
     const n = t.int(2, 6);
     return num(`Stack ${n} 3×3 convolutions with stride 1. How wide is the receptive field of one output pixel?`, 1 + 2 * n,
-      `Each 3×3 layer adds 2: 1 + 2×${n} = ${1 + 2 * n}. Stacking small kernels grows the view cheaply.`);
+      `Each 3×3 layer adds 2: 1 + 2×${n} = ${1 + 2 * n}. Stacking small kernels grows the view cheaply.`,
+      py(`# grow the set of input columns one output pixel depends on, layer by layer\ncols = {0}\nfor _ in range(${n}):\n    cols = {c + d for c in cols for d in (-1, 0, 1)}\nprint(len(cols))`));
   }
   const W = t.pick([28, 32, 64, 224]), K = t.pick([3, 5, 7]), P = t.int(0, 3), S = t.pick([1, 2]);
   const o = Math.floor((W + 2 * P - K) / S) + 1;
   return num(`Input ${W}×${W}, kernel ${K}×${K}, padding ${P}, stride ${S}. What is the output width?`, o,
-    `⌊(W + 2P − K)/S⌋ + 1 = ⌊(${W} + ${2 * P} − ${K})/${S}⌋ + 1 = ${o}.`);
+    `⌊(W + 2P − K)/S⌋ + 1 = ⌊(${W} + ${2 * P} − ${K})/${S}⌋ + 1 = ${o}.`,
+    py(`W, K, P, S = ${W}, ${K}, ${P}, ${S}\nprint(len(range(0, W + 2 * P - K + 1, S)))`));
 };
 
 const flops = t => {
@@ -310,17 +327,19 @@ const flops = t => {
   if (v === 0) {
     const m = t.pick([1024, 2048, 4096]), k = t.pick([1024, 4096]), n = t.pick([1024, 4096]);
     return rel(`Multiplying a ${m}×${k} matrix by a ${k}×${n} one: how many GFLOPs (10⁹)? (Count a multiply-add as 2.)`, (2 * m * k * n) / 1e9,
-      `2·m·k·n = 2×${m}×${k}×${n} = ${f((2 * m * k * n) / 1e9, 2)} GFLOPs.`);
+      `2·m·k·n = 2×${m}×${k}×${n} = ${f((2 * m * k * n) / 1e9, 2)} GFLOPs.`, 0.02, 2, py(`m, k, n = ${m}, ${k}, ${n}\nprint(m * n * k * 2 / 1e9)`));
   }
   if (v === 1) {
     const N = t.pick([1024, 2048, 4096, 8192]);
     return rel(`A square ${N}×${N} matmul in fp16 (2 bytes): FLOPs per byte moved, reading both inputs and writing the output once?`, (2 * N ** 3) / (3 * 2 * N * N),
-      `2N³ FLOPs over 3·N² values × 2 bytes: N/3 = ${f(N / 3, 1)}. Big matmuls are compute-bound; elementwise ops are memory-bound.`);
+      `2N³ FLOPs over 3·N² values × 2 bytes: N/3 = ${f(N / 3, 1)}. Big matmuls are compute-bound; elementwise ops are memory-bound.`, 0.02, 2,
+      py(`N = ${N}\nflops = 2 * N ** 3\nbytes_moved = (N * N + N * N + N * N) * 2\nprint(flops / bytes_moved)`));
   }
   const P = t.pick([7, 13, 70]), tok = t.pick([1000, 2000]), tf = t.pick([400, 989]), u = t.pick([0.4, 0.5]);
   const secs = (2 * P * 1e9 * tok) / (tf * 1e12 * u);
   return rel(`A ${P}B-parameter model generates ${tok} tokens (about 2 FLOPs per parameter per token). At ${tf} TFLOP/s with ${u * 100}% utilisation, how many seconds of compute? (Two decimals.)`, secs,
-    `2 × ${P}e9 × ${tok} / (${tf}e12 × ${u}) = ${f(secs, 2)} s. In practice decoding is memory-bound, so it is slower than this.`);
+    `2 × ${P}e9 × ${tok} / (${tf}e12 × ${u}) = ${f(secs, 2)} s. In practice decoding is memory-bound, so it is slower than this.`, 0.02, 2,
+    py(`print(${P} * 1e9 * 2 * ${tok} / (${tf} * 1e12 * ${u}))`));
 };
 
 const mem = t => {
@@ -328,13 +347,15 @@ const mem = t => {
   if (v === 0) {
     const fmt = t.pick(Object.keys(bytes));
     return rel(`How many GB (10⁹ bytes) do the weights of a ${P}B-parameter model take in ${fmt}?`, P * bytes[fmt],
-      `${P}e9 × ${bytes[fmt]} bytes = ${f(P * bytes[fmt], 2)} GB.`);
+      `${P}e9 × ${bytes[fmt]} bytes = ${f(P * bytes[fmt], 2)} GB.`, 0.02, 2, py(`bits = {'fp32': 32, 'bf16': 16, 'fp8': 8, 'int4': 4}[${PY(fmt)}]\nprint(${P} * 1e9 * bits / 8 / 1e9)`));
   }
   if (v === 1) return rel(`Mixed-precision training with Adam keeps about 16 bytes per parameter (bf16 weights and grads, fp32 master copy and two Adam moments). How many GB for a ${P}B model, before activations?`, P * 16,
-    `${P}e9 × 16 = ${f(P * 16, 1)} GB — why training needs far more memory than inference.`);
+    `${P}e9 × 16 = ${f(P * 16, 1)} GB — why training needs far more memory than inference.`, 0.02, 2,
+    py(`per = 2 + 2 + 4 + 4 + 4   # bf16 weights, bf16 grads, fp32 master, Adam m, Adam v\nprint(${P} * 1e9 * per / 1e9)`));
   const d = t.pick([2048, 4096]), s = t.pick([2048, 4096]), b = t.pick([8, 16, 32]);
   return rel(`One layer's residual activation (batch ${b} × sequence ${s} × width ${d}) in bf16: how many MB (10⁶ bytes)?`, (b * s * d * 2) / 1e6,
-    `${b}×${s}×${d}×2 bytes = ${f((b * s * d * 2) / 1e6, 1)} MB, per saved tensor, per layer — hence activation checkpointing.`);
+    `${b}×${s}×${d}×2 bytes = ${f((b * s * d * 2) / 1e6, 1)} MB, per saved tensor, per layer — hence activation checkpointing.`, 0.02, 2,
+    py(`import math\nprint(math.prod((${b}, ${s}, ${d})) * 16 / 8 / 1e6)`));
 };
 
 /* ====================== part 4 — LLMs from scratch ======================= */
@@ -350,11 +371,13 @@ const bpe = t => {
     if (t.int(0, 1) === 0) {
       const [top] = sorted, wrong = sorted.slice(1, 4).map(([p]) => `“${p[0]}” + “${p[1]}”`);
       return choice(`Byte-pair encoding over the words ${corpus}, starting from single characters. Which pair is merged first?`,
-        `“${top[0][0]}” + “${top[0][1]}”`, wrong, `BPE merges the most frequent adjacent pair, counted with word frequencies: “${top[0]}” appears ${top[1]} times.`);
+        `“${top[0][0]}” + “${top[0][1]}”`, wrong, `BPE merges the most frequent adjacent pair, counted with word frequencies: “${top[0]}” appears ${top[1]} times.`,
+        py(`from collections import Counter\nc = Counter()\nfor w, n in zip(${PY(ws)}, ${PY(fr)}):\n    for a, b in zip(w, w[1:]): c[a + b] += n\np = c.most_common(1)[0][0]\nprint(f'“{p[0]}” + “{p[1]}”')`));
     }
     const [p, c] = t.pick(sorted.slice(0, 4));
     return num(`Byte-pair encoding over the words ${corpus}, starting from single characters. How many times does the adjacent pair “${p}” occur?`, c,
-      `Count “${p}” in each word, times that word's frequency, and add: ${c}.`);
+      `Count “${p}” in each word, times that word's frequency, and add: ${c}.`,
+      py(`print(sum(n * sum(1 for a, b in zip(w, w[1:]) if a + b == ${PY(p)}) for w, n in zip(${PY(ws)}, ${PY(fr)})))`));
   }
   return num('How many single bytes are there, for a byte-level BPE base vocabulary?', 256, 'Byte-level BPE starts from all 256 byte values, so any text can be encoded.');
 };
@@ -364,10 +387,10 @@ const attn = t => {
   if (!norm(q)) q[0] = 1;
   const s = ks.map(k => dotp(q, k) / Math.SQRT2), w = softmax(s), j = t.int(0, 2);
   if (t.int(0, 1) === 0) return dec(`Attention with d = 2. Query ${vec(q)}; keys ${ks.map(vec).join(', ')}. What weight does key ${j + 1} get? (Three decimals.)`, w[j],
-    `Scores q·k/√2 = ${s.map(x => f(x)).join(', ')}; softmax gives ${w.map(x => f(x)).join(', ')}.`);
+    `Scores q·k/√2 = ${s.map(x => f(x)).join(', ')}; softmax gives ${w.map(x => f(x)).join(', ')}.`, 3, py(`import math\nq, K = ${PY(q)}, ${PY(ks)}\nsc = [sum(a * b for a, b in zip(q, k)) / math.sqrt(len(q)) for k in K]\nw = [math.exp(x) / sum(math.exp(y) for y in sc) for x in sc]\nprint(w[${j}])`));
   const out = sum(w.map((x, i) => x * vs[i]));
   return dec(`Attention with d = 2. Query ${vec(q)}; keys ${ks.map(vec).join(', ')}; values ${csv(vs)}. What is the output? (Three decimals.)`, out,
-    `Weights ${w.map(x => f(x)).join(', ')} (softmax of q·k/√2), so the output is Σ wᵢvᵢ = ${f(out)}.`);
+    `Weights ${w.map(x => f(x)).join(', ')} (softmax of q·k/√2), so the output is Σ wᵢvᵢ = ${f(out)}.`, 3, py(`import math\nq, K = ${PY(q)}, ${PY(ks)}\nsc = [sum(a * b for a, b in zip(q, k)) / math.sqrt(len(q)) for k in K]\nw = [math.exp(x) / sum(math.exp(y) for y in sc) for x in sc]\nprint(sum(a * v for a, v in zip(w, ${PY(vs)})))`));
 };
 
 const llmparams = t => {
@@ -375,10 +398,11 @@ const llmparams = t => {
   if (t.int(0, 1) === 0) {
     const P = 12 * L * d * d + V * d;
     return rel(`A GPT with ${L} layers, width ${d}, a ${V.toLocaleString('en-US')}-token vocabulary and tied embeddings. About how many parameters, in millions? (Use 12·L·d² + V·d.)`, P / 1e6,
-      `Per layer: 4d² for attention (Q, K, V, output) + 8d² for a 4×-wide MLP = 12d². So 12×${L}×${d}² + ${V}×${d} ≈ ${f(P / 1e6, 1)}M.`, 0.02, 1);
+      `Per layer: 4d² for attention (Q, K, V, output) + 8d² for a 4×-wide MLP = 12d². So 12×${L}×${d}² + ${V}×${d} ≈ ${f(P / 1e6, 1)}M.`, 0.02, 1,
+      py(`L, d, V = ${L}, ${d}, ${V}\nlayer = [(d, d)] * 4 + [(d, 4 * d), (4 * d, d)]\nprint((L * sum(a * b for a, b in layer) + V * d) / 1e6)`));
   }
   return num(`In one transformer layer of width ${d} with a 4×-wide MLP (no biases), how many parameters does the MLP have?`, 8 * d * d,
-    `Up-projection d×4d plus down-projection 4d×d = 8d² = ${(8 * d * d).toLocaleString('en-US')} — two thirds of the layer.`);
+    `Up-projection d×4d plus down-projection 4d×d = 8d² = ${(8 * d * d).toLocaleString('en-US')} — two thirds of the layer.`, py(`d = ${d}\nprint(d * 4 * d + 4 * d * d)`));
 };
 
 const perplexity = t => {
@@ -386,24 +410,26 @@ const perplexity = t => {
   if (v === 0) {
     const l = t.pick([1.5, 2, 2.3, 3, 3.5, 4]);
     return rel(`A language model's validation loss is ${l} nats per token. What is its perplexity? (Two decimals.)`, Math.exp(l),
-      `Perplexity = e^loss = e^${l} = ${f(Math.exp(l), 2)}: as unsure as choosing among that many tokens.`, 0.01);
+      `Perplexity = e^loss = e^${l} = ${f(Math.exp(l), 2)}: as unsure as choosing among that many tokens.`, 0.01, 2, py(`print(2 ** (${l} / __import__('math').log(2)))`));
   }
   const ps = [0, 1, 2, 3].map(() => t.pick([0.5, 0.25, 0.1, 0.8, 0.05]));
   const loss = -sum(ps.map(p => Math.log(p))) / 4;
   return dec(`The model gave the actual next tokens probabilities ${csv(ps)}. What is the average loss, in nats? (Three decimals.)`, loss,
-    `Mean of −ln p: ${ps.map(p => f(-Math.log(p))).join(', ')} → ${f(loss)}.`);
+    `Mean of −ln p: ${ps.map(p => f(-Math.log(p))).join(', ')} → ${f(loss)}.`, 3, py(`import math\nprint(-math.log(math.prod(${PY(ps)})) / 4)`));
 };
 
 const sampling = t => {
   if (t.int(0, 1) === 0) {
     const z = [t.pick([2, 3]), t.pick([1, 1.5]), t.pick([0, 0.5])], T = t.pick([0.5, 0.7, 1.5, 2]), p = softmax(z, T);
     return dec(`Logits ${vec(z)} sampled at temperature ${T}. What is the top token's probability? (Three decimals.)`, p[0],
-      `softmax(z/T) = ${p.map(x => f(x)).join(', ')}. Below 1 sharpens the distribution; above 1 flattens it.`);
+      `softmax(z/T) = ${p.map(x => f(x)).join(', ')}. Below 1 sharpens the distribution; above 1 flattens it.`, 3,
+      py(`import math\nz, T = ${PY(z)}, ${T}\ne = [math.exp(x / T) for x in z]\nprint(e[0] / sum(e))`));
   }
   const probs = t.pick([[0.4, 0.2, 0.15, 0.1, 0.08, 0.07], [0.5, 0.25, 0.1, 0.08, 0.05, 0.02], [0.3, 0.25, 0.2, 0.15, 0.06, 0.04]]), P = t.pick([0.5, 0.8, 0.9, 0.95]);
   let c = 0, k = 0; while (c < P - 1e-9) c += probs[k++];
   return num(`Sorted next-token probabilities ${csv(probs)}. With top-p (nucleus) sampling at p = ${P}, how many tokens can be chosen?`, k,
-    `Keep the smallest set whose probabilities add to at least ${P}: the first ${k} add to ${f(c, 2)}.`);
+    `Keep the smallest set whose probabilities add to at least ${P}: the first ${k} add to ${f(c, 2)}.`,
+    py(`from itertools import accumulate\nfrom fractions import Fraction as F\nps = [F(str(x)) for x in ${PY(probs)}]\nprint(next(i + 1 for i, c in enumerate(accumulate(ps)) if c >= F('${P}')))`));
 };
 
 const chinchilla = t => {
@@ -418,10 +444,11 @@ const chinchilla = t => {
 const kvcache = t => {
   const L = t.pick([32, 40, 80]), heads = t.pick([32, 64]), kv = t.pick([8, 32, heads]), hd = 128, S = t.pick([4096, 8192, 32768]), B = t.pick([1, 4, 16]);
   if (t.int(0, 2) === 0) return num(`A model has ${heads} query heads and ${kv} key/value heads (grouped-query attention). By what factor is its KV cache smaller than with one KV head per query head?`, heads / kv,
-    `${heads}/${kv} = ${heads / kv}× smaller — why GQA made long contexts affordable.`);
+    `${heads}/${kv} = ${heads / kv}× smaller — why GQA made long contexts affordable.`, py(`print(${heads} * 128 // (${kv} * 128))`));
   const bytes = 2 * L * kv * hd * S * B * 2;
   return rel(`KV cache for ${L} layers, ${kv} KV heads of size 128, sequence ${S.toLocaleString('en-US')}, batch ${B}, in bf16. How many GB (10⁹ bytes)?`, bytes / 1e9,
-    `2 (K and V) × ${L} × ${kv} × 128 × ${S} × ${B} × 2 bytes = ${f(bytes / 1e9, 2)} GB.`);
+    `2 (K and V) × ${L} × ${kv} × 128 × ${S} × ${B} × 2 bytes = ${f(bytes / 1e9, 2)} GB.`, 0.02, 2,
+    py(`import math\nper_layer = 2 * math.prod((${B}, ${kv}, ${S}, 128))   # K and V tensors\nprint(${L} * per_layer * 2 / 1e9)`));
 };
 
 const moe = t => {
@@ -451,7 +478,8 @@ const returns = t => {
   const r = [0, 1, 2, 3].map(() => t.pick([0, 0, 1, 2, -1])), g = t.pick([0.9, 0.99, 0.5]);
   const G = sum(r.map((x, i) => x * g ** i));
   return dec(`Rewards ${csv(r)} over four steps, discount γ = ${g}. What is the return from the first step? (Three decimals.)`, G,
-    `G = Σ γᵗ rₜ = ${r.map((x, i) => `${x}×${g}^${i}`).join(' + ')} = ${f(G)}.`);
+    `G = Σ γᵗ rₜ = ${r.map((x, i) => `${x}×${g}^${i}`).join(' + ')} = ${f(G)}.`, 3,
+    py(`G = 0\nfor x in reversed(${PY(r)}):\n    G = x + ${g} * G\nprint(G)`));
 };
 
 const pgrad = t => {
@@ -543,18 +571,20 @@ const judge = t => {
   const n = t.pick([50, 100, 200, 500]), p = t.pick([0.6, 0.7, 0.8, 0.9]);
   const hw = 1.96 * Math.sqrt((p * (1 - p)) / n) * 100;
   return dec(`A model scores ${p * 100}% on a ${n}-question eval. What is the 95% confidence half-width, in percentage points? (One decimal.)`, hw,
-    `1.96 × √(p(1−p)/n) = 1.96 × √(${p}×${f(1 - p, 1)}/${n}) = ±${f(hw, 1)} points. Small evals cannot tell close models apart.`, 1);
+    `1.96 × √(p(1−p)/n) = 1.96 × √(${p}×${f(1 - p, 1)}/${n}) = ±${f(hw, 1)} points. Small evals cannot tell close models apart.`, 1,
+    py(`import statistics as st\nz = st.NormalDist().inv_cdf(0.975)\nprint(100 * z * (${p} * (1 - ${p}) / ${n}) ** 0.5)`));
 };
 
 const latency = t => {
   if (t.int(0, 1) === 0) {
     const ttft = t.pick([0.2, 0.5, 1]), tps = t.pick([30, 50, 100]), n = t.pick([200, 500, 1000]);
     return dec(`Time to first token ${ttft} s, then ${tps} tokens a second. How many seconds for a ${n}-token answer? (Two decimals.)`, ttft + n / tps,
-      `${ttft} + ${n}/${tps} = ${f(ttft + n / tps, 2)} s.`, 2);
+      `${ttft} + ${n}/${tps} = ${f(ttft + n / tps, 2)} s.`, 2, py(`t = ${ttft}\nfor _ in range(${n}):\n    t += 1 / ${tps}\nprint(t)`));
   }
   const rate = t.pick([5, 10, 20]), lat = t.pick([2, 4, 8]);
   return num(`Requests arrive at ${rate} a second and each takes ${lat} s. On average, how many are in flight at once?`, rate * lat,
-    `Little's law: concurrency = arrival rate × time in system = ${rate} × ${lat} = ${rate * lat}.`);
+    `Little's law: concurrency = arrival rate × time in system = ${rate} × ${lat} = ${rate * lat}.`,
+    py(`# simulate: one arrival every 1/rate s, each lasting lat s; count in flight in steady state\nrate, lat = ${rate}, ${lat}\nstarts = [i / rate for i in range(rate * 100)]\nt = 50.0\nprint(round(sum(1 for s in starts if s <= t < s + lat)))`));
 };
 
 const quant = t => {
@@ -581,14 +611,16 @@ const patches = t => {
   const H = t.pick([224, 256, 384, 512]), P = t.pick([14, 16, 32].filter(p => H % p === 0));
   const n = (H / P) ** 2, cls = t.int(0, 1);
   return num(`A vision transformer on ${H}×${H} images with ${P}×${P} patches${cls ? ' and a [CLS] token' : ''}. What is the sequence length?`, n + cls,
-    `(${H}/${P})² = ${n} patches${cls ? ' + 1 [CLS]' : ''} = ${n + cls}. Halving the patch size quadruples it.`);
+    `(${H}/${P})² = ${n} patches${cls ? ' + 1 [CLS]' : ''} = ${n + cls}. Halving the patch size quadruples it.`,
+    py(`print(len([(r, c) for r in range(0, ${H}, ${P}) for c in range(0, ${H}, ${P})]) + ${cls})`));
 };
 
 const infonce = t => {
   const s = [t.pick([0.8, 0.9, 0.6]), t.pick([0.1, 0.3, 0.5]), t.pick([0, 0.2, 0.4]), t.pick([-0.1, 0.1, 0.3])], tau = t.pick([0.07, 0.1, 0.5, 1]);
   const loss = -Math.log(softmax(s, tau)[0]);
   return dec(`CLIP-style contrastive loss. One image's similarities to four captions are ${csv(s)} (the first is its own), temperature ${tau}. What is its loss? (Three decimals.)`, loss,
-    `−ln softmax(s/τ) at the matching caption = ${f(loss)}. A low temperature makes small similarity gaps matter a lot.`);
+    `−ln softmax(s/τ) at the matching caption = ${f(loss)}. A low temperature makes small similarity gaps matter a lot.`, 3,
+    py(`import math\ns, t = ${PY(s)}, ${tau}\nprint(math.log(sum(math.exp(x / t) for x in s)) - s[0] / t)`));
 };
 
 const iou = t => {
@@ -597,7 +629,8 @@ const iou = t => {
   const iw = Math.max(0, Math.min(A[2], B[2]) - Math.max(A[0], B[0])), ih = Math.max(0, Math.min(A[3], B[3]) - Math.max(A[1], B[1]));
   const I = iw * ih, area = r => (r[2] - r[0]) * (r[3] - r[1]), U = area(A) + area(B) - I;
   return dec(`Boxes as (x1, y1, x2, y2): A = (${csv(A)}), B = (${csv(B)}). What is their IoU? (Three decimals.)`, I / U,
-    `Overlap ${iw}×${ih} = ${I}; union ${area(A)} + ${area(B)} − ${I} = ${U}; IoU = ${f(I / U)}.`);
+    `Overlap ${iw}×${ih} = ${I}; union ${area(A)} + ${area(B)} − ${I} = ${U}; IoU = ${f(I / U)}.`, 3,
+    py(`A, B = ${PY(A)}, ${PY(B)}\ncells = lambda r: {(x, y) for x in range(r[0], r[2]) for y in range(r[1], r[3])}\na, b = cells(A), cells(B)\nprint(len(a & b) / len(a | b))`));
 };
 
 const ddpm = t => {
@@ -702,10 +735,12 @@ const stats = t => {
   const n = t.pick([100, 200, 500]), p1 = t.pick([0.6, 0.7, 0.8]), p2 = p1 + t.pick([0.01, 0.03, 0.05, 0.1]);
   const se = Math.sqrt((p1 * (1 - p1)) / n + (p2 * (1 - p2)) / n) * 100;
   if (t.int(0, 1) === 0) return dec(`Model A scores ${f(p1 * 100, 0)}% and model B ${f(p2 * 100, 0)}% on ${n} questions each. What is the standard error of the difference, in percentage points? (One decimal.)`, se,
-    `√(p₁(1−p₁)/n + p₂(1−p₂)/n) = ${f(se, 1)} points.`, 1);
+    `√(p₁(1−p₁)/n + p₂(1−p₂)/n) = ${f(se, 1)} points.`, 1,
+    py(`import statistics as st\np1, p2, n = ${p1}, ${p2}, ${n}\nprint(100 * (st.pvariance([1] * round(p1 * 1000) + [0] * (1000 - round(p1 * 1000))) / n + st.pvariance([1] * round(p2 * 1000) + [0] * (1000 - round(p2 * 1000))) / n) ** 0.5)`));
   const big = (p2 - p1) * 100 > 2 * se;
   return choice(`Model A scores ${f(p1 * 100, 0)}% and model B ${f(p2 * 100, 0)}% on ${n} questions each. Is the gap more than two standard errors?`,
-    big ? 'Yes' : 'No', [big ? 'No' : 'Yes'], `SE of the difference ≈ ${f(se, 1)} points; the gap is ${f((p2 - p1) * 100, 0)}. ${big ? 'Likely real.' : 'Could easily be noise.'} (Paired tests on the same questions are sharper.)`);
+    big ? 'Yes' : 'No', [big ? 'No' : 'Yes'], `SE of the difference ≈ ${f(se, 1)} points; the gap is ${f((p2 - p1) * 100, 0)}. ${big ? 'Likely real.' : 'Could easily be noise.'} (Paired tests on the same questions are sharper.)`,
+    py(`p1, p2, n = ${p1}, ${p2}, ${n}\nse = (p1 * (1 - p1) / n + p2 * (1 - p2) / n) ** 0.5\nprint('Yes' if p2 - p1 > 2 * se else 'No')`));
 };
 
 const IDEAS = [
