@@ -38,6 +38,19 @@ const E272 = `${OCW}/2-72-elements-of-mechanical-design-spring-2009/resources`;
 const FBS = p => `https://www.cds.caltech.edu/~murray/books/AM08/pdf/fbs-public_24Jul2020.pdf#page=${p}`;
 const NIST = 'https://www.itl.nist.gov/div898/handbook';
 const J1314 = `${OCW}/8-13-14-experimental-physics-i-ii-junior-lab-fall-2016-spring-2017/pages`;
+const F2092 = `${OCW}/2-092-finite-element-analysis-of-solids-and-fluids-i-fall-2009/resources`;
+const F2094 = `${OCW}/2-094-finite-element-analysis-of-solids-and-fluids-ii-spring-2011/resources`;
+const N229 = `${OCW}/2-29-numerical-fluid-mechanics-spring-2015/resources`;
+const VAL = 'https://users.ece.utexas.edu/~valvano/Volume1/E-Book';
+const M2737 = `${OCW}/2-737-mechatronics-fall-2014/resources`;
+const L2672 = `${OCW}/2-672-project-laboratory-spring-2009/resources`;
+const PDD = `${OCW}/15-783j-product-design-and-development-spring-2006/resources`;
+const NASA = p => `https://www.nasa.gov/wp-content/uploads/2018/09/nasa_systems_engineering_handbook_0.pdf#page=${p + 10}`;
+const SAF = `${OCW}/16-63j-system-safety-spring-2016/resources`;
+const MR = p => `https://hades.mech.northwestern.edu/images/7/7f/MR.pdf#page=${p}`;
+const A16100 = `${OCW}/16-100-aerodynamics-fall-2005/resources`;
+const NGRC = 'https://www.grc.nasa.gov/www/k-12/airplane';
+const E260 = `${OCW}/2-60j-fundamentals-of-advanced-energy-conversion-spring-2020/resources`;
 
 export const ME_READINGS = {
   'engineering-calculus-1': {
@@ -239,5 +252,75 @@ export const ME_READINGS = {
     6: r(`${M2008}/mit2_008_s25_lec12_pdf/`, '2.008 Lecture 12 — statistical process control and quality planning'),
     7: r(`${M2008}/mit2_008_s25_lec15_pdf/`, '2.008 Lectures 15–17 — supply chains, planning and manufacturing cost (sustainability: see the gaps)'),
     8: r(`${M2008}/mit2_008_s25_lec18_pdf/`, '2.008 Lecture 18 — lean production: flow, waste and readiness for release'),
+  },
+  'computational-mechanics-fea-cfd': {
+    1: r(`${F2092}/mit2_092f09_lec03/`, '2.092 Lectures 2–3 — the analysis process for solids and fluids: governing equations, boundary conditions and discretisation'),
+    2: r(`${F2092}/mit2_092f09_lec04/`, '2.092 Lectures 4–5 — virtual work, weak forms and the finite-element formulation'),
+    3: r(`${F2092}/mit2_092f09_lec06/`, '2.092 Lectures 6–7 and 13 — element assembly, constraints and solving by Gauss elimination'),
+    4: r(`${F2094}/mit2_094s11_lec8/`, '2.094 Lectures 6 and 8 — convergence of displacement-based finite elements'),
+    5: r(`${N229}/mit2_29s15_lecture14/`, '2.29 Lecture 14 — finite-volume conservation and transport'),
+    6: r(`${N229}/mit2_29s15_lecture17/`, '2.29 Lectures 11–12 and 17–18 — stability and the CFL condition, and pressure–velocity coupling (Lectures 23–25 for turbulence)'),
+    7: r('https://www.grc.nasa.gov/www/wind/valid/tutorial/spatconv.html', 'NASA NPARC Alliance — examining grid convergence: Richardson extrapolation and the GCI'),
+    8: r(`${F2094}/mit2_094s11_lec17/`, '2.094 Lectures 16–17 — finite elements for incompressible flow with heat transfer: coupled problems'),
+  },
+  'mechatronics-embedded-control': {
+    1: r(`${VAL}/C7_DesignDevelopment.htm`, 'Valvano, Embedded Systems, Chapter 7 — design and development: requirements and interfaces (power budgets: see the gaps)'),
+    2: r(`${E272}/mit2_72s09_lec14/`, '2.72 Lecture 14 — actuators: DC motors, piezos and hydraulics, matched to their loads'),
+    3: r(`${VAL}/C12_Interrupts.htm`, 'Valvano Chapter 12 — timers and periodic interrupts'),
+    4: r(`${M2737}/mit2_737f14_lab1/`, '2.737 Lab 1 — closing a real-time control loop'),
+    5: r(FBS(393), 'Feedback Systems §11.5 — implementation: sampling, computational delay and jitter'),
+    6: r(`${VAL}/C10_FiniteStateMachines.htm`, 'Valvano Chapter 10 — finite-state machines (Chapter 11 for serial communication)'),
+    7: r(`${VAL}/C9_ArrayFunctionalDebugging.htm`, 'Valvano Chapter 9 — functional debugging (watchdogs and safe states: see the gaps)'),
+    8: r(`${M2737}/mit2_737f14_lab5/`, '2.737 Lab 5 — brushless motor control: an integrated mechatronic system'),
+  },
+  'integrated-mechanical-systems-laboratory': {
+    1: r(`${L2672}/labmanual/`, '2.672 laboratory manual — safety, procedures, configuration and reporting'),
+    2: r(`${DTP}/beam_bending/index.php`, 'DoITPoMS: Bending and Torsion of Beams — the load–strain–deflection experiment and its theory'),
+    3: r(`${L2672}/heat_excha/`, '2.672 Experiment 3 — heat-exchanger tube vibrations: modes and frequency response'),
+    4: r(`${L2672}/prx_heat/`, '2.672 Experiment 1 — proximity heating of a silicon wafer: identifying thermal parameters'),
+    5: r(`${M2737}/mit2_737f14_lab2/`, '2.737 Lab 2 — analogue feedback systems on the bench'),
+    6: r(`${L2672}/trans_line/`, '2.672 Experiment 2 — transfer-line dynamics: synchronised pressure measurements'),
+    7: r(`${L2672}/irri_sys/`, '2.672 Experiment 7 — irrigation pressure surge: tracing an anomaly to its cause'),
+    8: r(`${OCW}/2-672-project-laboratory-spring-2009/pages/reports/`, '2.672 report guidelines and examples — presenting a verification campaign'),
+  },
+  'capstone-design-1-needs-requirements-architecture-prototype': {
+    1: r(`${PDD}/cls4_cstmr_ned/`, '15.783J Session 4 — identifying customer needs (NASA SE Handbook §4.1 for stakeholders)'),
+    2: r(NASA(54), 'NASA Systems Engineering Handbook §4.2 — technical requirements, interfaces and traceability'),
+    3: r(`${PDD}/clas7_cncpt_genr/`, '15.783J Sessions 7 and 9 — specifications, concept generation and selection'),
+    4: r(NASA(65), 'NASA SE Handbook §4.4 — design solution definition, as a preliminary design review examines it'),
+    5: r(`${SAF}/mit16_63js16_lecnotes8/`, '16.63J Lectures 8–9 — hazard analysis, misuse and safety constraints'),
+    6: r(NASA(143), 'NASA SE Handbook §6.5 — configuration management (§6.1 for technical planning)'),
+    7: r(`${PDD}/cls8_prototyping/`, '15.783J Session 8 — prototyping to retire risk'),
+    8: r(NASA(155), 'NASA SE Handbook §6.7 — technical reviews, for the critical design review'),
+  },
+  'robot-mechanics-kinematics-motion-planning': {
+    1: r(MR(77), 'Lynch and Park, Modern Robotics Chapter 3 — rigid-body motions: rotations, transforms and twists (configuration space: Chapter 2)'),
+    2: r(MR(155), 'Modern Robotics Chapter 4 — forward kinematics and the workspace'),
+    3: r(MR(189), 'Modern Robotics Chapter 5 — velocity kinematics, Jacobians, singularities and statics'),
+    4: r(MR(237), 'Modern Robotics Chapter 6 — inverse kinematics'),
+    5: r(MR(289), 'Modern Robotics Chapter 8 — dynamics of open chains, and actuator limits'),
+    6: r(MR(343), 'Modern Robotics Chapter 9 — trajectory generation (Chapter 11 for tracking)'),
+    7: r(MR(371), 'Modern Robotics Chapter 10 — configuration space, collision checking and motion planning'),
+    8: r(MR(479), 'Modern Robotics Chapter 12 — grasping and manipulation, for the mission'),
+  },
+  'aerodynamics-compressible-flow': {
+    1: r(`${A16100}/1liftdrag/`, '16.100 notes — lift and drag from integral momentum, coefficients and similarity'),
+    2: r(`${A16100}/16100lectre13_cg/`, '16.100 Lectures 12–14 — Bernoulli, the Kutta condition and circulation'),
+    3: r(`${A16100}/16100lectre17_cg/`, '16.100 Lectures 15–19 — thin airfoils, Prandtl\'s lifting line and induced drag'),
+    4: r(`${A16100}/8cdnaca/`, '16.100 notes — NACA airfoil data, for checking models against measurements'),
+    5: r(`${A16100}/16100lectre22_cg/`, '16.100 Lectures 21–25 — boundary layers, integral methods and separation'),
+    6: r(`${NGRC}/isentrop.html`, 'NASA Glenn Beginner\'s Guide — isentropic flow and stagnation properties (16.100 Lectures 5–7 for the compressible equations)'),
+    7: r(`${NGRC}/normal.html`, 'NASA Glenn Beginner\'s Guide — normal and oblique shocks, and Prandtl–Meyer expansions'),
+    8: r(`${A16100}/examtakehome2/`, '16.100 take-home exam — the cumulative check (no solutions posted)'),
+  },
+  'advanced-energy-conversion-turbomachinery-combustion-fuel-cells': {
+    1: r(`${E260}/mit2_60s20_lec2/`, '2.60J Lectures 1–2 — energy challenges, and thermodynamic tools for conversion efficiency'),
+    2: r(`${E260}/mit2_60s20_lec15/`, '2.60J Lectures 15–16 — thermo-mechanical conversion (MIT Unified notes Chapter 12 for the Euler turbine equation)'),
+    3: r(`${E260}/mit2_60s20_lec5/`, '2.60J Lectures 5–7 — chemical thermodynamics of combustion'),
+    4: r(`${E260}/mit2_60s20_lec21/`, '2.60J Lecture 21 — energy-system modelling and examples'),
+    5: r(`${E260}/mit2_60s20_lec9/`, '2.60J Lectures 8–10 — electrochemistry, fuel cells and electrolysis'),
+    6: r(`${E260}/mit2_60s20_lec11/`, '2.60J Lecture 11 — batteries and energy storage'),
+    7: r(`${E260}/mit2_60s20_lec22/`, '2.60J Lectures 12, 17, 18 and 22 — solar, geothermal and wind'),
+    8: r(`${E260}/mit2_60s20_lec25/`, '2.60J Lecture 25 — energy storage, for the portfolio'),
   },
 };
