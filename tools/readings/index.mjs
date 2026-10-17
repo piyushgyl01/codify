@@ -10,9 +10,11 @@
 import { MATH_READINGS } from './math.mjs';
 import { PHYS_READINGS } from './phys.mjs';
 import { EE_READINGS } from './ee.mjs';
+import { ME_READINGS } from './me.mjs';
 
 export const READINGS = {
   mathematics: MATH_READINGS,
   physics: PHYS_READINGS,
   'electrical-engineering': EE_READINGS,
+  'mechanical-engineering': ME_READINGS,
 };
