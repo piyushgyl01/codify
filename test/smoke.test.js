@@ -756,6 +756,39 @@ reset();
   ok('each track has its own pace', E.paceOf('cp').months === 4 && E.paceOf('robotics').months === 12);
 }
 
+group('going back to an earlier mission, and starting a track over');
+reset();
+{
+  const d0 = G.dayKey(), at = n => G.addDays(d0, n), rng = Q.seeded(77);
+  const doMission = key => { E.startMission('robotics', key, rng); while (!E.sessionOver()) E.answer(rightAnswer(E.currentQuestion()), rng); return E.finishSession(rng); };
+  doMission(d0); doMission(at(1)); doMission(at(2));
+  ok('three missions done', E.missionsDone('robotics') === 3 && E.mission('robotics', at(3)).n === 4);
+  const levels = JSON.stringify(St.S.tracks.robotics.skills), xp = St.S.xp;
+  ok('you can only go back to a mission you finished', !E.rewindTo('robotics', 4, at(3)) && !E.rewindTo('robotics', 0, at(3)));
+  ok('going back to mission 2 makes it the day\'s mission', E.rewindTo('robotics', 2, at(3))
+    && E.mission('robotics', at(3)).n === 2 && !E.mission('robotics', at(3)).done && E.paceInfo('robotics', at(3)).missionDay);
+  ok('the missions after it open up again', E.missionsDone('robotics') === 1 && !St.S.tracks.robotics.missions[3] && !St.S.tracks.robotics.checks[3]);
+  ok('skill levels and XP stay where they were', JSON.stringify(St.S.tracks.robotics.skills) === levels && St.S.xp === xp);
+  ok('and it can be done again', doMission(at(3)).completed && E.missionsDone('robotics') === 2);
+  ok('earlier missions are listed newest first', E.pastMissions('robotics').map(p => p.n).join() === '2,1');
+
+  St.S.tracks.robotics.builds = { b1: { verified: true } };
+  St.S.tracks.robotics.pace = 6;
+  const before = { xp: St.S.xp, coins: St.S.coins, streak: St.S.streak.current, cp: JSON.stringify(St.S.tracks.cp) };
+  ok('starting robotics over is allowed', St.resetTrack('robotics'));
+  const ro = St.S.tracks.robotics;
+  ok('it clears the missions, skills and checks: mission 1 is next', !Object.keys(ro.missions).length && !Object.keys(ro.skills).length
+    && !Object.keys(ro.checks).length && E.mission('robotics').n === 1);
+  ok('verified builds and the chosen pace stay', ro.builds.b1?.verified && ro.pace === 6);
+  ok('the character keeps its XP, credits and streak', St.S.xp === before.xp && St.S.coins === before.coins && St.S.streak.current === before.streak);
+  ok('its day records and answers are gone, and the other tracks are untouched', Object.values(St.S.days).every(d => !d.robotics)
+    && !(St.S.log || []).some(e => e.tr === 'robotics') && JSON.stringify(St.S.tracks.cp) === before.cp);
+  St.S.tracks.cp.handle = 'tourist'; St.S.tracks.cp.credited.problems = { '1A': d0 };
+  St.resetTrack('cp');
+  ok('starting programming over keeps the Codeforces link and what it already paid for', St.S.tracks.cp.handle === 'tourist' && St.S.tracks.cp.credited.problems['1A'] === d0);
+  ok('an unknown track is refused', !St.resetTrack('nope'));
+}
+
 group('learn with AI: the tutor prompt');
 {
   const TU = await import('../js/learn/tutor.js');

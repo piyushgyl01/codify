@@ -291,6 +291,33 @@ export function resetSave() {
   emit('reset');
 }
 
+/**
+ * Start one track over from today: its missions, skill levels, checks, bosses
+ * and reading go back to the beginning. What an outside service verified —
+ * Codeforces solves, builds on GitHub or Hugging Face — stays, so it is never
+ * paid for twice, and so does the pace you chose. The character keeps its
+ * level, credits, streak, gear and achievements.
+ */
+const KEEP_ON_RESET = {
+  cp: ['handle', 'rating', 'rank', 'avatar', 'solved', 'syncedAt', 'error', 'credited', 'dailySolves', 'pace'],
+  robotics: ['builds', 'pace'],
+  ai: ['builds', 'frontier', 'frontierRepo', 'hf', 'pace'],
+};
+const FRESH_TRACK = { cp: freshCp, robotics: freshRobotics, ai: freshAi };
+
+export function resetTrack(id) {
+  if (!TRACK_IDS.includes(id)) return false;
+  const old = S.tracks[id] || {}, keep = KEEP_ON_RESET[id] || ['hours'];
+  const fresh = FRESH_TRACK[id] ? FRESH_TRACK[id]() : freshDegree(dayKey());
+  S.tracks[id] = { ...fresh, ...Object.fromEntries(keep.filter(k => k in old).map(k => [k, old[k]])) };
+  const field = { robotics: 'robotics', cp: 'code' }[id] || id;   // where the track keeps its day counters
+  for (const day of Object.values(S.days)) delete day[field];
+  S.log = (S.log || []).filter(e => e.tr !== id);
+  if (S.active?.track === id) S.active = null;
+  emit('track-reset', { id });
+  return true;
+}
+
 export const exportSave = () => JSON.stringify(S, null, 2);
 export const backupFilename = () => `codify-backup-${today()}.json`;
 export function markBackup() { S.backupAt = Date.now(); save(); }

@@ -172,7 +172,7 @@ export function openLearn(n, rerender) {
 /* ---------------------------------- wiring -------------------------------- */
 
 export function mountMission(root, rerender) {
-  Parts.mountParts(root, T, rerender);
+  Parts.mountParts(root, T, rerender, { learn: n => openLearn(n, rerender), title: missionTitle });
   root.querySelectorAll('[data-mission-learn]').forEach(el => { el.onclick = () => openLearn(mission().n, rerender); });
   root.querySelectorAll('.m-steps [data-build]').forEach(el => { el.onclick = () => openBuild(el.dataset.build, rerender); });
   root.querySelectorAll('.m-steps [data-boss]').forEach(el => { el.onclick = () => openBoss(+el.dataset.boss, rerender); });

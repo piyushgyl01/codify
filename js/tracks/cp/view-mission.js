@@ -170,7 +170,7 @@ function openFind(m) {
 /* ---------------------------------- wiring -------------------------------- */
 
 export function mountMission(root, rerender) {
-  Parts.mountParts(root, T, rerender);
+  Parts.mountParts(root, T, rerender, { learn: n => openLearn(missionAt(n)), title: missionTitle });
   root.querySelectorAll('[data-cp-learn]').forEach(el => { el.onclick = () => openLearn(mission()); });
   root.querySelectorAll('[data-cp-find]').forEach(el => { el.onclick = () => openFind(mission()); });
   root.querySelectorAll('[data-cp-find-prev]').forEach(el => { el.onclick = () => { const m = mission(); openFind({ ...missionAt(m.n - 1), count: 1 }); }; });

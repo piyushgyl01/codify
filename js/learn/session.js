@@ -204,6 +204,38 @@ export function completeMission(track, n, key, info = {}) {
   return true;
 }
 
+/** Finished and tested-out missions, newest first: what you can look back at or go back to. */
+export function pastMissions(track) {
+  const r = slice(track);
+  const done = Object.entries(r.missions || {}).map(([n, day]) => ({ n: +n, day, check: r.checks?.[n] || null, skipped: false }));
+  const skipped = Object.entries(r.skipped || {}).map(([n, day]) => ({ n: +n, day, check: null, skipped: true }));
+  return [...done, ...skipped].sort((a, b) => b.n - a.n);
+}
+
+/**
+ * Go back to mission n: it and every mission after it are open again, and n
+ * is due today. Skill levels, XP, scores, bosses won and builds stay — only
+ * the plan's pointer moves. A week tested out of from n on can be tested again.
+ */
+export function rewindTo(track, n, key = today()) {
+  const cfg = TRACKS[track], r = slice(track);
+  if (!cfg?.plan || !(n >= 1 && n <= cfg.plan.length) || !P.isComplete(r, n)) return false;
+  const before = o => Object.fromEntries(Object.entries(o || {}).filter(([k]) => +k < n));
+  r.missions = before(r.missions);
+  r.skipped = before(r.skipped);
+  r.checks = before(r.checks);
+  const week = cfg.plan[n - 1].week;
+  r.testouts = Object.fromEntries(Object.entries(r.testouts || {}).filter(([w]) => +w < week));
+  const c = counters(track, key);
+  if (c.mission?.n >= n) c.mission = null;
+  if (c.check?.n >= n) c.check = null;
+  if (S.active?.track === track && ['mission', 'testout'].includes(S.active.mode)) S.active = null;
+  // Count the pace from today, so the reopened mission is today's.
+  r.paceSince = { day: key, done: P.missionsDone(r) };
+  emit('mission', { track, n, rewound: true });
+  return true;
+}
+
 /* --------------------------------- review --------------------------------- */
 
 /** What a keep-going day's review asks: whatever is due, else the weakest skills you have started. */

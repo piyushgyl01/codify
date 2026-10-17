@@ -203,7 +203,7 @@ function openFrontierTutor(m) {
 /* ---------------------------------- wiring -------------------------------- */
 
 export function mountMission(root, rerender) {
-  Parts.mountParts(root, T, rerender);
+  Parts.mountParts(root, T, rerender, { learn: n => openLearn(missionAt(n), rerender), title: missionTitle });
   const m = mission();
   root.querySelectorAll('[data-ai-learn]').forEach(el => {
     el.onclick = () => (m.frontier ? (frontierFor(m.n) ? openFrontierTutor(m) : (openTab('new'), go('ai'), rerender())) : openLearn(m, rerender));

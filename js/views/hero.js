@@ -3,6 +3,7 @@ import {
   S, THEMES, ownsTheme, buyTheme, selectTheme, buyFreeze, FREEZE_COST, progress, gearBonus, statsSnapshot,
   saveProfile, trackOn, TRACK_IDS, resetSave, exportSave, importSave, importBotify, describeSave,
   priorSave, undoImport, backupFilename, markBackup, saveHealthy, linkGithub, unlinkGithub, dayIsActive, DEGREE_IDS,
+  resetTrack, enabledTracks,
 } from '../state.js';
 import { ACHIEVEMENTS } from '../data/achievements.js';
 import { LOOT, RARITY, LOOT_CAP } from '../data/loot.js';
@@ -189,8 +190,55 @@ function settings() {
       <button class="pill ${S.settings.reduceMotion ? 'on' : ''}" data-act="motion">${S.settings.reduceMotion ? 'On' : 'Off'}</button></div></div>
     ${isInstalled() ? '' : `<button class="card tap pad-s" data-act="install"><div class="between"><div><div class="h3">Install the app</div>
       <div class="tiny">Home screen, full screen, works offline.</div></div><span>›</span></div></button>`}
+    <button class="card tap pad-s" data-act="reset"><div class="between"><div><div class="h3">Reset progress</div>
+      <div class="tiny">Start one track over, or everything</div></div><span>›</span></div></button>
   </div>`;
 }
+
+/** What starting a track over keeps, in a line. */
+const KEPT = {
+  cp: 'Your Codeforces link and solves stay, so they are not paid twice.',
+  robotics: 'Builds verified on GitHub stay, so they are not paid twice.',
+  ai: 'Builds verified on GitHub or Hugging Face stay, so they are not paid twice.',
+};
+
+function openReset(rerender) {
+  const rows = enabledTracks().map(id => {
+    const t = trackById(id);
+    return `<div class="reset-row"><span class="track-ico">${t.icon}</span>
+      <div class="grow"><div class="h3">${esc(t.name)}</div><div class="tiny">${isDegreeId(id) ? 'Back to the first course' : 'Back to mission 1'}, starting today</div></div>
+      <button class="btn sm" data-reset-track="${id}">Start over</button></div>`;
+  }).join('');
+  sheet('Reset progress', `<p class="sub">Start a track over from mission 1, or wipe everything. Your level, credits, streak and achievements stay when you restart a single track.</p>
+    <div class="card flush" style="margin-top:14px">${rows}</div>
+    <button class="card tap pad-s danger" style="margin-top:16px;width:100%;text-align:left" data-reset-all>
+      <div class="h3">Reset everything</div><div class="tiny">Deletes all progress on this device: every track, level, streak and credit.</div></button>`,
+    (el, close) => {
+      el.querySelectorAll('[data-reset-track]').forEach(b => {
+        b.onclick = () => {
+          const id = b.dataset.resetTrack, t = trackById(id);
+          dialog(`<div class="h2">Start ${esc(t.name)} over?</div>
+            <p class="sub" style="margin:10px 0 18px">${isDegreeId(id) ? 'Its units, courses, checks and skill levels' : 'Its missions, skill levels, checks, bosses and reading'} go back to the start, from today.
+              ${KEPT[id] || ''} Your level, credits, streak and achievements stay. Download a backup first if you are unsure.</p>
+            <button class="btn hot block" data-yes>Start ${esc(t.name)} over</button>
+            <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep my progress</button>`,
+            (d, closeDialog) => {
+              d.querySelector('[data-no]').onclick = closeDialog;
+              d.querySelector('[data-yes]').onclick = () => { closeDialog(); close(); resetTrack(id); toast(`${esc(t.name)} starts again from the beginning.`); rerender(); };
+            });
+        };
+      });
+      el.querySelector('[data-reset-all]').onclick = () => dialog(`<div class="h2">Reset everything?</div>
+        <p class="sub" style="margin:10px 0 18px">Every level, streak, solve record and build on this device goes. Download a backup first if you are unsure.</p>
+        <button class="btn hot block" data-yes>Delete my progress</button>
+        <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep it</button>`,
+        (d, closeDialog) => {
+          d.querySelector('[data-no]').onclick = closeDialog;
+          d.querySelector('[data-yes]').onclick = () => { closeDialog(); close(); resetSave(); location.reload(); };
+        });
+    });
+}
+const isDegreeId = id => DEGREE_IDS.includes(id);
 
 /* --------------------------------- sheets --------------------------------- */
 
@@ -455,7 +503,6 @@ export function render() {
     ${trackOn('robotics') ? `<div class="card sunk credits"><div class="label">Credits</div>
       <div class="sub" style="margin-top:6px">The robotics roadmap — every month, task, resource and price — is from
         <a href="${esc(SOURCE.url)}" target="_blank" rel="noopener">“${esc(SOURCE.title)}” by ${esc(SOURCE.author)}</a>, summarised in shorter words.</div></div>` : ''}
-    <button class="card tap pad-s danger" data-act="reset"><div class="h3">Reset everything</div><div class="tiny">Deletes all progress on this device.</div></button>
     <div class="tiny center">Codify ${APP_VERSION} · ${TRACK_IDS.length} tracks</div>
   </div>`;
 }
@@ -478,14 +525,7 @@ export function mount(root, rerender) {
       sheet('Install Codify', `<p class="sub">On iPhone: Share → Add to Home Screen. On Android Chrome: menu → Install app.
         On desktop Chrome or Edge: the install icon in the address bar.</p>`);
     },
-    reset: () => dialog(`<div class="h2">Reset everything?</div>
-      <p class="sub" style="margin:10px 0 18px">Every level, streak, solve record and build on this device goes. Download a backup first if you are unsure.</p>
-      <button class="btn hot block" data-yes>Delete my progress</button>
-      <button class="btn ghost block sm" style="margin-top:8px" data-no>Keep it</button>`,
-      (d, close) => {
-        d.querySelector('[data-no]').onclick = close;
-        d.querySelector('[data-yes]').onclick = () => { close(); resetSave(); location.reload(); };
-      }),
+    reset:   () => openReset(rerender),
   });
   root.querySelectorAll('[data-theme]').forEach(b => {
     b.onclick = () => {

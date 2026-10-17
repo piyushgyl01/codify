@@ -759,6 +759,18 @@ details.explain > summary { padding: var(--s3); }
   border-radius: var(--radius-s);
 }
 .m-early .btn { flex: none; }
+
+/* Earlier missions: the way back a day, and the list it opens. */
+.back-day { display: inline-flex; align-items: center; gap: 2px; flex: none; background: none; border: 0; padding: 4px 0;
+  font-size: 12px; font-weight: 800; color: var(--ink); text-decoration: underline; min-height: 32px; cursor: pointer; }
+.hist-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px var(--s3); border-bottom: var(--line-thin) solid var(--ink); }
+.hist-row:last-child { border-bottom: 0; }
+.hist-row .h3 { font-size: 14px; line-height: 1.3; }
+.hist-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.reset-row { display: flex; align-items: center; gap: 12px; padding: 12px var(--s3); border-bottom: var(--line-thin) solid var(--ink); }
+.reset-row:last-child { border-bottom: 0; }
+.reset-row .btn { flex: none; }
+.reset-row .track-ico { font-size: 22px; flex: none; }
 .tutor-card { background: var(--cyan); margin-top: 14px; }
 .tutor-card .tiny { color: var(--ink); }
 .tutor-peek { margin-top: 10px; }

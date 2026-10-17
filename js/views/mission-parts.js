@@ -7,7 +7,7 @@ import { S, today } from '../state.js';
 import * as E from '../learn/session.js';
 import { skillById } from '../skillbook.js';
 import { roundFor, levelOf, addDays } from '../game.js';
-import { esc, bar, shortDate, toast } from '../ui.js';
+import { esc, bar, shortDate, toast, sheet, dialog } from '../ui.js';
 import { lineChart } from '../charts.js';
 import { icon } from '../icons.js';
 import { openMission, openTestOut, openReview, resumeSession } from './player.js';
@@ -24,11 +24,55 @@ export function header(track, m, month, { keepGoing = false } = {}) {
   const total = E.trackCfg(track).plan.length, done = E.missionsDone(track) + E.missionsSkipped(track);
   const pace = E.paceInfo(track);
   const when = m.done ? 'Done today' : keepGoing ? 'Keep-going day' : 'Today';
+  const back = done ? `<button class="back-day" data-history>${icon('back', 14).value} Earlier missions</button>` : '';
   return `<div class="between"><span class="label">${when} · ${esc(month.level)}</span>
       <span class="badge" style="background:${month.color}">${month.icon} ${esc(month.short)}</span></div>
     <div class="h2" style="margin-top:6px">${keepGoing ? `Next: mission ${m.n} of ${total}` : `Mission ${m.n} of ${total}`}</div>
     <div style="margin-top:10px">${bar((done / total) * 100, { color: 'var(--ink)' })}</div>
-    <div class="tiny" style="margin-top:4px">${done} of ${total} done · ${pace.months}-month pace, finished ${esc(shortDate(pace.finish))}</div>`;
+    <div class="between" style="margin-top:4px"><span class="tiny">${done} of ${total} done · ${pace.months}-month pace, finished ${esc(shortDate(pace.finish))}</span>${back}</div>`;
+}
+
+/**
+ * Look back at earlier missions: read one again, or go back to it. Going back
+ * reopens it and everything after it; levels, XP and builds stay.
+ * `learn(n)` opens a mission's Learn sheet, when the track has one for it.
+ */
+export function openHistory(track, rerender, { learn = null, title = x => x.learn || `Mission ${x.n}` } = {}) {
+  const cfg = E.trackCfg(track), past = E.pastMissions(track).slice(0, 15);
+  const row = p => {
+    const x = cfg.plan[p.n - 1];
+    const result = p.skipped ? 'tested out' : p.check ? `${p.check.score}/${p.check.total} right` : 'done';
+    const canRead = learn && !x.boss && !x.frontier && x.learn;
+    return `<div class="hist-row">
+      <span class="up-n">${p.n}</span>
+      <div class="grow"><div class="h3">${esc(title(x))}</div>
+        <div class="tiny">${esc(shortDate(p.day))} · ${result}</div>
+        <div class="hist-acts">${canRead ? `<button class="btn sm" data-read-n="${p.n}">Read again</button>` : ''}
+          <button class="btn sm" data-back-n="${p.n}">Go back here</button></div></div>
+    </div>`;
+  };
+  sheet('Earlier missions', `<p class="sub">Read a mission again, or go back to it. Going back to a mission makes it today's again, and reopens the ones after it.
+      Your skill levels, XP, bosses beaten and builds all stay.</p>
+    <div class="card flush" style="margin-top:14px">${past.map(row).join('')}</div>`, (el, close) => {
+    el.querySelectorAll('[data-read-n]').forEach(b => { b.onclick = () => { close(); learn(+b.dataset.readN); }; });
+    el.querySelectorAll('[data-back-n]').forEach(b => {
+      b.onclick = () => {
+        const n = +b.dataset.backN, later = past.filter(p => p.n > n).length;
+        dialog(`<div class="h2">Go back to mission ${n}?</div>
+          <p class="sub" style="margin:10px 0 18px">Mission ${n} becomes today's mission${later ? `, and the ${later} after it open up again` : ''}.
+            Nothing you earned is taken away: skill levels, XP, bosses and builds stay.</p>
+          <button class="btn primary block" data-yes>Go back</button>
+          <button class="btn ghost block sm" style="margin-top:8px" data-no>Cancel</button>`, (d, closeDialog) => {
+          d.querySelector('[data-no]').onclick = closeDialog;
+          d.querySelector('[data-yes]').onclick = () => {
+            closeDialog(); close();
+            if (E.rewindTo(track, n)) toast(`Back to mission ${n}. It is today's mission now.`);
+            rerender();
+          };
+        });
+      };
+    });
+  });
 }
 
 /**
@@ -206,7 +250,8 @@ export function mountTutor(el, prompt) {
   };
 }
 
-export function mountParts(root, track, rerender) {
+export function mountParts(root, track, rerender, history = {}) {
+  root.querySelectorAll('[data-history]').forEach(el => { el.onclick = () => openHistory(track, rerender, history); });
   root.querySelectorAll('[data-mission]').forEach(el => {
     const a = el.dataset.mission;
     if (a === 'start') el.onclick = () => openMission(track, rerender);
