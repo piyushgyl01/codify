@@ -26,6 +26,13 @@ const LIEC = 'https://www.ibiblio.org/kuphaldt/electricCircuits';
 const ES = 'https://engineeringstatics.org';
 const DTP = 'https://www.doitpoms.ac.uk/tlplib';
 const M2008 = `${OCW}/2-008-design-and-manufacturing-ii-spring-2025/resources`;
+const D2003 = `${OCW}/2-003sc-engineering-dynamics-fall-2011/pages`;
+const S2001 = `${OCW}/2-001-mechanics-materials-i-fall-2006/resources`;
+const U16 = 'https://web.mit.edu/16.unified/www/FALL/thermodynamics/notes';
+const YAN = 'https://eng.libretexts.org/Bookshelves/Mechanical_Engineering/Introduction_to_Engineering_Thermodynamics_(Yan)';
+const F1060 = `${OCW}/1-060-engineering-mechanics-ii-spring-2006/resources`;
+const F225 = `${OCW}/2-25-advanced-fluid-mechanics-fall-2013/pages`;
+const C6002 = `${OCW}/6-002-circuits-and-electronics-spring-2007/resources`;
 
 export const ME_READINGS = {
   'engineering-calculus-1': {
@@ -127,5 +134,55 @@ export const ME_READINGS = {
     6: r(`${M2008}/mit2_008_s25_lec23_pdf/`, '2.008 Lecture 23, with Lectures 2–4 — additive manufacturing, injection moulding and thermoforming'),
     7: r(`${M2008}/mit2_008_s25_lec11_pdf/`, '2.008 Lecture 11 — defining and measuring quality: tolerances, variation and metrology'),
     8: r(`${M2008}/mit2_008_s25_lec12_pdf/`, '2.008 Lecture 12 — statistical process control and capability, for the inspection plan'),
+  },
+  'rigid-body-dynamics-mechanical-vibrations': {
+    1: r(`${D2003}/velocity-acceleration-and-rotational-motion/`, '2.003SC Lectures 3–4 — velocity and acceleration in rotating frames and polar coordinates'),
+    2: r(`${D2003}/angular-momentum-and-torque/`, '2.003SC Lectures 5–6 — impulse, momentum, torque and angular momentum for systems of particles'),
+    3: r(`${D2003}/newton2019s-laws-vectors-and-reference-frames/`, '2.003SC Lectures 1–2 and 7–8 — relative motion in moving frames, degrees of freedom and free-body diagrams'),
+    4: r(`${D2003}/angular-momentum-and-rotating-masses/`, '2.003SC Lectures 9–10 — rotating imbalance and rigid-body equations of motion'),
+    5: r(`${D2003}/finding-equations-of-motion-for-rigid-body-rotation/`, '2.003SC Lectures 11–15 — mass moments of inertia, rigid-body equations of motion and Lagrange\'s method'),
+    6: r(`${D2003}/mechanical-vibration/`, '2.003SC Lectures 19–20 — free and forced single-degree-of-freedom vibration'),
+    7: r(`${D2003}/reducing-problem-vibration-and-intro-to-multi-dof-vibration/`, '2.003SC Lectures 21–26 — vibration isolation, two-degree-of-freedom modes and mode superposition'),
+    8: r(`${D2003}/final-exam/`, '2.003SC final exam with solutions — the cumulative check'),
+  },
+  'mechanics-materials-solid-structures': {
+    1: r(`${S2001}/lec8/`, '2.001 Lecture 8 — uniaxial loading, material properties and safety factors'),
+    2: r(`${S2001}/lec7/`, '2.001 Lectures 7 and 15 — static indeterminacy and stress–strain–temperature relations'),
+    3: r(`${S2001}/lec22/`, '2.001 Lectures 24–25 — torsion of shafts'),
+    4: r(`${S2001}/lec20/`, '2.001 Lectures 20–22 — pure bending, moment–curvature and beam deflection'),
+    5: r(`${S2001}/lec5/`, '2.001 Lectures 5–6 and 26–27 — shear and moment diagrams, and energy methods'),
+    6: r(`${S2001}/lec15/`, '2.001 Lectures 16–18 — stress transformation, principal stresses and failure criteria'),
+    7: r(`${OCW}/16-001-unified-engineering-materials-and-structures-fall-2021/resources/mit16_001_f21_lec33lec34lec35_pdf/`, '16.001 lectures on buckling (2.001 stops before columns; fatigue and fracture: see the gaps)'),
+    8: r(`${S2001}/lec25/`, '2.001 Lecture 27 — worked examples for sizing a component'),
+  },
+  'engineering-thermodynamics': {
+    1: r(`${YAN}/03%3A_Ideal_and_Real_Gasses`, 'Yan, Introduction to Engineering Thermodynamics, Chapters 1–3 — systems, properties, phases and equations of state'),
+    2: r(`${YAN}/04%3A_The_First_Law_of_Thermodynamics_for_Closed_Systems`, 'Yan Chapter 4 — work, heat and the first law for closed systems'),
+    3: r(`${YAN}/05%3A_The_First_Law_of_Thermodynamics_for_a_Control_Volume`, 'Yan Chapter 5 — mass and energy balances for control volumes'),
+    4: r(`${U16}/node22.html`, 'MIT Unified Thermodynamics notes Chapter 3 — the first law applied to engineering cycles'),
+    5: r(`${U16}/node36.html`, 'MIT Unified Thermodynamics notes Chapters 5–6 — entropy, irreversibility and lost work'),
+    6: r(`${U16}/node65.html`, 'MIT Unified Thermodynamics notes Sections 3.3–3.7 and 8.5–8.7 — Carnot, refrigeration, Otto, Diesel, Brayton and Rankine cycles'),
+    7: r(`${U16}/node108.html`, 'MIT Unified Thermodynamics notes Chapter 15 — fuels, fuel–air ratio and combustion (psychrometrics: see the gaps)'),
+    8: r(`${OCW}/res-2-008-thermodynamics-and-climate-change-summer-2020/pages/problem-sets/`, 'RES.2-008 problem sets with solutions — the catalogued resource\'s cumulative check'),
+  },
+  'fluid-mechanics': {
+    1: r(`${F1060}/lecture3/`, '1.060 Lectures 1 and 3–4 — fluid properties, hydrostatics, manometry and forces on surfaces'),
+    2: r(`${F1060}/lecture2/`, '1.060 Lectures 2 and 5–6 — describing flow, streamlines and conservation of mass'),
+    3: r(`${F1060}/lecture10/`, '1.060 Lectures 7–13 — Bernoulli, and control-volume momentum and energy'),
+    4: r(`${F1060}/lecture16/`, '1.060 Lecture 16 — pipe friction, the Moody diagram and minor losses'),
+    5: r(`${F225}/dimensional-analysis/`, '2.25 — dimensional analysis and similarity'),
+    6: r(`${F1060}/lecture17/`, '1.060 Lectures 14–15 and 17 — laminar flow, turbulence and pipe networks'),
+    7: r(`${F225}/boundary-layers-separation-and-drag/`, '2.25 — boundary layers, separation and drag (1.060 Lectures 18–21 for pumps, turbines and lift)'),
+    8: r(`${F1060}/lecture18/`, '1.060 Lecture 18 — matching a pump to its system: the design check'),
+  },
+  'electronics-sensors-data-acquisition': {
+    1: r(`${C6002}/6002_l2/`, '6.002 Lectures 2–3 — KCL, KVL, Thévenin equivalents and loading'),
+    2: r(`${C6002}/6002_l20/`, '6.002 Lectures 19–20 — the op-amp abstraction and signal-conditioning circuits'),
+    3: r(`${C6002}/6002_l18/`, '6.002 Lectures 12 and 16–18 — first-order circuits, sinusoidal steady state and filters'),
+    4: r('https://www.itl.nist.gov/div898/handbook/mpc/section3/mpc3.htm', 'NIST/SEMATECH e-Handbook §2.3 — calibration and its uncertainty'),
+    5: r(`${LIEC}/DC/DC_9.html`, 'Lessons in Electric Circuits Vol. I Chapter 9 — sensors, bridges and instrumentation signals'),
+    6: r(`${LIEC}/Digital/DIGI_13.html`, 'Lessons in Electric Circuits Vol. IV Chapter 13 — sampling, ADCs and quantisation'),
+    7: r('https://www.ti.com/lit/an/slva043b/slva043b.pdf', 'Texas Instruments SLVA043B — noise analysis in op-amp circuits (grounding and protection: see the gaps)'),
+    8: r(`${OCW}/6-002-circuits-and-electronics-spring-2007/pages/exams/`, '6.002 quizzes and final — the cumulative check (no solutions are posted)'),
   },
 };
