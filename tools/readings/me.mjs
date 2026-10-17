@@ -17,6 +17,15 @@ const P0002 = `${OCW}/6-0002-introduction-to-computational-thinking-and-data-sci
 const TTW = 'https://book.the-turing-way.org/reproducible-research';
 const D2007 = `${OCW}/2-007-design-and-manufacturing-i-spring-2009/resources`;
 const EGD = 'https://uw.pressbooks.pub/enggraphics/chapter';
+const C2 = `${OCW}/18-02sc-multivariable-calculus-fall-2010/pages`;
+const LA06 = `${OCW}/18-06sc-linear-algebra-fall-2011/pages`;
+const C1803 = `${OCW}/18-03sc-differential-equations-fall-2011/pages`;
+const T802 = `${OCW}/8-02-physics-ii-electricity-and-magnetism-spring-2007/resources`;
+const X802 = `${OCW}/8-02x-physics-ii-electricity-magnetism-with-an-experimental-focus-spring-2005/pages/exams/`;
+const LIEC = 'https://www.ibiblio.org/kuphaldt/electricCircuits';
+const ES = 'https://engineeringstatics.org';
+const DTP = 'https://www.doitpoms.ac.uk/tlplib';
+const M2008 = `${OCW}/2-008-design-and-manufacturing-ii-spring-2025/resources`;
 
 export const ME_READINGS = {
   'engineering-calculus-1': {
@@ -68,5 +77,55 @@ export const ME_READINGS = {
     6: r(`${D2007}/mit2_007s09_rec05_frdparrc/`, '2.007 Recitation 5 — FRDPARRC tables for generating and comparing concepts (Recitation 7 for the Pugh-chart review)'),
     7: r(`${OCW}/2-670-mechanical-engineering-tools-january-iap-2004/pages/tutorials/`, 'MIT 2.670 shop tutorials — measurement, layout and safe use of the saw, drill, lathe and mill for prototypes'),
     8: r(`${D2007}/mit2_007s09_rec06_dr1/`, '2.007 design-review notes — what a complete design package must show'),
+  },
+  'multivariable-calculus-vector-analysis': {
+    1: r(`${C2}/1.-vectors-and-matrices/part-a-vectors-determinants-and-planes/session-1-vectors/`, '18.02SC Sessions 1–8 — vectors, dot and cross products, planes and coordinates'),
+    2: r(`${C2}/1.-vectors-and-matrices/part-c-parametric-equations-for-curves/session-19-velocity-and-acceleration/`, '18.02SC Sessions 15–21 — parametric curves, velocity, acceleration and arc length'),
+    3: r(`${C2}/2.-partial-derivatives/part-a-functions-of-two-variables-tangent-approximation-and-optimization/session-26-partial-derivatives/`, '18.02SC Sessions 24–27 and 32–38 — partial derivatives, tangent planes, gradient and directional derivatives'),
+    4: r(`${C2}/2.-partial-derivatives/part-c-lagrange-multipliers-and-constrained-differentials/session-39-statement-of-lagrange-multipliers-and-example/`, '18.02SC Sessions 28–30 and 39–41 — optimisation and Lagrange multipliers'),
+    5: r(`${C2}/3.-double-integrals-and-line-integrals-in-the-plane/part-a-double-integrals/session-51-applications-mass-and-average-value/`, '18.02SC Sessions 47–52 and 74–78 — double and triple integrals for mass, centroids and moments of inertia'),
+    6: r(`${C2}/3.-double-integrals-and-line-integrals-in-the-plane/part-b-vector-fields-and-line-integrals/session-57-work-and-line-integrals/`, '18.02SC Sessions 56–64 — vector fields, work, circulation and potentials'),
+    7: r(`${C2}/3.-double-integrals-and-line-integrals-in-the-plane/part-c-greens-theorem/session-65-greens-theorem/`, '18.02SC Sessions 65–72 and 79–95 — Green\'s, divergence and Stokes\' theorems'),
+    8: r(`${C2}/4.-triple-integrals-and-surface-integrals-in-3-space/exam-4/practice-exam/`, '18.02SC Exam 4 practice exam with solutions — the cumulative check'),
+  },
+  'linear-algebra-differential-equations-numerical-methods': {
+    1: r(`${LA06}/ax-b-and-the-four-subspaces/elimination-with-matrices/`, '18.06SC — elimination, rank and the four subspaces (conditioning: see the gaps)'),
+    2: r(`${LA06}/least-squares-determinants-and-eigenvalues/projection-matrices-and-least-squares/`, '18.06SC — bases, projections and least squares'),
+    3: r(`${C1803}/unit-iv-first-order-systems/matrix-exponentials/`, '18.03SC Unit IV — eigenvalues, normal modes and matrix exponentials'),
+    4: r(`${C1803}/unit-i-first-order-differential-equations/numerical-methods/`, '18.03SC Unit I — numerical methods for ODEs and how their error shrinks'),
+    5: r(`${C1803}/unit-iv-first-order-systems/qualitative-behavior-phase-portraits/`, '18.03SC Unit IV — first-order systems and phase portraits'),
+    6: r(`${C1803}/unit-ii-second-order-constant-coefficient-linear-equations/frequency-response-and-practical-resonance/`, '18.03SC Unit II — damping, frequency response and resonance'),
+    7: r(`${C1803}/unit-iii-fourier-series-and-laplace-transform/laplace-transform-solving-initial-value-problems/`, '18.03SC Unit III — Laplace transforms (discretisation and stability: see the gaps)'),
+    8: r(`${C1803}/final-exam/`, '18.03SC final exam with solutions — the cumulative check'),
+  },
+  'university-physics-2-electricity-magnetism-circuits': {
+    1: r(`${T802}/chap2coulomb_law/`, '8.02 course notes Chapters 1–2 — fields and Coulomb\'s law (the catalogued 2019 8.02 only points to edX)'),
+    2: r(`${T802}/ch3electri_poten/`, '8.02 course notes Chapters 3–5 — potential, conductors and capacitance'),
+    3: r(`${T802}/chap7dc_circuits/`, '8.02 course notes Chapters 6–7 — current, resistance and DC circuits'),
+    4: r(`${LIEC}/DC/DC_16.html`, 'Lessons in Electric Circuits Vol. I Chapter 16 — RC and L/R time constants, for a safe low-voltage measurement'),
+    5: r(`${T802}/ch8magneti_field/`, '8.02 course notes Chapters 8–9 — magnetic forces, torque on current loops, and sources of field'),
+    6: r(`${T802}/cha10faraday_law/`, '8.02 course notes Chapters 10–11 — Faraday\'s law, inductance and magnetic energy'),
+    7: r(`${T802}/chapte13em_waves/`, '8.02 course notes Chapter 13 — Maxwell\'s equations and electromagnetic waves'),
+    8: r(X802, '8.02X exams with solutions — the cumulative check'),
+  },
+  'statics-structural-equilibrium': {
+    1: r(`${ES}/moment-of-force.html`, 'Engineering Statics Chapters 2 and 4 — force vectors, moments, couples and equivalent systems'),
+    2: r(`${ES}/Chapter_05-free-body-diagrams.html`, 'Engineering Statics Chapters 3 and 5 — free-body diagrams, and particle and rigid-body equilibrium'),
+    3: r(`${ES}/distributed-loads.html`, 'Engineering Statics Chapter 7 — centroids, composite parts and distributed loads'),
+    4: r(`${ES}/method-of-joints.html`, 'Engineering Statics Sections 6.3–6.5 — trusses by the method of joints and of sections'),
+    5: r(`${ES}/frames-and-machines.html`, 'Engineering Statics Section 6.6 and Chapter 8 — frames, machines, internal forces and shear–moment diagrams'),
+    6: r(`${ES}/Chapter_09-dry-friction.html`, 'Engineering Statics Chapter 9 — dry friction, wedges, screws and belts'),
+    7: r(`${ES}/Chapter_10-moment-of-inertia-of-composite-shapes.html`, 'Engineering Statics Chapter 10 — area and mass moments of inertia, composite shapes and the parallel-axis theorem'),
+    8: r(`${ES}/Chapter_05-stability-and-determinacy.html`, 'Engineering Statics Section 5.6 — stability and determinacy: can the idealised structure stand, and be solved?'),
+  },
+  'materials-manufacturing-metrology': {
+    1: r(`${DTP}/mechanical_testing_metals/index.php`, 'DoITPoMS: Mechanical Testing of Metals — tensile curves, hardness and toughness tests'),
+    2: r(`${DTP}/jominy/index.php`, 'DoITPoMS: The Jominy End Quench Test — heat treatment, hardenability and microstructure'),
+    3: r(`${OCW}/3-044-materials-processing-spring-2013/resources/mit3_044s13_lec09/`, '3.044 Lectures 8–9 and 20 — solidification in moulds, casting routes and powder processing (2.008 Lectures 9–10 and 20 for joining and forming)'),
+    4: r(`${M2008}/mit2_008_s25_lec17_pdf/`, '2.008 Lectures 16–17 — planning a manufacturing route and estimating its cost'),
+    5: r(`${M2008}/mit2_008_s25_lec05_pdf/`, '2.008 Lectures 5–7 — cutting mechanics, forces and power, and machining in practice'),
+    6: r(`${M2008}/mit2_008_s25_lec23_pdf/`, '2.008 Lecture 23, with Lectures 2–4 — additive manufacturing, injection moulding and thermoforming'),
+    7: r(`${M2008}/mit2_008_s25_lec11_pdf/`, '2.008 Lecture 11 — defining and measuring quality: tolerances, variation and metrology'),
+    8: r(`${M2008}/mit2_008_s25_lec12_pdf/`, '2.008 Lecture 12 — statistical process control and capability, for the inspection plan'),
   },
 };

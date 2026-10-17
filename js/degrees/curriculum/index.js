@@ -29,6 +29,7 @@ import { EE_TERM3 } from './ee-term3.js';
 import { EE_TERM4 } from './ee-term4.js';
 import { EE_TERM5 } from './ee-term5.js';
 import { ME_TERM0 } from './me-term0.js';
+import { ME_TERM1 } from './me-term1.js';
 
 /**
  * Courses outside CS have no rubric in the catalog, so their design carries one
@@ -44,7 +45,7 @@ export const CURRICULUM = {
   math: anchored({ ...MATH_TERM0, ...MATH_TERM1, ...MATH_TERM2, ...MATH_TERM3, ...MATH_TERM4, ...MATH_TERM5 }),
   phys: anchored({ ...PHYS_TERM0, ...PHYS_TERM1, ...PHYS_TERM2, ...PHYS_TERM3, ...PHYS_TERM4, ...PHYS_TERM5 }),
   ee: anchored({ ...EE_TERM0, ...EE_TERM1, ...EE_TERM2, ...EE_TERM3, ...EE_TERM4, ...EE_TERM5 }),
-  me: anchored({ ...ME_TERM0 }),
+  me: anchored({ ...ME_TERM0, ...ME_TERM1 }),
 };
 
 export const curriculumFor = (degreeId, courseKey) => CURRICULUM[degreeId]?.[courseKey] || null;
