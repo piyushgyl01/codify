@@ -121,4 +121,20 @@ export const MEMFG = [
       `k = −ln(1 − ${f1})/${t1}^${n} = ${r4(k)}. Then t = (−ln(1 − ${f2})/k)^(1/n) = ${r4(t2)} s.`,
       `import math\n# bisect for k from the first point, then for the time of the second\nn, t1, f1, f2 = ${n}, ${t1}, ${f1}, ${f2}\nf = lambda k, t: 1 - math.exp(-k * t ** n)\nlo, hi = 1e-30, 1.0\nfor _ in range(400):\n    m = (lo * hi) ** 0.5\n    lo, hi = (m, hi) if f(m, t1) < f1 else (lo, m)\nk = lo\nlo, hi = t1, t1 * 1e3\nfor _ in range(200):\n    m = (lo + hi) / 2\n    lo, hi = (m, hi) if f(k, m) < f2 else (lo, m)\nprint(lo)`);
   }),
+  SKILL('mfg.spc', 'Control charts: X̄ and R', 'An X̄ chart\'s limits sit at X̿ ± A₂R̄, where A₂ = 3/(d₂√n) and d₂ is the expected range of n standard normal values (2.059 for n = 4, 2.326 for 5, 2.534 for 6).', t => {
+    const n = t.pick([4, 5, 6]), d2 = { 4: 2.059, 5: 2.326, 6: 2.534 }[n], X = t.pick([10, 12.5, 20, 25, 50]), R = t.pick([0.02, 0.03, 0.05, 0.08]), ask = t.pick(['ucl', 'lcl', 'sigma']);
+    const A2 = 3 / (d2 * Math.sqrt(n)), ans = { ucl: X + A2 * R, lcl: X - A2 * R, sigma: R / d2 }[ask];
+    return num(`Subgroups of ${n} parts give a grand mean X̿ = ${X} mm and an average range R̄ = ${R} mm. What is ${{ ucl: 'the upper control limit of the X̄ chart, in mm', lcl: 'the lower control limit of the X̄ chart, in mm', sigma: 'the estimated process standard deviation R̄/d₂, in mm' }[ask]}? (Use d₂ = ${d2}; 4 significant figures)`, r4(ans),
+      `A₂ = 3/(d₂√n) = ${r4(A2)}. UCL = X̿ + A₂R̄ = ${r4(X + A2 * R)}, LCL = ${r4(X - A2 * R)}, σ̂ = R̄/d₂ = ${r4(R / d2)} mm.`,
+      `import math\n# d2 from first principles: the expected range of n standard normals, integral of 1 - F^n - (1 - F)^n\nn, X, R = ${n}, ${X}, ${R}\nPhi = lambda x: 0.5 * (1 + math.erf(x / math.sqrt(2)))\nN = 40000; h = 16 / N\nd2 = sum((1 - Phi(-8 + (i + 0.5) * h) ** n - (1 - Phi(-8 + (i + 0.5) * h)) ** n) * h for i in range(N))\nA2 = 3 / (d2 * math.sqrt(n))\nprint(${{ ucl: 'X + A2 * R', lcl: 'X - A2 * R', sigma: 'R / d2' }[ask]})`);
+  }),
+
+  SKILL('mfg.merchant', 'Orthogonal cutting: Merchant\'s model', 'Merchant assumed the shear plane sets itself to minimise cutting energy: φ = 45° + α/2 − β/2. The cutting force is then F_c = τ_s·w·t₀·cos(β − α)/(sin φ·cos(φ + β − α)).', t => {
+    const alpha = t.pick([0, 5, 10, 15]), mu = t.pick([0.5, 0.6, 0.7, 0.8]), tau = t.pick([250, 300, 400, 500]), w = t.pick([2, 3, 4]), t0 = t.pick([0.1, 0.15, 0.2, 0.25]), V = t.pick([60, 100, 150]), ask = t.pick(['phi', 'Fc', 'P']);
+    const beta = Math.atan(mu) * 180 / Math.PI, phi = 45 + alpha / 2 - beta / 2, rad = x => x * Math.PI / 180;
+    const Fc = tau * w * t0 * Math.cos(rad(beta - alpha)) / (Math.sin(rad(phi)) * Math.cos(rad(phi + beta - alpha))), P = Fc * V / 60 / 1000;
+    return num(`In orthogonal cutting with rake angle ${alpha}°, tool–chip friction coefficient ${mu}, work shear strength ${tau} MPa, width of cut ${w} mm and uncut chip thickness ${t0} mm at ${V} m/min, what is ${{ phi: 'the shear angle by Merchant\'s theory, in degrees', Fc: 'the cutting force, in N', P: 'the cutting power, in kW' }[ask]}? (4 significant figures)`, r4({ phi, Fc, P }[ask]),
+      `β = atan μ = ${r4(beta)}°; φ = 45 + α/2 − β/2 = ${r4(phi)}°. F_c = τ_s·w·t₀·cos(β − α)/(sin φ·cos(φ + β − α)) = ${r4(Fc)} N; power F_c·V = ${r4(P)} kW.`,
+      `import math\n# Merchant's principle: search the shear angle that minimises the cutting force (golden section)\nalpha, beta = math.radians(${alpha}), math.atan(${mu})\ntau, w, t0, V = ${tau}, ${w}, ${t0}, ${V}\nFc = lambda p: tau * w * t0 * math.cos(beta - alpha) / (math.sin(p) * math.cos(p + beta - alpha))\nlo, hi, g = 0.01, math.pi / 2 - (beta - alpha) - 0.01, (5 ** 0.5 - 1) / 2\nfor _ in range(200):\n    a, b = hi - g * (hi - lo), lo + g * (hi - lo)\n    lo, hi = (lo, b) if Fc(a) < Fc(b) else (a, hi)\np = (lo + hi) / 2\nprint(${{ phi: 'math.degrees(p)', Fc: 'Fc(p)', P: 'Fc(p) * V / 60 / 1000' }[ask]})`);
+  }),
 ];

@@ -33,6 +33,11 @@ const YAN = 'https://eng.libretexts.org/Bookshelves/Mechanical_Engineering/Intro
 const F1060 = `${OCW}/1-060-engineering-mechanics-ii-spring-2006/resources`;
 const F225 = `${OCW}/2-25-advanced-fluid-mechanics-fall-2013/pages`;
 const C6002 = `${OCW}/6-002-circuits-and-electronics-spring-2007/resources`;
+const AHTT = p => `https://ahtt.mit.edu/wp-content/uploads/2024/04/AHTTv600.pdf#page=${p}`;
+const E272 = `${OCW}/2-72-elements-of-mechanical-design-spring-2009/resources`;
+const FBS = p => `https://www.cds.caltech.edu/~murray/books/AM08/pdf/fbs-public_24Jul2020.pdf#page=${p}`;
+const NIST = 'https://www.itl.nist.gov/div898/handbook';
+const J1314 = `${OCW}/8-13-14-experimental-physics-i-ii-junior-lab-fall-2016-spring-2017/pages`;
 
 export const ME_READINGS = {
   'engineering-calculus-1': {
@@ -184,5 +189,55 @@ export const ME_READINGS = {
     6: r(`${LIEC}/Digital/DIGI_13.html`, 'Lessons in Electric Circuits Vol. IV Chapter 13 — sampling, ADCs and quantisation'),
     7: r('https://www.ti.com/lit/an/slva043b/slva043b.pdf', 'Texas Instruments SLVA043B — noise analysis in op-amp circuits (grounding and protection: see the gaps)'),
     8: r(`${OCW}/6-002-circuits-and-electronics-spring-2007/pages/exams/`, '6.002 quizzes and final — the cumulative check (no solutions are posted)'),
+  },
+  'heat-mass-transfer': {
+    1: r(AHTT(63), 'Lienhard and Lienhard, A Heat Transfer Textbook, Chapter 2 — conduction, thermal resistance and the overall heat-transfer coefficient'),
+    2: r(AHTT(155), 'A Heat Transfer Textbook Chapter 4 and §5.7 — conduction analysis, fins and shape factors'),
+    3: r(AHTT(207), 'A Heat Transfer Textbook Chapter 5 — transient conduction, with lumped capacity from §1.3'),
+    4: r('https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html', 'SciPy curve_fit — estimating h or k from a measured transient, with parameter uncertainty'),
+    5: r(AHTT(365), 'A Heat Transfer Textbook Chapters 6–8 — boundary layers, forced-convection correlations and natural convection'),
+    6: r(AHTT(557), 'A Heat Transfer Textbook Chapter 10 — radiative exchange, view factors and gray surfaces'),
+    7: r(AHTT(113), 'A Heat Transfer Textbook Chapter 3 — heat-exchanger design (Chapter 11 for mass transfer)'),
+    8: r(`${OCW}/10-302-transport-processes-fall-2004/pages/exams/`, '10.302 exams — the cumulative check (no solutions are posted)'),
+  },
+  'machine-elements-mechanical-design': {
+    1: r(`${E272}/mit2_72s09_lec02/`, '2.72 Lectures 1–2 — design principles, load fundamentals and error budgets'),
+    2: r(`${E272}/mit2_72s09_lec04/`, '2.72 Lecture 4 — fatigue fundamentals and modelling'),
+    3: r(`${E272}/mit2_72s09_lec03/`, '2.72 Lecture 3 — shafts: deformation, stresses and integration (Lecture 16 for machine vibration)'),
+    4: r(`${E272}/mit2_72s09_lec07/`, '2.72 Lectures 6–8 — constraint-based design and rolling, sliding and flexure bearings'),
+    5: r(`${E272}/mit2_72s09_lec13/`, '2.72 Lectures 12–13 — belt and friction drives, and gear kinematics, mechanics and selection'),
+    6: r(`${E272}/mit2_72s09_lec10/`, '2.72 Lectures 9–10 and 18 — interfaces, bolted joints, clutches and brakes'),
+    7: r(`${EGD}/standard-fits/`, 'Engineering Graphics and Design — standard fits for mating parts (lubrication and sealing: see the gaps)'),
+    8: r(`${OCW}/2-72-elements-of-mechanical-design-spring-2009/pages/projects/`, '2.72 lathe project — a complete machine designed, built and reviewed'),
+  },
+  'system-dynamics-feedback-control': {
+    1: r(FBS(73), 'Åström and Murray, Feedback Systems Chapter 3 — lumped models, state space and linearisation'),
+    2: r(FBS(299), 'Feedback Systems Chapter 9 — transfer functions, poles and zeros'),
+    3: r(FBS(153), 'Feedback Systems Chapters 5–6 — stability and time-response specifications'),
+    4: r(FBS(375), 'Feedback Systems Chapter 11 — PID control and tuning'),
+    5: r(FBS(343), 'Feedback Systems Chapter 10 — loop transfer functions, Nyquist and stability margins (Chapter 13 for robustness)'),
+    6: r(FBS(229), 'Feedback Systems Chapters 7–8 — reachability, state feedback, observability and observers'),
+    7: r(FBS(393), 'Feedback Systems §§11.4–11.5 — integral windup and digital implementation'),
+    8: r(FBS(435), 'Feedback Systems Chapter 13 — robust performance under uncertainty, for the release case'),
+  },
+  'engineering-probability-measurement-experimental-methods': {
+    1: r(`${NIST}/eda/section3/eda36.htm`, 'NIST/SEMATECH e-Handbook §1.3.6 — probability distributions'),
+    2: r(`${NIST}/prc/section1/prc1.htm`, 'NIST e-Handbook §7.1 — estimation, confidence intervals and hypothesis tests'),
+    3: r(`${NIST}/mpc/section3/mpc3.htm`, 'NIST e-Handbook §2.3 — calibration, traceability and bias'),
+    4: r(`${NIST}/mpc/section5/mpc5.htm`, 'NIST e-Handbook §2.5 — uncertainty analysis and budgets'),
+    5: r(`${NIST}/pmd/section4/pmd4.htm`, 'NIST e-Handbook §4.4 — fitting, residual analysis and model validation'),
+    6: r(`${NIST}/pri/section3/pri33.htm`, 'NIST e-Handbook §5.3.3 — choosing a design: full and fractional factorials'),
+    7: r(`${NIST}/pmc/section4/pmc4.htm`, 'NIST e-Handbook §6.4 — time series: smoothing, filtering and autocorrelation'),
+    8: r(`${J1314}/written-and-oral-report-resources/`, 'MIT Junior Lab report resources — writing and defending an experimental paper'),
+  },
+  'advanced-manufacturing-product-realization': {
+    1: r(`${EGD}/intro-to-geometric-dimensioning-tolerancing/`, 'Engineering Graphics and Design — datums, feature control frames and GD&T tolerance chains'),
+    2: r(`${M2008}/mit2_008_s25_lec07_pdf/`, '2.008 Lectures 5–7 — cutting mechanics, CNC practice and fixturing'),
+    3: r(`${M2008}/mit2_008_s25_lec20_pdf/`, '2.008 Lectures 20, 2–4 and 23 — forming, moulding, thermoforming and additive processes'),
+    4: r(`${NIST}/pmc/section1/pmc16.htm`, 'NIST e-Handbook §6.1.6 — process capability studies'),
+    5: r(`${M2008}/mit2_008_s25_lec09_pdf/`, '2.008 Lectures 8–10 — assembly, disassembly and joining'),
+    6: r(`${M2008}/mit2_008_s25_lec12_pdf/`, '2.008 Lecture 12 — statistical process control and quality planning'),
+    7: r(`${M2008}/mit2_008_s25_lec15_pdf/`, '2.008 Lectures 15–17 — supply chains, planning and manufacturing cost (sustainability: see the gaps)'),
+    8: r(`${M2008}/mit2_008_s25_lec18_pdf/`, '2.008 Lecture 18 — lean production: flow, waste and readiness for release'),
   },
 };
