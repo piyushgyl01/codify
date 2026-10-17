@@ -51,6 +51,13 @@ const MR = p => `https://hades.mech.northwestern.edu/images/7/7f/MR.pdf#page=${p
 const A16100 = `${OCW}/16-100-aerodynamics-fall-2005/resources`;
 const NGRC = 'https://www.grc.nasa.gov/www/k-12/airplane';
 const E260 = `${OCW}/2-60j-fundamentals-of-advanced-energy-conversion-spring-2020/resources`;
+const P1650 = `${OCW}/16-50-introduction-to-propulsion-systems-spring-2012/resources`;
+const S22081 = `${OCW}/22-081j-introduction-to-sustainable-energy-fall-2010/resources`;
+const R2238 = `${OCW}/22-38-probability-and-its-applications-to-reliability-quality-control-and-risk-assessment-fall-2005/resources`;
+const SE842 = `${OCW}/16-842-fundamentals-of-systems-engineering-fall-2015/resources`;
+const WG = 'https://openstax.org/books/writing-guide/pages';
+const KF = n => `https://github.com/rlabbe/Kalman-and-Bayesian-Filters-in-Python/blob/master/${n}.ipynb`;
+const UR = 'https://underactuated.mit.edu';
 
 export const ME_READINGS = {
   'engineering-calculus-1': {
@@ -322,5 +329,75 @@ export const ME_READINGS = {
     6: r(`${E260}/mit2_60s20_lec11/`, '2.60J Lecture 11 — batteries and energy storage'),
     7: r(`${E260}/mit2_60s20_lec22/`, '2.60J Lectures 12, 17, 18 and 22 — solar, geothermal and wind'),
     8: r(`${E260}/mit2_60s20_lec25/`, '2.60J Lecture 25 — energy storage, for the portfolio'),
+  },
+  'thermal-fluid-systems-energy-conversion': {
+    1: r('https://nptel.ac.in/courses/112106064', 'NPTEL, Design and Optimization of Energy Systems — course outline: loads, architectures and envelopes (its lectures are video only)'),
+    2: r(`${P1650}/mit16_50s12_lec25/`, '16.50 Lectures 24–25 — compressors, velocity triangles and performance maps (1.060 Lecture 18 for pumps)'),
+    3: r(AHTT(113), 'Lienhard, A Heat Transfer Textbook, Chapter 3 — heat-exchanger design and thermal integration'),
+    4: r(`${U16}/node67.html`, 'MIT Unified Thermodynamics notes §8.7 — combined cycles: an integrated cycle model'),
+    5: r(`${P1650}/mit16_50s12_lec20/`, '16.50 Lecture 20 — component matching and off-design operation'),
+    6: r(`${S22081}/mit22_081jf10_lec08b/`, '22.081J Toolbox 7 — economic feasibility: capital, operating cost and levelised cost'),
+    7: r('https://docs.scipy.org/doc/scipy/tutorial/optimize.html', 'SciPy optimisation tutorial — constrained optimisation of a system model'),
+    8: r(`${S22081}/mit22_081jf10_lec06a/`, '22.081J Toolbox 4 — systems analysis: scoping, simulation, economics and life cycle'),
+  },
+  'failure-reliability-safety-lifecycle-engineering': {
+    1: r(`${SAF}/mit16_63js16_lecnotes6/`, '16.63J Lectures 6–7 — CAST: finding root causes as system failures'),
+    2: r(`${DTP}/creep/index.php`, 'DoITPoMS: Creep Deformation of Metals (fatigue: 2.72 Lecture 4; fracture and corrosion: DoITPoMS)'),
+    3: r(`${NIST}/apr/apr.htm`, 'NIST/SEMATECH e-Handbook Chapter 8 — reliability distributions, censored data and confidence'),
+    4: r(`${R2238}/sec12_pra_struct/`, '22.38 §XII — event-tree and fault-tree analysis (§I.2 for FMEA)'),
+    5: r(`${R2238}/sec9_reliability/`, '22.38 §IX — series, parallel and standby redundancy, and stress–strength'),
+    6: r(`${NIST}/apr/section1/apr1.htm`, 'NIST e-Handbook §8.1 — repairable systems, availability and maintenance'),
+    7: r('https://sre.google/sre-book/managing-incidents/', 'Google SRE book — managing incidents: response, communication and learning'),
+    8: r(`${R2238}/sec10_bayes_updt/`, '22.38 §X — Bayesian updating of failure rates as evidence arrives'),
+  },
+  'engineering-practice-ethics-economics-communication-leadership': {
+    1: r('https://www.nspe.org/career-growth/ethics/code-ethics', 'NSPE Code of Ethics for Engineers — duties, standards and the limits of licensure'),
+    2: r('https://designjustice.mitpress.mit.edu/', 'Costanza-Chock, Design Justice (open access) — who a design serves and who it burdens'),
+    3: r('https://nvlpubs.nist.gov/nistpubs/Legacy/BSS/nbsbuildingscience143.pdf', 'NBS investigation of the Hyatt Regency walkway collapse — a hazard nobody escalated'),
+    4: r(`${WG}/6-5-writing-process-creating-a-proposal`, 'Writing Guide §6.5 — writing a decision memo'),
+    5: r('https://openstax.org/books/principles-finance/pages/7-1-now-versus-later-concepts', 'OpenStax Principles of Finance Chapter 7 — the time value of money and life-cycle cost'),
+    6: r('https://openstax.org/books/organizational-behavior/pages/14-introduction', 'OpenStax Organizational Behavior Chapter 14 — conflict and negotiation'),
+    7: r(`${WG}/19-7-spotlight-on-delivery-public-speaking`, 'Writing Guide §19.7 — presenting to a technical and public audience'),
+    8: r(`${OCW}/esd-932-engineering-ethics-spring-2006/pages/assignments/`, 'ESD.932 assignments — case analyses and position papers on engineering ethics'),
+  },
+  'capstone-design-2-build-verify-validate-defend': {
+    1: r(NASA(143), 'NASA Systems Engineering Handbook §6.5 — configuration management: the design baseline'),
+    2: r(`${SE842}/mit16_842f15_ses_8_sys_int/`, '16.842 Session 8 — integration and interface management'),
+    3: r(NASA(88), 'NASA SE Handbook §5.3 — product verification: procedures and traceability'),
+    4: r(NASA(155), 'NASA SE Handbook §6.7 — technical reviews, including the test-readiness review'),
+    5: r(`${SAF}/mit16_63js16_lecnotes14/`, '16.63J Lectures 14–15 — design for safety, after a failure'),
+    6: r(NASA(99), 'NASA SE Handbook §5.4 — product validation with stakeholders'),
+    7: r(`${SE842}/mit16_842f15_ses_10_com_opr/`, '16.842 Session 10 — commissioning, operations and handover'),
+    8: r(`${WG}/19-5-writing-process-writing-to-speak`, 'Writing Guide §19.5 — preparing the public demonstration and defence'),
+  },
+  'autonomous-machines-perception-estimation-control': {
+    1: r(`${UR}/stochastic.html`, 'Tedrake, Underactuated Robotics Chapter 6 — systems with stochasticity: probabilistic state and noise'),
+    2: r(KF('04-One-Dimensional-Kalman-Filters'), 'Labbe, Kalman and Bayesian Filters in Python, Chapters 2–4 and 6 — Bayes filters and Kalman filters'),
+    3: r('https://szeliski.org/Book/', 'Szeliski, Computer Vision: Algorithms and Applications (free PDF), Chapters 2, 11 and 12 — image formation, calibration and stereo'),
+    4: r(`${UR}/state_estimation.html`, 'Underactuated Robotics Chapter 19 — state estimation'),
+    5: r(KF('12-Particle-Filters'), 'Labbe Chapter 12 — particle filters and data association (loop closure: see the gaps)'),
+    6: r(`${UR}/robust.html`, 'Underactuated Robotics Chapter 13 — robust and stochastic control'),
+    7: r(`${SAF}/mit16_63js16_lecnotes8/`, '16.63J Lectures 8–9 — hazard analysis for monitors, recovery and human override'),
+    8: r(`${UR}/output_feedback.html`, 'Underactuated Robotics Chapter 15 — output feedback: closing the loop on estimates'),
+  },
+  'propulsion-flight-systems-design': {
+    1: r(`${P1650}/mit16_50s12_lec2/`, '16.50 Lectures 1–2 — the rocket equation, staging, aircraft range and climb'),
+    2: r(`${U16}/node81.html`, 'MIT Unified Thermodynamics notes §11.2 — thermal and propulsive efficiency'),
+    3: r(`${P1650}/mit16_50s12_lec22/`, '16.50 Lectures 22–29 — inlets, nozzles, compressors and turbines'),
+    4: r(`${P1650}/mit16_50s12_lec18/`, '16.50 Lectures 18–21 — turbojet modelling, design parameters, matching and turbofans'),
+    5: r(`${P1650}/mit16_50s12_lec7/`, '16.50 Lectures 6–8 — thermal rockets and nozzle area ratio'),
+    6: r(`${P1650}/mit16_50s12_lec14/`, '16.50 Lectures 13–15 and 28–29 — casings, heat transfer, ablative and turbine cooling'),
+    7: r(`${P1650}/mit16_50s12_lec20/`, '16.50 Lecture 20 — component matching and off-design operation'),
+    8: r(`${P1650}/mit16_50s12_final_sol/`, '16.50 2011 final quiz with solutions — the cumulative check'),
+  },
+  'renewable-energy-thermal-storage-decarbonization': {
+    1: r(`${S22081}/mit22_081jf10_lec06b/`, '22.081J Toolbox 5 — matching supply, demand and storage over time'),
+    2: r(`${S22081}/mit22_081jf10_lec05b/`, '22.081J — wind power fundamentals (Lectures 16b and 17 for geothermal and solar)'),
+    3: r(`${S22081}/mit22_081jf10_lec21b/`, '22.081J — electrochemical approaches to energy storage'),
+    4: r(`${S22081}/mit22_081jf10_lec05a/`, '22.081J Toolbox 3 — conversion, transmission and storage: sizing to match supply and demand'),
+    5: r(`${S22081}/mit22_081jf10_lec22a/`, '22.081J — buildings, the neglected solution (Lecture 20a for transport)'),
+    6: r(`${S22081}/mit22_081jf10_lec20b/`, '22.081J — life-cycle analysis, land use and externalities'),
+    7: r(`${S22081}/mit22_081jf10_lec22b/`, '22.081J Toolbox 9 — probabilistic risk analysis and uncertainty'),
+    8: r(`${S22081}/mit22_081jf10_midterm1_sol/`, '22.081J take-home exam 1 with solutions — the cumulative check'),
   },
 };
